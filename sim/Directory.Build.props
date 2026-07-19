@@ -1,0 +1,9 @@
+<Project>
+  <!-- Keep obj/bin out of the project folders: they are consumed as Unity
+       local packages, and stray generated .cs under obj/ would get compiled
+       by Unity a second time. -->
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory).artifacts/obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory).artifacts/bin/$(MSBuildProjectName)/</BaseOutputPath>
+  </PropertyGroup>
+</Project>

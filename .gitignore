@@ -2,8 +2,8 @@
 reference/
 
 # .NET
-sim/**/bin/
-sim/**/obj/
+sim/.artifacts/
+
 server/**/bin/
 server/**/obj/
 *.user

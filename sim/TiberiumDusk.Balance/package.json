@@ -1,0 +1,11 @@
+{
+  "name": "com.tiberiumdusk.balance",
+  "version": "0.1.0",
+  "displayName": "Tiberium Dusk — Content Loader",
+  "description": "Loads and compiles data/*.json into sim RulesData. Depends on Newtonsoft.Json (com.unity.nuget.newtonsoft-json inside Unity, NuGet in dotnet).",
+  "unity": "6000.0",
+  "dependencies": {
+    "com.tiberiumdusk.sim": "0.1.0",
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  }
+}

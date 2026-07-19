@@ -1,0 +1,17 @@
+{
+    "name": "TiberiumDusk.Client",
+    "rootNamespace": "TiberiumDusk.Client",
+    "references": [
+        "TiberiumDusk.Sim",
+        "TiberiumDusk.Balance"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
