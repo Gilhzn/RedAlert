@@ -80,6 +80,10 @@ namespace TiberiumDusk.Client
         private GameObject _selectionRing;
         private bool _isAircraft;
         private bool _cloaked;
+        private int _shownRank;
+        private GameObject[] _chevrons = new GameObject[2];
+        private GameObject _smoke;
+        private bool _smokeOn;
         private readonly System.Collections.Generic.List<MeshRenderer> _renderers =
             new System.Collections.Generic.List<MeshRenderer>();
 
@@ -120,6 +124,63 @@ namespace TiberiumDusk.Client
                 body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
                 body.transform.localScale = new Vector3(0.22f, 0.22f, 0.22f);
                 body.transform.localPosition = new Vector3(0f, 0.22f, 0f);
+            }
+            else if (entity.Spec.IsAircraft)
+            {
+                // Fuselage + swept wings.
+                body = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                body.transform.localScale = new Vector3(0.28f, 0.12f, 0.7f);
+                body.transform.localPosition = new Vector3(0f, 0.2f, 0f);
+                var wings = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                wings.transform.SetParent(transform, worldPositionStays: false);
+                wings.transform.localScale = new Vector3(0.85f, 0.05f, 0.25f);
+                wings.transform.localPosition = new Vector3(0f, 0.2f, -0.08f);
+                wings.GetComponent<MeshRenderer>().sharedMaterial = MaterialFactory.Solid(color * 0.8f);
+                Destroy(wings.GetComponent<Collider>());
+            }
+            else if (entity.Spec.Mobile != null && entity.Spec.Mobile.Locomotor == LocomotorId.Walker)
+            {
+                // Mech: raised torso on two leg blocks.
+                body = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                body.transform.localScale = new Vector3(0.45f, 0.3f, 0.55f);
+                body.transform.localPosition = new Vector3(0f, 0.42f, 0f);
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    var leg = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    leg.transform.SetParent(transform, worldPositionStays: false);
+                    leg.transform.localScale = new Vector3(0.12f, 0.3f, 0.18f);
+                    leg.transform.localPosition = new Vector3(side * 0.17f, 0.14f, 0f);
+                    leg.GetComponent<MeshRenderer>().sharedMaterial = MaterialFactory.Solid(color * 0.7f);
+                    Destroy(leg.GetComponent<Collider>());
+                }
+            }
+            else if (entity.Spec.Harvester != null)
+            {
+                // Harvester: heavy hull + collection bin.
+                body = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                body.transform.localScale = new Vector3(0.62f, 0.3f, 0.8f);
+                body.transform.localPosition = new Vector3(0f, 0.22f, 0f);
+                var bin = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                bin.transform.SetParent(transform, worldPositionStays: false);
+                bin.transform.localScale = new Vector3(0.5f, 0.22f, 0.35f);
+                bin.transform.localPosition = new Vector3(0f, 0.48f, -0.18f);
+                bin.GetComponent<MeshRenderer>().sharedMaterial =
+                    MaterialFactory.Emissive(new Color(0.15f, 0.3f, 0.18f), new Color(0.2f, 0.8f, 0.35f));
+                Destroy(bin.GetComponent<Collider>());
+            }
+            else if (entity.Spec.DeploysInto != null && entity.Spec.Harvester == null
+                     && entity.Spec.Id.Contains("mcv"))
+            {
+                // MCV: bulky chassis + antenna mast.
+                body = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                body.transform.localScale = new Vector3(0.7f, 0.4f, 0.95f);
+                body.transform.localPosition = new Vector3(0f, 0.28f, 0f);
+                var mast = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                mast.transform.SetParent(transform, worldPositionStays: false);
+                mast.transform.localScale = new Vector3(0.03f, 0.3f, 0.03f);
+                mast.transform.localPosition = new Vector3(0.2f, 0.75f, -0.3f);
+                mast.GetComponent<MeshRenderer>().sharedMaterial = MaterialFactory.Solid(color * 0.6f);
+                Destroy(mast.GetComponent<Collider>());
             }
             else
             {
@@ -200,6 +261,8 @@ namespace TiberiumDusk.Client
         public void PushSimState(Entity entity)
         {
             ApplyVisibility(entity);
+            ApplyRank(entity);
+            ApplyDamageSmoke(entity);
             _prevPos = _currPos;
             _prevRot = _currRot;
             _currPos = ComputeWorldPos(entity.Pos);
@@ -248,6 +311,57 @@ namespace TiberiumDusk.Client
             }
             float scale = entity.IsCloaked && !enemy ? 0.8f : 1f;
             transform.localScale = new Vector3(scale, scale, scale);
+        }
+
+        /// <summary>Gold pips over veteran units.</summary>
+        private void ApplyRank(Entity entity)
+        {
+            if (entity.Rank == _shownRank) return;
+            _shownRank = entity.Rank;
+            for (int i = 0; i < _chevrons.Length; i++)
+            {
+                bool want = i < entity.Rank;
+                if (want && _chevrons[i] == null)
+                {
+                    var pip = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    pip.transform.SetParent(transform, worldPositionStays: false);
+                    pip.transform.localScale = new Vector3(0.09f, 0.09f, 0.09f);
+                    pip.transform.localPosition = new Vector3(-0.12f + i * 0.24f, 0.95f, 0f);
+                    pip.transform.localRotation = Quaternion.Euler(45f, 0f, 45f);
+                    pip.GetComponent<MeshRenderer>().sharedMaterial =
+                        MaterialFactory.Emissive(new Color(0.6f, 0.5f, 0.1f), new Color(1f, 0.85f, 0.25f));
+                    Destroy(pip.GetComponent<Collider>());
+                    _chevrons[i] = pip;
+                }
+                else if (!want && _chevrons[i] != null)
+                {
+                    Destroy(_chevrons[i]);
+                    _chevrons[i] = null;
+                }
+            }
+        }
+
+        /// <summary>Dark smoke marker on badly damaged things.</summary>
+        private void ApplyDamageSmoke(Entity entity)
+        {
+            bool want = entity.Hp < entity.Spec.Health.Max * 2 / 5;
+            if (want == _smokeOn) return;
+            _smokeOn = want;
+            if (want && _smoke == null)
+            {
+                _smoke = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                _smoke.transform.SetParent(transform, worldPositionStays: false);
+                float size = entity.Spec.IsStructure ? 0.5f : 0.24f;
+                _smoke.transform.localScale = new Vector3(size, size * 0.8f, size);
+                _smoke.transform.localPosition = new Vector3(0.1f, entity.Spec.IsStructure ? 0.95f : 0.6f, 0.1f);
+                _smoke.GetComponent<MeshRenderer>().sharedMaterial =
+                    MaterialFactory.Solid(new Color(0.12f, 0.11f, 0.11f));
+                Destroy(_smoke.GetComponent<Collider>());
+            }
+            else if (_smoke != null)
+            {
+                _smoke.SetActive(want);
+            }
         }
 
         private static Quaternion FacingToRotation(byte facing)

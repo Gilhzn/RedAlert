@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using TiberiumDusk.Balance;
 using TiberiumDusk.Sim.Data;
 using TiberiumDusk.Sim.Math;
 using TiberiumDusk.Sim.Systems;
@@ -17,11 +16,14 @@ namespace TiberiumDusk.Client
         private const float Width = 250f;
 
         private static readonly ProductionQueue[] Tabs =
-            { ProductionQueue.Structure, ProductionQueue.Infantry, ProductionQueue.Vehicle };
-        private static readonly string[] TabLocaleKeys = { "ui.tab.structures", "ui.tab.infantry", "ui.tab.vehicles" };
+        {
+            ProductionQueue.Structure, ProductionQueue.Infantry,
+            ProductionQueue.Vehicle, ProductionQueue.Aircraft,
+        };
+        private static readonly string[] TabLocaleKeys =
+            { "ui.tab.structures", "ui.tab.infantry", "ui.tab.vehicles", "ui.tab.aircraft" };
 
         private GameRunner _runner;
-        private Dictionary<string, string> _locale;
         private int _activeTab;
         private float _displayedCredits;
 
@@ -36,13 +38,12 @@ namespace TiberiumDusk.Client
         private void Start()
         {
             _runner = FindFirstObjectByType<GameRunner>();
-            _locale = LocaleLoader.Load(GameRunner.ResolveDataDirectory(), "en");
             _displayedCredits = _runner.Game.World.Players[GameRunner.LocalPlayerId].Credits;
             _ghostValid = MaterialFactory.Unlit(new Color(0.2f, 1f, 0.33f, 1f));
             _ghostInvalid = MaterialFactory.Unlit(new Color(1f, 0.25f, 0.2f, 1f));
         }
 
-        private string T(string key) => _locale.TryGetValue(key, out var text) ? text : key;
+        private string T(string key) => Loc.T(key);
 
         private void Update()
         {
@@ -189,8 +190,10 @@ namespace TiberiumDusk.Client
                     progress = total > 0 ? (float)queue.ProgressMilli / total : 0f;
                 }
 
-                string label = _locale.TryGetValue($"structure.{spec.Id}", out var name) ? name
-                    : _locale.TryGetValue($"unit.{spec.Id}", out name) ? name : spec.Id;
+                string label = Loc.Raw($"structure.{spec.Id}");
+                if (label.StartsWith("structure.")) label = Loc.Raw($"unit.{spec.Id}");
+                if (label.StartsWith("unit.")) label = spec.Id;
+                if (Loc.IsRtl) label = Loc.Bidi(label);
                 string suffix = isActive
                     ? (queue.ReadyForPlacement ? $"  [{T("ui.ready")}]" : $"  {(int)(progress * 100)}%")
                     : $"  ${spec.Buildable.Cost}";

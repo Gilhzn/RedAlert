@@ -11,6 +11,9 @@ namespace TiberiumDusk.Sim.Systems
     /// </summary>
     public sealed class CombatSystem
     {
+        /// <summary>View hook: (weaponIndex, muzzle position) on every shot.</summary>
+        public event System.Action<int, LeptonPos> WeaponFired;
+
         private readonly World _world;
         private readonly MovementSystem _movement;
 
@@ -198,6 +201,7 @@ namespace TiberiumDusk.Sim.Systems
 
             if (entity.WeaponCooldown > 0) return;
             entity.WeaponCooldown = weapon.Rof;
+            WeaponFired?.Invoke(weapon.Index, entity.Pos);
             if (entity.Spec.AircraftAmmo > 0) entity.Ammo--;
             // Firing breaks the cloak.
             if (entity.Spec.Cloakable || entity.IsCloaked)

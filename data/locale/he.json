@@ -87,5 +87,20 @@
   "sw.emp_blast": "פולס אלקטרומגנטי",
   "sw.hunter_seeker": "צייד-מחפש",
   "ui.storm_warning": "סופת יונים מתקרבת",
-  "ui.storm_active": "סופת יונים"
+  "ui.storm_active": "סופת יונים",
+  "menu.title": "דמדומי טיבריום",
+  "menu.subtitle": "משחק אסטרטגיה בזמן אמת",
+  "menu.start": "התחל סקירמיש",
+  "menu.difficulty": "רמת קושי",
+  "menu.difficulty.easy": "קל",
+  "menu.difficulty.normal": "רגיל",
+  "menu.difficulty.hard": "קשה",
+  "menu.language": "שפה / Language",
+  "hud.title": "דמדומי טיבריום — סקירמיש",
+  "hud.controls": "קליק שמאלי בחירה · ימני תנועה/תקיפה · A+ימני התקפה בתנועה · S עצירה · D פריסה · Del מכירה",
+  "ui.victory": "המשימה הושלמה",
+  "ui.defeat": "המשימה נכשלה",
+  "ui.replay_saved": "הריפליי נשמר:",
+  "ui.exit_hint": "צא ממצב Play כדי להתחיל מחדש",
+  "ui.tab.aircraft": "מטוסים"
 }

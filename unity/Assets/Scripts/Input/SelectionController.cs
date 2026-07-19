@@ -195,9 +195,9 @@ namespace TiberiumDusk.Client
             // Debug HUD (polished HUD arrives in Phase 8).
             GUI.color = new Color(0.2f, 1f, 0.33f);
             GUI.Label(new Rect(12, 8, 700, 22),
-                $"TIBERIUM DUSK — SKIRMISH vs AI   tick {_runner.Game.CurrentTick}   selected {_selected.Count}");
+                Loc.T("hud.title") + $"   tick {_runner.Game.CurrentTick}   ({_selected.Count})");
             GUI.Label(new Rect(12, 30, 700, 22),
-                "LMB select / drag-box  ·  RMB move  ·  S stop  ·  WASD pan  ·  MMB drag  ·  wheel zoom  ·  Q/E rotate");
+                Loc.T("hud.controls"));
             GUI.color = Color.white;
         }
 

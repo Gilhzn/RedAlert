@@ -43,6 +43,8 @@ namespace TiberiumDusk.Editor
             game.AddComponent<FogView>();
             game.AddComponent<MinimapUI>();
             game.AddComponent<GameOverUI>();
+            game.AddComponent<AudioManager>();
+            game.AddComponent<MainMenuUI>();
 
             var cameraGo = new GameObject("Main Camera");
             cameraGo.tag = "MainCamera";

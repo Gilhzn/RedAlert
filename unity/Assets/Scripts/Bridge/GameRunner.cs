@@ -21,6 +21,8 @@ namespace TiberiumDusk.Client
         public Game Game { get; private set; }
         /// <summary>0..1 progress between the last two ticks, for view interpolation.</summary>
         public float Alpha { get; private set; }
+        /// <summary>False until the player presses START in the menu.</summary>
+        public bool MatchStarted { get; private set; }
 
         public event System.Action AfterTick;
 
@@ -31,6 +33,7 @@ namespace TiberiumDusk.Client
 
         private void Awake()
         {
+            Loc.Init(ResolveDataDirectory());
             var rules = RulesCompiler.CompileFromDirectory(ResolveDataDirectory());
             var map = DemoMap.Build(rules);
             var settings = new TiberiumDusk.Sim.Data.GameSettings
@@ -41,14 +44,21 @@ namespace TiberiumDusk.Client
             Game = new Game(rules, map, seed: 20260719UL, settings);
             Game.Recorder = new ReplayLog { Seed = 20260719UL, IonStormsEnabled = true, CratesEnabled = true };
             DemoMap.SpawnUnits(Game);
-            // Skirmish opponent: the Serpent AI.
-            Game.AI.Enable(1, TiberiumDusk.Sim.Systems.AIDifficulty.Normal);
 
             Terrain = TerrainView.Build(map, rules, transform);
         }
 
+        /// <summary>Called by the main menu; the sim only ticks after this.</summary>
+        public void StartMatch(TiberiumDusk.Sim.Systems.AIDifficulty difficulty)
+        {
+            if (MatchStarted) return;
+            Game.AI.Enable(1, difficulty);
+            MatchStarted = true;
+        }
+
         private void Update()
         {
+            if (!MatchStarted) return;
             _accumulator += Time.deltaTime;
             while (_accumulator >= TickSeconds)
             {

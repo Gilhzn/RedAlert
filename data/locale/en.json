@@ -87,5 +87,20 @@
   "sw.emp_blast": "EM Pulse",
   "sw.hunter_seeker": "Hunter-Seeker",
   "ui.storm_warning": "ION STORM APPROACHING",
-  "ui.storm_active": "ION STORM"
+  "ui.storm_active": "ION STORM",
+  "menu.title": "TIBERIUM DUSK",
+  "menu.subtitle": "A real-time strategy game",
+  "menu.start": "START SKIRMISH",
+  "menu.difficulty": "AI Difficulty",
+  "menu.difficulty.easy": "Easy",
+  "menu.difficulty.normal": "Normal",
+  "menu.difficulty.hard": "Hard",
+  "menu.language": "Language / שפה",
+  "hud.title": "TIBERIUM DUSK — SKIRMISH",
+  "hud.controls": "LMB select · RMB move/attack · A+RMB attack-move · S stop · D deploy · Del sell · WASD pan · Q/E rotate",
+  "ui.victory": "MISSION ACCOMPLISHED",
+  "ui.defeat": "MISSION FAILED",
+  "ui.replay_saved": "Replay saved:",
+  "ui.exit_hint": "Exit Play mode to restart",
+  "ui.tab.aircraft": "Aircraft"
 }

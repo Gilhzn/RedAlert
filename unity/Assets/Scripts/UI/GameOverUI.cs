@@ -45,17 +45,17 @@ namespace TiberiumDusk.Client
             GUI.color = victory ? new Color(0.2f, 1f, 0.33f) : new Color(1f, 0.25f, 0.2f);
             var style = new GUIStyle(GUI.skin.label) { fontSize = 64, alignment = TextAnchor.MiddleCenter };
             GUI.Label(new Rect(0, Screen.height / 2f - 80, Screen.width, 90),
-                victory ? "MISSION ACCOMPLISHED" : "MISSION FAILED", style);
+                victory ? Loc.T("ui.victory") : Loc.T("ui.defeat"), style);
 
             GUI.color = Color.white;
             var small = new GUIStyle(GUI.skin.label) { fontSize = 18, alignment = TextAnchor.MiddleCenter };
             if (_replayPath != null)
             {
                 GUI.Label(new Rect(0, Screen.height / 2f + 20, Screen.width, 30),
-                    "Replay saved: " + _replayPath, small);
+                    Loc.T("ui.replay_saved") + " " + _replayPath, small);
             }
             GUI.Label(new Rect(0, Screen.height / 2f + 50, Screen.width, 30),
-                "Exit Play mode to restart", small);
+                Loc.T("ui.exit_hint"), small);
         }
     }
 }

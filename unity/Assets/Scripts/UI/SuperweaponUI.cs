@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using TiberiumDusk.Balance;
 using TiberiumDusk.Sim.Data;
 using TiberiumDusk.Sim.Math;
 using UnityEngine;
@@ -13,7 +12,6 @@ namespace TiberiumDusk.Client
     public sealed class SuperweaponUI : MonoBehaviour
     {
         private GameRunner _runner;
-        private Dictionary<string, string> _locale;
         private int _targetingIndex = -1;
 
         private static readonly Color Phosphor = new Color(0.2f, 1f, 0.33f);
@@ -21,10 +19,9 @@ namespace TiberiumDusk.Client
         private void Start()
         {
             _runner = FindFirstObjectByType<GameRunner>();
-            _locale = LocaleLoader.Load(GameRunner.ResolveDataDirectory(), "en");
         }
 
-        private string T(string key) => _locale.TryGetValue(key, out var text) ? text : key;
+        private string T(string key) => Loc.T(key);
 
         public bool IsTargeting => _targetingIndex >= 0;
 
