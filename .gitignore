@@ -1,0 +1,30 @@
+# === EA-copyrighted reference data — NEVER commit ===
+reference/
+
+# .NET
+sim/**/bin/
+sim/**/obj/
+server/**/bin/
+server/**/obj/
+*.user
+.vs/
+
+# Unity — commit only Assets/, Packages/, ProjectSettings/
+unity/[Ll]ibrary/
+unity/[Tt]emp/
+unity/[Oo]bj/
+unity/[Bb]uild/
+unity/[Bb]uilds/
+unity/[Ll]ogs/
+unity/[Uu]serSettings/
+unity/[Mm]emoryCaptures/
+unity/*.csproj
+unity/*.sln
+unity/.vsconfig
+
+# OS / editors
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

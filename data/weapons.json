@@ -1,0 +1,8 @@
+{
+  "$comment": "Weapons: damage, rof (frames between shots @15tps), range (cells, fixed as n*256 leptons), projectile behavior. Warhead ids reference warheads.json.",
+  "weapons": [
+    { "id": "assault_rifle", "damage": 8, "rof": 21, "range": 4, "warhead": "small_arms", "projectile": { "kind": "instant" } },
+    { "id": "cannon_120", "damage": 70, "rof": 80, "range": 6.75, "warhead": "armor_piercing", "projectile": { "kind": "direct", "speed": 80 } },
+    { "id": "raider_gun", "damage": 40, "rof": 55, "range": 4, "warhead": "small_arms", "projectile": { "kind": "instant" } }
+  ]
+}

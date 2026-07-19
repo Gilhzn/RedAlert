@@ -1,0 +1,8 @@
+{
+  "$comment": "Warheads: verses = damage % vs armor classes [none, wood, light, heavy, concrete]; spread = falloff step; special flags land with combat phase.",
+  "warheads": [
+    { "id": "small_arms", "spread": 3, "verses": [100, 60, 40, 25, 10], "proneDamage": 70 },
+    { "id": "high_explosive", "spread": 4, "verses": [100, 85, 70, 35, 28], "wall": true, "wood": true },
+    { "id": "armor_piercing", "spread": 3, "verses": [25, 65, 75, 100, 60], "wall": true, "wood": true }
+  ]
+}

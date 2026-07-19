@@ -1,0 +1,17 @@
+{
+  "game.title": "דמדומי טיבריום",
+  "faction.dominion": "הדומיניון",
+  "faction.serpent": "מסדר הנחש",
+  "resource.crystal.green": "ורידיום",
+  "resource.crystal.blue": "אזורייט",
+  "unit.dm_rifle_infantry": "חייל רובאי",
+  "unit.dm_mbt_walker": "וורדן מק-1",
+  "unit.so_scout_buggy": "באגי פשיטה",
+  "eva.construction_complete": "הבנייה הושלמה.",
+  "eva.unit_ready": "היחידה מוכנה.",
+  "eva.insufficient_funds": "אין מספיק כסף.",
+  "eva.base_under_attack": "הבסיס מותקף.",
+  "eva.low_power": "מחסור בחשמל.",
+  "eva.silos_needed": "נדרשים מחסני אחסון.",
+  "eva.unit_lost": "יחידה אבדה."
+}

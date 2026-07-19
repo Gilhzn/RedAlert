@@ -1,0 +1,17 @@
+{
+  "game.title": "Tiberium Dusk",
+  "faction.dominion": "The Dominion",
+  "faction.serpent": "The Serpent Order",
+  "resource.crystal.green": "Veridium",
+  "resource.crystal.blue": "Azurite",
+  "unit.dm_rifle_infantry": "Rifle Trooper",
+  "unit.dm_mbt_walker": "Warden Mk.I",
+  "unit.so_scout_buggy": "Raider Buggy",
+  "eva.construction_complete": "Construction complete.",
+  "eva.unit_ready": "Unit ready.",
+  "eva.insufficient_funds": "Insufficient funds.",
+  "eva.base_under_attack": "Base under attack.",
+  "eva.low_power": "Low power.",
+  "eva.silos_needed": "Storage silos needed.",
+  "eva.unit_lost": "Unit lost."
+}

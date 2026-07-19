@@ -1,0 +1,40 @@
+{
+  "$comment": "Unit blueprints — component composition per unit. Baseline numbers derive from docs/research/units-and-tech.md. Full rosters land in Phase 5; these three exercise the loader and early phases.",
+  "units": [
+    {
+      "id": "dm_rifle_infantry",
+      "faction": "dominion",
+      "components": {
+        "Health": { "max": 125, "armor": "none" },
+        "Mobile": { "speed": 5, "locomotor": "foot", "rot": 8 },
+        "Armament": { "weapon": "assault_rifle" },
+        "Buildable": { "cost": 120, "queue": "infantry", "techLevel": 1, "prerequisites": ["barracks"] },
+        "Crushable": {},
+        "TiberiumVulnerable": {}
+      }
+    },
+    {
+      "id": "dm_mbt_walker",
+      "faction": "dominion",
+      "components": {
+        "Health": { "max": 400, "armor": "heavy" },
+        "Mobile": { "speed": 4, "locomotor": "walker", "rot": 5 },
+        "Turreted": { "rot": 5 },
+        "Armament": { "weapon": "cannon_120" },
+        "Buildable": { "cost": 800, "queue": "vehicle", "techLevel": 3, "prerequisites": ["factory"] },
+        "Crusher": {}
+      }
+    },
+    {
+      "id": "so_scout_buggy",
+      "faction": "serpent",
+      "components": {
+        "Health": { "max": 220, "armor": "light" },
+        "Mobile": { "speed": 10, "locomotor": "wheeled", "rot": 7 },
+        "Armament": { "weapon": "raider_gun" },
+        "Buildable": { "cost": 500, "queue": "vehicle", "techLevel": 2, "prerequisites": ["factory"] },
+        "Crusher": {}
+      }
+    }
+  ]
+}

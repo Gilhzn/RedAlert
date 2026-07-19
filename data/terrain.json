@@ -1,0 +1,13 @@
+{
+  "$comment": "Speed % per land type per locomotor (0 = impassable) and buildability — baseline table from docs/research/mechanics.md §3.",
+  "landTypes": {
+    "clear":    { "buildable": true,  "speed": { "foot": 90,  "tracked": 70,  "wheeled": 70,  "walker": 70,  "hover": 100, "amphibious": 80, "subterranean": 100 } },
+    "rough":    { "buildable": true,  "speed": { "foot": 80,  "tracked": 60,  "wheeled": 40,  "walker": 60,  "hover": 100, "amphibious": 40, "subterranean": 100 } },
+    "road":     { "buildable": true,  "speed": { "foot": 100, "tracked": 100, "wheeled": 100, "walker": 100, "hover": 100, "amphibious": 100, "subterranean": 100 } },
+    "water":    { "buildable": false, "speed": { "foot": 0,   "tracked": 0,   "wheeled": 0,   "walker": 0,   "hover": 100, "amphibious": 80, "subterranean": 0 } },
+    "cliff":    { "buildable": false, "speed": { "foot": 0,   "tracked": 0,   "wheeled": 0,   "walker": 0,   "hover": 0,   "amphibious": 0,  "subterranean": 0 } },
+    "crystal":  { "buildable": false, "speed": { "foot": 90,  "tracked": 70,  "wheeled": 50,  "walker": 70,  "hover": 100, "amphibious": 50, "subterranean": 100 } },
+    "ice":      { "buildable": false, "speed": { "foot": 50,  "tracked": 80,  "wheeled": 50,  "walker": 80,  "hover": 100, "amphibious": 50, "subterranean": 0 } }
+  },
+  "slopes": { "trackedUphill": 50, "trackedDownhill": 110, "wheeledUphill": 50, "wheeledDownhill": 120 }
+}
