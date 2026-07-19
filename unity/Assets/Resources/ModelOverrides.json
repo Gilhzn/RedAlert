@@ -1,3 +1,54 @@
 {
-  "_readme": "Per-model tuning, all optional. Example: \"nx_harvester\": { \"scale\": 1.2, \"rotY\": 180, \"y\": 0.05 }"
+ "_readme": "Per-model tuning, all optional: scale (multiplies auto-fit), rotY (yaw fix, deg), y (height offset), texture (Resources path force-bound to all renderers).",
+ "nx_conyard": {
+  "texture": "Models/spacebits_texture"
+ },
+ "nx_refinery": {
+  "texture": "Models/spacebits_texture"
+ },
+ "nx_silo": {
+  "texture": "Models/spacebits_texture"
+ },
+ "nx_harvester": {
+  "texture": "Models/spacebits_texture"
+ },
+ "nx_mcv": {
+  "texture": "Models/spacebits_texture"
+ },
+ "dm_power_plant": {
+  "texture": "Models/spacebits_texture"
+ },
+ "so_power_plant": {
+  "texture": "Models/spacebits_texture"
+ },
+ "so_adv_power": {
+  "texture": "Models/spacebits_texture"
+ },
+ "dm_barracks": {
+  "texture": "Models/spacebits_texture"
+ },
+ "so_hand": {
+  "texture": "Models/spacebits_texture"
+ },
+ "dm_factory": {
+  "texture": "Models/spacebits_texture"
+ },
+ "so_factory": {
+  "texture": "Models/spacebits_texture"
+ },
+ "dm_tech_center": {
+  "texture": "Models/spacebits_texture"
+ },
+ "so_tech_center": {
+  "texture": "Models/spacebits_texture"
+ },
+ "dm_helipad": {
+  "texture": "Models/spacebits_texture"
+ },
+ "so_helipad": {
+  "texture": "Models/spacebits_texture"
+ },
+ "dm_service_depot": {
+  "texture": "Models/spacebits_texture"
+ }
 }

@@ -5,4 +5,4 @@ Add one line per imported asset — required for CC-BY licenses.
 
 | Asset | Author | Source | License |
 |---|---|---|---|
-| _(none yet)_ | | | |
+| KayKit Space Base Bits 1.0 (17 structure/vehicle models + colormap) | Kay Lousberg | www.kaylousberg.com | CC0 |

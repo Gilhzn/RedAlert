@@ -62,6 +62,25 @@ namespace TiberiumDusk.Client
             float rotY = tuning?["rotY"] != null ? (float)tuning["rotY"] : 0f;
             float yOffset = tuning?["y"] != null ? (float)tuning["y"] : 0f;
 
+            // Optional "texture": force-bind a colormap onto every renderer —
+            // makes single-texture packs (KayKit etc.) work regardless of how
+            // the FBX importer resolved materials.
+            if (tuning?["texture"] != null)
+            {
+                var tex = Resources.Load<Texture2D>((string)tuning["texture"]);
+                if (tex != null)
+                {
+                    var mat = MaterialFactory.Textured(tex);
+                    foreach (var r in renderers)
+                    {
+                        var slots = r.sharedMaterials;
+                        if (slots == null || slots.Length == 0) { r.sharedMaterial = mat; continue; }
+                        for (int i = 0; i < slots.Length; i++) slots[i] = mat;
+                        r.sharedMaterials = slots;
+                    }
+                }
+            }
+
             // Auto-fit: ground footprint → target size for the blueprint.
             float footprint = Mathf.Max(bounds.size.x, bounds.size.z);
             if (footprint < 0.0001f) footprint = 1f;
