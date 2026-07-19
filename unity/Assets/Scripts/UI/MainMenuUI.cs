@@ -12,6 +12,8 @@ namespace TiberiumDusk.Client
         private GameRunner _runner;
         private AudioManager _audio;
         private int _difficulty = 1;   // 0 easy, 1 normal, 2 hard
+        private string _serverUrl = "ws://localhost:7777/";
+        private string _mpFaction = "dominion";
 
         private static readonly Color Phosphor = new Color(0.2f, 1f, 0.33f);
 
@@ -80,6 +82,27 @@ namespace TiberiumDusk.Client
                 _audio?.PlayClick();
                 _runner.StartMatch((AIDifficulty)_difficulty);
             }
+            y += 76;
+
+            // ---- Multiplayer (LAN relay) ----
+            GUI.color = new Color(0.55f, 0.75f, 0.6f);
+            GUI.Label(new Rect(cx - 220, y, 440, 24), "MULTIPLAYER  —  dotnet run --project server/TiberiumDusk.Server");
+            y += 26;
+            GUI.color = Phosphor;
+            _serverUrl = GUI.TextField(new Rect(cx - 220, y, 250, 26), _serverUrl);
+            GUI.color = _mpFaction == "dominion" ? Phosphor : new Color(0.45f, 0.55f, 0.45f);
+            if (GUI.Button(new Rect(cx + 36, y, 90, 26), "Dominion")) _mpFaction = "dominion";
+            GUI.color = _mpFaction == "serpent" ? Phosphor : new Color(0.45f, 0.55f, 0.45f);
+            if (GUI.Button(new Rect(cx + 130, y, 90, 26), "Serpent")) _mpFaction = "serpent";
+            y += 32;
+            GUI.color = Phosphor;
+            if (GUI.Button(new Rect(cx - 220, y, 120, 30), "JOIN") && !_runner.NetMode)
+            {
+                _audio?.PlayClick();
+                _runner.ConnectMultiplayer(_serverUrl, _mpFaction);
+            }
+            GUI.color = new Color(1f, 0.8f, 0.3f);
+            GUI.Label(new Rect(cx - 90, y + 4, 420, 24), _runner.NetStatus);
 
             GUI.color = Color.white;
         }

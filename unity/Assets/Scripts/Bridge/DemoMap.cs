@@ -81,6 +81,25 @@ namespace TiberiumDusk.Client
             game.Spawn("so_rifle", 1, new CellPos(48, 48));
         }
 
+        /// <summary>Symmetric multiplayer start: identical on every lockstep client.</summary>
+        public static void SpawnNetUnits(Game game, string[] factions)
+        {
+            for (int p = 0; p < factions.Length && p < 2; p++)
+            {
+                game.SetPlayerFaction(p, factions[p]);
+                int x = p == 0 ? 12 : 50;
+                int y = p == 0 ? 14 : 50;
+                game.Spawn("nx_mcv", p, new CellPos(x, y));
+                bool serpent = factions[p] == "serpent";
+                game.Spawn(serpent ? "so_tick_tank" : "dm_mbt_walker", p, new CellPos(x - 2, y + 3));
+                game.Spawn(serpent ? "so_scout_buggy" : "dm_wolverine", p, new CellPos(x + 2, y + 3));
+                game.Spawn(serpent ? "so_rifle" : "dm_rifle", p, new CellPos(x, y + 4));
+            }
+            SeedField(game, centerX: 22, centerY: 8, radius: 3, CrystalType.Green, density: 7);
+            SeedField(game, centerX: 42, centerY: 56, radius: 3, CrystalType.Green, density: 7);
+            SeedField(game, centerX: 46, centerY: 40, radius: 2, CrystalType.Blue, density: 9);
+        }
+
         private static void SeedField(Game game, int centerX, int centerY, int radius,
             CrystalType type, int density)
         {

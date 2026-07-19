@@ -4,6 +4,7 @@
     "com.tiberiumdusk.balance": "file:../../sim/TiberiumDusk.Balance",
     "com.unity.render-pipelines.universal": "17.0.3",
     "com.unity.nuget.newtonsoft-json": "3.2.1",
-    "com.unity.ugui": "2.0.0"
+    "com.unity.ugui": "2.0.0",
+    "com.tiberiumdusk.net": "file:../../sim/TiberiumDusk.Net"
   }
 }

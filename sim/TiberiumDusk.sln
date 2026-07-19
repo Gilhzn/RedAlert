@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TiberiumDusk.Balance", "Tib
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TiberiumDusk.Sim.Tests", "TiberiumDusk.Sim.Tests\TiberiumDusk.Sim.Tests.csproj", "{125E52CE-FEC6-442F-8193-0CDC21B9B4B0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TiberiumDusk.Net", "TiberiumDusk.Net\TiberiumDusk.Net.csproj", "{1CC19C6A-F731-4296-88C5-41B8E077B145}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TiberiumDusk.Server", "..\server\TiberiumDusk.Server\TiberiumDusk.Server.csproj", "{52E0B1A8-244E-4F4D-8503-94168D3ECE67}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +34,13 @@ Global
 		{125E52CE-FEC6-442F-8193-0CDC21B9B4B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{125E52CE-FEC6-442F-8193-0CDC21B9B4B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{125E52CE-FEC6-442F-8193-0CDC21B9B4B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CC19C6A-F731-4296-88C5-41B8E077B145}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CC19C6A-F731-4296-88C5-41B8E077B145}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CC19C6A-F731-4296-88C5-41B8E077B145}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CC19C6A-F731-4296-88C5-41B8E077B145}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52E0B1A8-244E-4F4D-8503-94168D3ECE67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52E0B1A8-244E-4F4D-8503-94168D3ECE67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52E0B1A8-244E-4F4D-8503-94168D3ECE67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52E0B1A8-244E-4F4D-8503-94168D3ECE67}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

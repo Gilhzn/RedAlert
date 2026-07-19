@@ -25,6 +25,8 @@
   <ItemGroup>
     <ProjectReference Include="..\TiberiumDusk.Sim\TiberiumDusk.Sim.csproj" />
     <ProjectReference Include="..\TiberiumDusk.Balance\TiberiumDusk.Balance.csproj" />
+    <ProjectReference Include="..\TiberiumDusk.Net\TiberiumDusk.Net.csproj" />
+    <ProjectReference Include="..\..\server\TiberiumDusk.Server\TiberiumDusk.Server.csproj" />
   </ItemGroup>
 
 </Project>

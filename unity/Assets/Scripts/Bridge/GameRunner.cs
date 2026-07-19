@@ -4,6 +4,7 @@ using TiberiumDusk.Balance;
 using TiberiumDusk.Sim;
 using TiberiumDusk.Sim.Math;
 using TiberiumDusk.Sim.Orders;
+using TiberiumDusk.Net;
 using UnityEngine;
 
 namespace TiberiumDusk.Client
@@ -15,7 +16,8 @@ namespace TiberiumDusk.Client
     /// </summary>
     public sealed class GameRunner : MonoBehaviour
     {
-        public const int LocalPlayerId = 0;
+        /// <summary>Local player id — 0 in skirmish, assigned by the relay in multiplayer.</summary>
+        public static int LocalPlayerId = 0;
         private const float TickSeconds = 1f / Game.TicksPerSecond;
 
         public Game Game { get; private set; }
@@ -23,6 +25,12 @@ namespace TiberiumDusk.Client
         public float Alpha { get; private set; }
         /// <summary>False until the player presses START in the menu.</summary>
         public bool MatchStarted { get; private set; }
+        /// <summary>Multiplayer state.</summary>
+        public bool NetMode { get; private set; }
+        public string NetStatus { get; private set; } = "";
+        private WebSocketTransport _netTransport;
+        private LockstepClient _netClient;
+        private string _netFaction = "dominion";
 
         public event System.Action AfterTick;
 
@@ -30,6 +38,12 @@ namespace TiberiumDusk.Client
         private float _accumulator;
 
         public TerrainView Terrain { get; private set; }
+
+        private void Submit(Order order)
+        {
+            if (NetMode) _netClient?.Issue(order);
+            else _pendingOrders.Add(order);
+        }
 
         private void Awake()
         {
@@ -56,8 +70,45 @@ namespace TiberiumDusk.Client
             MatchStarted = true;
         }
 
+        /// <summary>Multiplayer: connect to a relay and wait for the match to start.</summary>
+        public async void ConnectMultiplayer(string url, string faction)
+        {
+            if (MatchStarted || NetMode) return;
+            NetMode = true;
+            _netFaction = faction;
+            NetStatus = "connecting...";
+            try
+            {
+                _netTransport = new WebSocketTransport();
+                await _netTransport.ConnectAsync(url);
+                _netClient = new LockstepClient(_netTransport);
+                _netClient.SendJoin(System.Environment.UserName ?? "player", faction);
+                NetStatus = "waiting for players...";
+            }
+            catch (System.Exception e)
+            {
+                NetStatus = "connection failed: " + e.Message;
+                NetMode = false;
+            }
+        }
+
+        /// <summary>Both clients must build the exact same starting world.</summary>
+        private Game BuildNetGame(ulong seed, string[] factions)
+        {
+            var rules = Game.World.Rules;   // same compiled rules
+            var map = DemoMap.Build(rules);
+            var netGame = new Game(rules, map, seed);
+            DemoMap.SpawnNetUnits(netGame, factions);
+            return netGame;
+        }
+
         private void Update()
         {
+            if (NetMode)
+            {
+                UpdateNet();
+                return;
+            }
             if (!MatchStarted) return;
             _accumulator += Time.deltaTime;
             while (_accumulator >= TickSeconds)
@@ -70,58 +121,101 @@ namespace TiberiumDusk.Client
             Alpha = _accumulator / TickSeconds;
         }
 
+        private void UpdateNet()
+        {
+            if (_netClient == null) return;
+
+            if (!MatchStarted)
+            {
+                _netClient.Pump(0);
+                if (_netClient.Started && _netClient.Game == null)
+                {
+                    LocalPlayerId = _netClient.LocalPlayerId;
+                    var netGame = BuildNetGame(_netClient.Seed, _netClient.Factions);
+                    _netClient.AttachGame(netGame);
+                    Game = netGame;
+                    MatchStarted = true;
+                    NetStatus = "";
+                }
+                return;
+            }
+
+            if (_netClient.Desynced)
+            {
+                NetStatus = "DESYNC — match aborted";
+                return;
+            }
+
+            _accumulator += Time.deltaTime;
+            while (_accumulator >= TickSeconds)
+            {
+                _accumulator -= TickSeconds;
+                if (_netClient.Pump(1) == 1)
+                {
+                    AfterTick?.Invoke();
+                }
+                else
+                {
+                    // Waiting on the network: don't bank time, or we'd fast-forward.
+                    _accumulator = 0f;
+                    break;
+                }
+            }
+            Alpha = _accumulator / TickSeconds;
+        }
+
         public void IssueMove(int entityId, LeptonPos target)
         {
-            _pendingOrders.Add(new Order(OrderType.Move, LocalPlayerId, Game.CurrentTick + 1,
+            Submit(new Order(OrderType.Move, LocalPlayerId, Game.CurrentTick + 1,
                 entityId, targetPos: target));
         }
 
         public void IssueStop(int entityId)
         {
-            _pendingOrders.Add(new Order(OrderType.Stop, LocalPlayerId, Game.CurrentTick + 1, entityId));
+            Submit(new Order(OrderType.Stop, LocalPlayerId, Game.CurrentTick + 1, entityId));
         }
 
         public void IssueAttack(int entityId, int targetEntityId)
         {
-            _pendingOrders.Add(new Order(OrderType.Attack, LocalPlayerId, Game.CurrentTick + 1,
+            Submit(new Order(OrderType.Attack, LocalPlayerId, Game.CurrentTick + 1,
                 entityId, targetEntityId));
         }
 
         public void IssueAttackMove(int entityId, LeptonPos target)
         {
-            _pendingOrders.Add(new Order(OrderType.AttackMove, LocalPlayerId, Game.CurrentTick + 1,
+            Submit(new Order(OrderType.AttackMove, LocalPlayerId, Game.CurrentTick + 1,
                 entityId, targetPos: target));
         }
 
         public void IssueSuperweapon(int superweaponIndex, LeptonPos target)
         {
-            _pendingOrders.Add(new Order(OrderType.UseSuperweapon, LocalPlayerId,
+            Submit(new Order(OrderType.UseSuperweapon, LocalPlayerId,
                 Game.CurrentTick + 1, data: superweaponIndex, targetPos: target));
         }
 
         public void IssueDeploy(int entityId)
         {
-            _pendingOrders.Add(new Order(OrderType.Deploy, LocalPlayerId, Game.CurrentTick + 1, entityId));
+            Submit(new Order(OrderType.Deploy, LocalPlayerId, Game.CurrentTick + 1, entityId));
         }
 
         public void IssueSell(int entityId)
         {
-            _pendingOrders.Add(new Order(OrderType.Sell, LocalPlayerId, Game.CurrentTick + 1, entityId));
+            Submit(new Order(OrderType.Sell, LocalPlayerId, Game.CurrentTick + 1, entityId));
         }
 
         public void IssueBuildStart(int specIndex)
         {
-            _pendingOrders.Add(new Order(OrderType.BuildStart, LocalPlayerId, Game.CurrentTick + 1, data: specIndex));
+            Submit(new Order(OrderType.BuildStart, LocalPlayerId, Game.CurrentTick + 1, data: specIndex));
         }
 
         public void IssueBuildCancel(int specIndex)
         {
-            _pendingOrders.Add(new Order(OrderType.BuildCancel, LocalPlayerId, Game.CurrentTick + 1, data: specIndex));
+            Submit(new Order(OrderType.BuildCancel, LocalPlayerId, Game.CurrentTick + 1, data: specIndex));
         }
 
         public void IssuePlaceStructure(int specIndex, LeptonPos origin)
         {
-            _pendingOrders.Add(new Order(OrderType.PlaceStructure, LocalPlayerId, Game.CurrentTick + 1,
+            Submit(new Order(OrderType.PlaceStructure, LocalPlayerId, Game.CurrentTick + 1,
                 data: specIndex, targetPos: origin));
         }
 
