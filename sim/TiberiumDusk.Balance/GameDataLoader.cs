@@ -44,6 +44,7 @@ namespace TiberiumDusk.Balance
                     Id = Required<string>(token, "id", path),
                     Spread = Required<int>(token, "spread", path),
                     Verses = Required<JArray>(token, "verses", path).Select(v => (int)v).ToArray(),
+                    EmpEffect = token["empEffect"] != null && (bool)token["empEffect"],
                 };
                 if (wh.Verses.Length != ArmorClasses.Length)
                     throw new InvalidDataException(
@@ -67,6 +68,16 @@ namespace TiberiumDusk.Balance
                     Range = Required<double>(token, "range", path),
                     Warhead = Required<string>(token, "warhead", path),
                 };
+                var projectile = token["projectile"];
+                if (projectile != null)
+                {
+                    weapon.ProjectileKind = projectile["kind"]?.ToString() ?? "instant";
+                    weapon.ProjectileSpeed = projectile["speed"] != null ? (int)projectile["speed"] : 0;
+                }
+                else
+                {
+                    weapon.ProjectileKind = "instant";
+                }
                 if (!warheads.ContainsKey(weapon.Warhead))
                     throw new InvalidDataException($"Weapon '{weapon.Id}' references unknown warhead '{weapon.Warhead}'");
                 AddUnique(result, weapon.Id, weapon, path);

@@ -26,7 +26,10 @@
           ]
         },
         "Crushable": {},
-        "TiberiumVulnerable": {}
+        "TiberiumVulnerable": {},
+        "Sight": {
+          "range": 5
+        }
       }
     },
     {
@@ -56,7 +59,10 @@
             "dm_factory"
           ]
         },
-        "Crusher": {}
+        "Crusher": {},
+        "Sight": {
+          "range": 6
+        }
       }
     },
     {
@@ -83,7 +89,10 @@
             "dm_factory"
           ]
         },
-        "Crusher": {}
+        "Crusher": {},
+        "Sight": {
+          "range": 8
+        }
       }
     },
     {
@@ -111,7 +120,10 @@
             "dm_refinery"
           ]
         },
-        "Crusher": {}
+        "Crusher": {},
+        "Sight": {
+          "range": 4
+        }
       }
     },
     {
@@ -138,7 +150,39 @@
             "dm_factory"
           ]
         },
-        "Crusher": {}
+        "Crusher": {},
+        "Sight": {
+          "range": 4
+        }
+      }
+    },
+    {
+      "id": "dm_engineer",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 100,
+          "armor": "none"
+        },
+        "Mobile": {
+          "speed": 4,
+          "locomotor": "foot",
+          "rot": 8
+        },
+        "Engineer": {},
+        "Sight": {
+          "range": 4
+        },
+        "Buildable": {
+          "cost": 500,
+          "queue": "infantry",
+          "techLevel": 2,
+          "prerequisites": [
+            "dm_barracks"
+          ]
+        },
+        "Crushable": {},
+        "TiberiumVulnerable": {}
       }
     }
   ]

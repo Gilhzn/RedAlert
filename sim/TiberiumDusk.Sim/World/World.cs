@@ -17,6 +17,7 @@ namespace TiberiumDusk.Sim.WorldModel
         public readonly RulesData Rules;
         public readonly CrystalField Crystal;
         public readonly PlayerState[] Players;
+        public readonly ProjectileSet Projectiles = new ProjectileSet();
 
         private readonly List<Entity> _entities = new List<Entity>();
         private readonly Dictionary<int, Entity> _byId = new Dictionary<int, Entity>();
@@ -184,6 +185,7 @@ namespace TiberiumDusk.Sim.WorldModel
             }
             foreach (var player in Players) player.AddToHash(ref hash);
             Crystal.AddToHash(ref hash);
+            Projectiles.AddToHash(ref hash);
         }
     }
 }

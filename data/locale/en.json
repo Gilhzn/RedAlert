@@ -30,5 +30,7 @@
   "ui.ready": "READY",
   "ui.building": "BUILDING",
   "ui.on_hold": "ON HOLD",
-  "ui.sell": "Sell"
+  "ui.sell": "Sell",
+  "unit.dm_engineer": "Field Engineer",
+  "structure.dm_guard_tower": "Guard Tower"
 }

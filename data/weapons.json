@@ -1,8 +1,57 @@
 {
-  "$comment": "Weapons: damage, rof (frames between shots @15tps), range (cells, fixed as n*256 leptons), projectile behavior. Warhead ids reference warheads.json.",
+  "$comment": "Weapons: damage, rof (ticks between shots @15tps), range (cells), warhead ref, projectile behavior. kind: instant=hitscan, direct=straight shell, arcing=ballistic lob. speed in leptons/tick. emp weapons: damage = paralysis ticks.",
   "weapons": [
-    { "id": "assault_rifle", "damage": 8, "rof": 21, "range": 4, "warhead": "small_arms", "projectile": { "kind": "instant" } },
-    { "id": "cannon_120", "damage": 70, "rof": 80, "range": 6.75, "warhead": "armor_piercing", "projectile": { "kind": "direct", "speed": 80 } },
-    { "id": "raider_gun", "damage": 40, "rof": 55, "range": 4, "warhead": "small_arms", "projectile": { "kind": "instant" } }
+    {
+      "id": "assault_rifle",
+      "damage": 8,
+      "rof": 21,
+      "range": 4,
+      "warhead": "small_arms",
+      "projectile": {
+        "kind": "instant"
+      }
+    },
+    {
+      "id": "cannon_120",
+      "damage": 70,
+      "rof": 80,
+      "range": 6.75,
+      "warhead": "armor_piercing",
+      "projectile": {
+        "kind": "direct",
+        "speed": 80
+      }
+    },
+    {
+      "id": "raider_gun",
+      "damage": 40,
+      "rof": 55,
+      "range": 4,
+      "warhead": "small_arms",
+      "projectile": {
+        "kind": "instant"
+      }
+    },
+    {
+      "id": "vulcan_tower",
+      "damage": 18,
+      "rof": 26,
+      "range": 6,
+      "warhead": "small_arms",
+      "projectile": {
+        "kind": "instant"
+      }
+    },
+    {
+      "id": "test_emp",
+      "damage": 300,
+      "rof": 90,
+      "range": 8,
+      "warhead": "emp_pulse",
+      "projectile": {
+        "kind": "direct",
+        "speed": 60
+      }
+    }
   ]
 }

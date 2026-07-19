@@ -75,6 +75,8 @@ namespace TiberiumDusk.Client
         private GameRunner _runner;
         private Vector3 _prevPos, _currPos;
         private Quaternion _prevRot, _currRot;
+        private Quaternion _prevTurretRot, _currTurretRot;
+        private Transform _turret;
         private GameObject _selectionRing;
 
         public static UnitView Create(Entity entity, GameRunner runner, Transform parent)
@@ -119,13 +121,18 @@ namespace TiberiumDusk.Client
                 body.transform.localScale = new Vector3(0.55f, 0.28f, 0.75f);
                 body.transform.localPosition = new Vector3(0f, 0.2f, 0f);
 
-                // Simple turret block so facing reads clearly.
-                var turret = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                turret.transform.SetParent(body.transform, worldPositionStays: false);
-                turret.transform.localScale = new Vector3(0.6f, 0.5f, 0.5f);
-                turret.transform.localPosition = new Vector3(0f, 0.7f, 0.1f);
-                turret.GetComponent<MeshRenderer>().sharedMaterial = MaterialFactory.Solid(color * 0.8f);
-                Destroy(turret.GetComponent<Collider>());
+                // Turret as a child of the ROOT (not the hull) so the sim's
+                // independent turret facing can drive it directly.
+                if (entity.Spec.Turreted)
+                {
+                    var turret = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    turret.transform.SetParent(transform, worldPositionStays: false);
+                    turret.transform.localScale = new Vector3(0.32f, 0.14f, 0.5f);
+                    turret.transform.localPosition = new Vector3(0f, 0.42f, 0f);
+                    turret.GetComponent<MeshRenderer>().sharedMaterial = MaterialFactory.Solid(color * 0.75f);
+                    Destroy(turret.GetComponent<Collider>());
+                    _turret = turret.transform;
+                }
             }
 
             body.transform.SetParent(transform, worldPositionStays: false);
@@ -190,6 +197,11 @@ namespace TiberiumDusk.Client
             _prevRot = _currRot;
             _currPos = ComputeWorldPos(entity.Pos);
             _currRot = FacingToRotation(entity.FacingValue);
+            if (_turret != null)
+            {
+                _prevTurretRot = _currTurretRot;
+                _currTurretRot = FacingToRotation(entity.TurretFacing);
+            }
         }
 
         private Vector3 ComputeWorldPos(LeptonPos pos)
@@ -213,6 +225,11 @@ namespace TiberiumDusk.Client
             transform.SetPositionAndRotation(
                 Vector3.Lerp(_prevPos, _currPos, alpha),
                 Quaternion.Slerp(_prevRot, _currRot, alpha));
+            if (_turret != null)
+            {
+                // World-space turret facing, independent of hull rotation.
+                _turret.rotation = Quaternion.Slerp(_prevTurretRot, _currTurretRot, alpha);
+            }
         }
     }
 }

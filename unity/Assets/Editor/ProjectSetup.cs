@@ -37,6 +37,7 @@ namespace TiberiumDusk.Editor
             game.AddComponent<SelectionController>();
             game.AddComponent<SidebarUI>();
             game.AddComponent<CrystalView>();
+            game.AddComponent<CombatFx>();
 
             var cameraGo = new GameObject("Main Camera");
             cameraGo.tag = "MainCamera";

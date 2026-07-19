@@ -67,7 +67,12 @@ namespace TiberiumDusk.Client
             // Richer blue field across the river — worth fighting for.
             SeedField(game, centerX: 46, centerY: 40, radius: 2, CrystalType.Blue, density: 9);
 
-            // Player 1 (crimson) force guarding the blue field.
+            // Player 0 also gets an engineer — try capturing the enemy power plant.
+            game.Spawn("dm_engineer", 0, new CellPos(8, 20));
+
+            // Player 1 (crimson): a small base guarding the blue field.
+            game.World.SpawnStructure(game.World.Rules.Unit("dm_power_plant"), 1, new CellPos(50, 46));
+            game.World.SpawnStructure(game.World.Rules.Unit("dm_guard_tower"), 1, new CellPos(48, 44));
             game.Spawn("so_scout_buggy", 1, new CellPos(40, 45));
             game.Spawn("dm_mbt_walker", 1, new CellPos(42, 42));
             game.Spawn("dm_rifle_infantry", 1, new CellPos(44, 43));

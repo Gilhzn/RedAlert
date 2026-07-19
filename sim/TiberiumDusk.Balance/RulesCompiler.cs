@@ -16,15 +16,55 @@ namespace TiberiumDusk.Balance
     {
         public static RulesData Compile(GameData data, JObject terrainJson, JObject economyJson)
         {
+            var warheads = CompileWarheads(data);
+            var weapons = CompileWeapons(data, warheads);
             var rules = new RulesData
             {
                 Lands = CompileLands(data),
                 Slopes = CompileSlopes(terrainJson),
-                Units = CompileUnits(data),
+                Warheads = warheads.specs,
+                Weapons = weapons.specs,
+                Units = CompileUnits(data, weapons.indexById),
                 Economy = CompileEconomy(economyJson),
             };
             rules.BuildIndices();
             return rules;
+        }
+
+        private static (WarheadSpec[] specs, Dictionary<string, int> indexById) CompileWarheads(GameData data)
+        {
+            var specs = data.Warheads.Values
+                .OrderBy(w => w.Id, StringComparer.Ordinal)
+                .Select((w, i) => new WarheadSpec
+                {
+                    Id = w.Id,
+                    Index = i,
+                    Verses = w.Verses,
+                    Spread = w.Spread,
+                    EmpEffect = w.EmpEffect,
+                })
+                .ToArray();
+            return (specs, specs.ToDictionary(w => w.Id, w => w.Index));
+        }
+
+        private static (WeaponSpec[] specs, Dictionary<string, int> indexById) CompileWeapons(
+            GameData data, (WarheadSpec[] specs, Dictionary<string, int> indexById) warheads)
+        {
+            var specs = data.Weapons.Values
+                .OrderBy(w => w.Id, StringComparer.Ordinal)
+                .Select((w, i) => new WeaponSpec
+                {
+                    Id = w.Id,
+                    Index = i,
+                    Damage = w.Damage,
+                    Rof = w.Rof,
+                    RangeLeptons = (int)(w.Range * 256),
+                    WarheadIndex = warheads.indexById[w.Warhead],
+                    Projectile = ParseEnum<ProjectileKind>(w.ProjectileKind ?? "instant", w.Id),
+                    ProjectileSpeed = w.ProjectileSpeed,
+                })
+                .ToArray();
+            return (specs, specs.ToDictionary(w => w.Id, w => w.Index));
         }
 
         public static RulesData CompileFromDirectory(string dataDir)
@@ -92,15 +132,15 @@ namespace TiberiumDusk.Balance
             };
         }
 
-        private static UnitSpec[] CompileUnits(GameData data)
+        private static UnitSpec[] CompileUnits(GameData data, Dictionary<string, int> weaponIndexById)
         {
             return data.Units.Values
                 .OrderBy(u => u.Id, StringComparer.Ordinal)
-                .Select(CompileUnit)
+                .Select(u => CompileUnit(u, weaponIndexById))
                 .ToArray();
         }
 
-        private static UnitSpec CompileUnit(UnitBlueprint blueprint)
+        private static UnitSpec CompileUnit(UnitBlueprint blueprint, Dictionary<string, int> weaponIndexById)
         {
             var spec = new UnitSpec
             {
@@ -196,6 +236,26 @@ namespace TiberiumDusk.Balance
             }
 
             spec.CrystalVulnerable = blueprint.Components.ContainsKey("TiberiumVulnerable");
+
+            if (blueprint.Components.TryGetValue("Armament", out var armament))
+            {
+                spec.WeaponIndex = weaponIndexById[GetString(armament, "weapon", blueprint.Id)];
+            }
+
+            if (blueprint.Components.TryGetValue("Turreted", out var turreted))
+            {
+                spec.Turreted = true;
+                spec.TurretRot = GetInt(turreted, "rot", blueprint.Id);
+            }
+
+            if (blueprint.Components.TryGetValue("Sight", out var sight))
+            {
+                spec.SightLeptons = GetInt(sight, "range", blueprint.Id) * 256;
+            }
+
+            spec.CanCapture = blueprint.Components.ContainsKey("Engineer");
+            spec.Crushable = blueprint.Components.ContainsKey("Crushable");
+            spec.Crusher = blueprint.Components.ContainsKey("Crusher");
 
             return spec;
         }

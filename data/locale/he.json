@@ -30,5 +30,7 @@
   "ui.ready": "מוכן",
   "ui.building": "בבנייה",
   "ui.on_hold": "מושהה",
-  "ui.sell": "מכירה"
+  "ui.sell": "מכירה",
+  "unit.dm_engineer": "מהנדס שדה",
+  "structure.dm_guard_tower": "מגדל שמירה"
 }

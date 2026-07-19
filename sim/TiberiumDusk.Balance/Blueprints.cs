@@ -40,6 +40,9 @@ namespace TiberiumDusk.Balance
         /// <summary>Range in cells (fractional allowed, converted to leptons by the sim).</summary>
         public double Range { get; set; }
         public string Warhead { get; set; }
+        /// <summary>instant | direct | arcing.</summary>
+        public string ProjectileKind { get; set; }
+        public int ProjectileSpeed { get; set; }
     }
 
     public sealed class WarheadBlueprint
@@ -48,6 +51,7 @@ namespace TiberiumDusk.Balance
         public int Spread { get; set; }
         /// <summary>Damage % vs armor classes: [none, wood, light, heavy, concrete].</summary>
         public int[] Verses { get; set; }
+        public bool EmpEffect { get; set; }
     }
 
     public sealed class LandType

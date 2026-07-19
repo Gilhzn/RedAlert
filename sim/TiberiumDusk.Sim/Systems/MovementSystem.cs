@@ -103,6 +103,16 @@ namespace TiberiumDusk.Sim.Systems
                     move.ClaimedCell = nextCell.Value;
                     move.BlockedTicks = 0;
                 }
+                else if (CanCrushOccupant(entity, nextCell.Value))
+                {
+                    // Crusher rolls over enemy infantry blocking the cell.
+                    var victim = _world.GetEntity(_world.OccupantOf(nextCell.Value));
+                    _world.Kill(victim);
+                    _world.ClaimCell(nextCell.Value, entity.Id);
+                    move.HasClaim = true;
+                    move.ClaimedCell = nextCell.Value;
+                    move.BlockedTicks = 0;
+                }
                 else
                 {
                     OnBlocked(entity, nextCell.Value);
@@ -126,6 +136,13 @@ namespace TiberiumDusk.Sim.Systems
 
             // Flow mode
             return move.Flow.NextCell(_world.Map, entity.HomeCell);
+        }
+
+        private bool CanCrushOccupant(Entity mover, CellPos cell)
+        {
+            if (!mover.Spec.Crusher) return false;
+            var occupant = _world.GetEntity(_world.OccupantOf(cell));
+            return occupant != null && occupant.Owner != mover.Owner && occupant.Spec.Crushable;
         }
 
         private void OnBlocked(Entity entity, CellPos blockedCell)

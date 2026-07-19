@@ -24,6 +24,7 @@ namespace TiberiumDusk.Sim
         public DeterministicRandom Random { get; }
         public World World { get; }
         public ProductionSystem Production { get; }
+        public CombatSystem Combat { get; }
 
         private readonly MovementSystem _movement;
         private readonly HarvesterSystem _harvesters;
@@ -37,6 +38,7 @@ namespace TiberiumDusk.Sim
             Production = new ProductionSystem(World, _movement);
             _harvesters = new HarvesterSystem(World, _movement);
             _crystal = new CrystalSystem(World, Random);
+            Combat = new CombatSystem(World, _movement);
         }
 
         /// <summary>Direct spawn for scenario setup and tests.</summary>
@@ -48,6 +50,7 @@ namespace TiberiumDusk.Sim
             ExecuteOrders(orders);
             Production.Tick();
             _harvesters.Tick();
+            Combat.Tick();
             _movement.Tick();
             _crystal.Tick();
             CurrentTick++;
@@ -83,7 +86,36 @@ namespace TiberiumDusk.Sim
                     case OrderType.Stop:
                     {
                         var entity = World.GetEntity(order.EntityId);
-                        if (entity != null && entity.Owner == order.PlayerId) _movement.OrderStop(entity);
+                        if (entity != null && entity.Owner == order.PlayerId)
+                        {
+                            _movement.OrderStop(entity);
+                            Combat.ClearCombatOrders(entity);
+                        }
+                        break;
+                    }
+                    case OrderType.Attack:
+                    {
+                        var entity = World.GetEntity(order.EntityId);
+                        var target = World.GetEntity(order.TargetEntityId);
+                        if (entity != null && target != null && entity.Owner == order.PlayerId
+                            && target.Owner != order.PlayerId)
+                        {
+                            // Engineers "attack" enemy structures by capturing them.
+                            if (entity.Spec.CanCapture && target.Spec.IsStructure)
+                                Combat.OrderCapture(entity, target);
+                            else
+                                Combat.OrderAttack(entity, target);
+                        }
+                        break;
+                    }
+                    case OrderType.AttackMove:
+                    {
+                        var entity = World.GetEntity(order.EntityId);
+                        if (entity != null && entity.Owner == order.PlayerId)
+                        {
+                            var cell = order.TargetPos.ToCell();
+                            if (World.Map.InBounds(cell)) Combat.OrderAttackMove(entity, cell);
+                        }
                         break;
                     }
                     case OrderType.BuildStart:
@@ -140,6 +172,9 @@ namespace TiberiumDusk.Sim
                     var locomotor = (LocomotorId)(int)(key & 0x7);
                     int cellIndex = (int)(key >> 3);
                     var target = new CellPos(cellIndex % World.Map.Width, cellIndex / World.Map.Width);
+
+                    // A plain Move disengages combat/capture missions.
+                    for (int i = 0; i < group.Count; i++) Combat.ClearCombatOrders(group[i]);
 
                     if (group.Count >= FlowFieldGroupThreshold)
                     {

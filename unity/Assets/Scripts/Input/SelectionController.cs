@@ -105,10 +105,24 @@ namespace TiberiumDusk.Client
                 var ray = _camera.ScreenPointToRay(Input.mousePosition);
                 if (Physics.Raycast(ray, out var hit, 500f))
                 {
-                    var target = TerrainView.WorldToLepton(hit.point);
-                    foreach (var id in _selected)
+                    // Right-click on an enemy = attack (engineers capture); on ground = move.
+                    var enemyRef = hit.collider.GetComponentInParent<EntityRef>();
+                    if (enemyRef != null && enemyRef.Owner != GameRunner.LocalPlayerId)
                     {
-                        _runner.IssueMove(id, target);
+                        foreach (var id in _selected)
+                        {
+                            _runner.IssueAttack(id, enemyRef.EntityId);
+                        }
+                    }
+                    else
+                    {
+                        var target = TerrainView.WorldToLepton(hit.point);
+                        bool attackMove = Input.GetKey(KeyCode.A);
+                        foreach (var id in _selected)
+                        {
+                            if (attackMove) _runner.IssueAttackMove(id, target);
+                            else _runner.IssueMove(id, target);
+                        }
                     }
                 }
             }

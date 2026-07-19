@@ -99,6 +99,40 @@ namespace TiberiumDusk.Sim.Data
         public int CapacityBails;
     }
 
+    public enum ProjectileKind : byte
+    {
+        Instant = 0,
+        Direct = 1,
+        Arcing = 2,
+    }
+
+    public sealed class WarheadSpec
+    {
+        public string Id;
+        public int Index;
+        /// <summary>Damage % per ArmorClass [none, wood, light, heavy, concrete].</summary>
+        public int[] Verses;
+        /// <summary>Falloff step: damage halves per Spread*64 leptons from impact.</summary>
+        public int Spread;
+        /// <summary>EMP: no damage; weapon Damage = paralysis duration in ticks.</summary>
+        public bool EmpEffect;
+    }
+
+    public sealed class WeaponSpec
+    {
+        public string Id;
+        public int Index;
+        public int Damage;
+        /// <summary>Ticks between shots.</summary>
+        public int Rof;
+        /// <summary>Range in leptons.</summary>
+        public int RangeLeptons;
+        public int WarheadIndex;
+        public ProjectileKind Projectile;
+        /// <summary>Leptons per tick for traveling projectiles.</summary>
+        public int ProjectileSpeed;
+    }
+
     /// <summary>Compiled, sim-ready blueprint (units AND structures). Produced by TiberiumDusk.Balance.</summary>
     public sealed class UnitSpec
     {
@@ -121,8 +155,36 @@ namespace TiberiumDusk.Sim.Data
         public ProductionQueue[] ProductionQueues;
         /// <summary>Takes crystal-field damage (unshielded organic infantry).</summary>
         public bool CrystalVulnerable;
+        /// <summary>Weapon index into RulesData.Weapons, or -1 for unarmed.</summary>
+        public int WeaponIndex = -1;
+        /// <summary>Has an independently rotating turret.</summary>
+        public bool Turreted;
+        /// <summary>Turret rotation steps/tick (falls back to Mobile.Rot).</summary>
+        public int TurretRot;
+        /// <summary>Vision/auto-acquire range in leptons.</summary>
+        public int SightLeptons = 5 * 256;
+        /// <summary>Can capture enemy structures (engineer).</summary>
+        public bool CanCapture;
+        /// <summary>Dies under a Crusher vehicle driving over it.</summary>
+        public bool Crushable;
+        /// <summary>Crushes Crushable infantry by driving over them.</summary>
+        public bool Crusher;
 
         public bool IsStructure => Structure != null;
+    }
+
+    /// <summary>Combat tuning (baseline per docs/research/mechanics.md §4).</summary>
+    public sealed class CombatRules
+    {
+        /// <summary>Leptons per warhead Spread step; damage halves per step from impact.</summary>
+        public int SpreadStepLeptons = 64;
+        /// <summary>XP (destroyed value) = this × own cost per veterancy rank.</summary>
+        public int VeteranRatioPercent = 1000;   // 10× cost
+        public int VeteranMaxRank = 2;
+        /// <summary>Damage bonus % per rank.</summary>
+        public int VeteranDamagePercent = 25;
+        /// <summary>Damage-taken reduction % per rank.</summary>
+        public int VeteranArmorPercent = 25;
     }
 
     /// <summary>Economy/production constants from data/economy.json.</summary>
@@ -163,7 +225,10 @@ namespace TiberiumDusk.Sim.Data
         public LandRule[] Lands;
         public SlopeRules Slopes;
         public UnitSpec[] Units;
+        public WeaponSpec[] Weapons = new WeaponSpec[0];
+        public WarheadSpec[] Warheads = new WarheadSpec[0];
         public EconomyRules Economy = new EconomyRules();
+        public CombatRules Combat = new CombatRules();
 
         private Dictionary<string, byte> _landIndex;
         private Dictionary<string, int> _unitIndex;

@@ -63,6 +63,18 @@ namespace TiberiumDusk.Client
             _pendingOrders.Add(new Order(OrderType.Stop, LocalPlayerId, Game.CurrentTick + 1, entityId));
         }
 
+        public void IssueAttack(int entityId, int targetEntityId)
+        {
+            _pendingOrders.Add(new Order(OrderType.Attack, LocalPlayerId, Game.CurrentTick + 1,
+                entityId, targetEntityId));
+        }
+
+        public void IssueAttackMove(int entityId, LeptonPos target)
+        {
+            _pendingOrders.Add(new Order(OrderType.AttackMove, LocalPlayerId, Game.CurrentTick + 1,
+                entityId, targetPos: target));
+        }
+
         public void IssueDeploy(int entityId)
         {
             _pendingOrders.Add(new Order(OrderType.Deploy, LocalPlayerId, Game.CurrentTick + 1, entityId));

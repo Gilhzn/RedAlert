@@ -89,6 +89,26 @@ namespace TiberiumDusk.Sim.WorldModel
         /// <summary>Non-null only for entities with a Harvester spec.</summary>
         public HarvesterState Harvest;
 
+        // ---- Combat state ----
+        /// <summary>Explicit attack target (player order), or -1.</summary>
+        public int AttackTargetId = -1;
+        /// <summary>Auto-engage while moving (attack-move) or standing guard.</summary>
+        public bool AutoEngage = true;
+        /// <summary>Attack-move destination to resume after a kill; valid when AttackMovePending.</summary>
+        public CellPos AttackMoveDest;
+        public bool AttackMovePending;
+        /// <summary>Ticks until the weapon may fire again.</summary>
+        public int WeaponCooldown;
+        public byte TurretFacing;
+        /// <summary>EMP paralysis: no move/fire while > 0.</summary>
+        public int DisabledTicks;
+        /// <summary>Value of enemies destroyed (veterancy XP).</summary>
+        public int CombatXp;
+        /// <summary>Veterancy rank 0..2.</summary>
+        public int Rank;
+        /// <summary>Capture mission target (engineer), or -1.</summary>
+        public int CaptureTargetId = -1;
+
         public void AddToHash(ref StateHash hash)
         {
             hash.Add(Id);
@@ -103,6 +123,13 @@ namespace TiberiumDusk.Sim.WorldModel
             hash.Add(Move.Target.Y);
             hash.Add(Move.PathIndex);
             hash.Add(Move.BlockedTicks);
+            hash.Add(AttackTargetId);
+            hash.Add(WeaponCooldown);
+            hash.Add(TurretFacing);
+            hash.Add(DisabledTicks);
+            hash.Add(CombatXp);
+            hash.Add(Rank);
+            hash.Add(CaptureTargetId);
             Harvest?.AddToHash(ref hash);
         }
     }
