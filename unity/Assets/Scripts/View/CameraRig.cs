@@ -81,6 +81,11 @@ namespace TiberiumDusk.Client
             Apply();
         }
 
+        public void FocusOn(Vector3 worldPoint)
+        {
+            _pivot = new Vector3(worldPoint.x, 0f, worldPoint.z);
+        }
+
         private void Apply()
         {
             _camera.orthographicSize = _zoom;

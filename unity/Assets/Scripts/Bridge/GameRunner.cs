@@ -39,7 +39,10 @@ namespace TiberiumDusk.Client
                 CratesEnabled = true,
             };
             Game = new Game(rules, map, seed: 20260719UL, settings);
+            Game.Recorder = new ReplayLog { Seed = 20260719UL, IonStormsEnabled = true, CratesEnabled = true };
             DemoMap.SpawnUnits(Game);
+            // Skirmish opponent: the Serpent AI.
+            Game.AI.Enable(1, TiberiumDusk.Sim.Systems.AIDifficulty.Normal);
 
             Terrain = TerrainView.Build(map, rules, transform);
         }

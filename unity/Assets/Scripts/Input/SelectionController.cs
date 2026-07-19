@@ -192,10 +192,10 @@ namespace TiberiumDusk.Client
                 GUI.color = Color.white;
             }
 
-            // Phase 2 debug HUD (real sidebar arrives in Phase 3).
+            // Debug HUD (polished HUD arrives in Phase 8).
             GUI.color = new Color(0.2f, 1f, 0.33f);
             GUI.Label(new Rect(12, 8, 700, 22),
-                $"TIBERIUM DUSK — PHASE 2 SANDBOX   tick {_runner.Game.CurrentTick}   selected {_selected.Count}");
+                $"TIBERIUM DUSK — SKIRMISH vs AI   tick {_runner.Game.CurrentTick}   selected {_selected.Count}");
             GUI.Label(new Rect(12, 30, 700, 22),
                 "LMB select / drag-box  ·  RMB move  ·  S stop  ·  WASD pan  ·  MMB drag  ·  wheel zoom  ·  Q/E rotate");
             GUI.color = Color.white;

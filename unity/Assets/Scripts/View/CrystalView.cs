@@ -50,6 +50,8 @@ namespace TiberiumDusk.Client
                     var cell = new CellPos(x, y);
                     int index = map.CellIndex(cell);
                     int density = world.Crystal.Density(cell);
+                    // Shroud hides undiscovered fields (the shards poke above the fog mesh).
+                    if (!_runner.Game.Vision.IsExplored(GameRunner.LocalPlayerId, cell)) density = 0;
                     bool tracked = _cells.TryGetValue(index, out var entry);
 
                     if (density == 0)

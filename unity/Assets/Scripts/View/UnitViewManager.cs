@@ -199,7 +199,7 @@ namespace TiberiumDusk.Client
 
         public void PushSimState(Entity entity)
         {
-            ApplyCloakVisual(entity.IsCloaked);
+            ApplyVisibility(entity);
             _prevPos = _currPos;
             _prevRot = _currRot;
             _currPos = ComputeWorldPos(entity.Pos);
@@ -229,17 +229,24 @@ namespace TiberiumDusk.Client
             }
         }
 
-        /// <summary>Cloak presentation: enemies see nothing; the owner sees a shrunken shimmer.</summary>
-        private void ApplyCloakVisual(bool cloaked)
+        /// <summary>Cloak + fog presentation: enemies vanish when cloaked or unseen.</summary>
+        private void ApplyVisibility(Entity entity)
         {
-            if (_cloaked == cloaked) return;
-            _cloaked = cloaked;
             bool enemy = Owner != GameRunner.LocalPlayerId;
-            foreach (var renderer in _renderers)
+            bool hiddenByFog = enemy
+                && !_runner.Game.Vision.IsVisible(GameRunner.LocalPlayerId, entity.HomeCell);
+            bool cloakHidden = entity.IsCloaked && enemy;
+            bool hidden = hiddenByFog || cloakHidden;
+
+            if (_cloaked != hidden)
             {
-                renderer.enabled = !cloaked || !enemy;
+                _cloaked = hidden;
+                foreach (var renderer in _renderers)
+                {
+                    renderer.enabled = !hidden;
+                }
             }
-            float scale = cloaked && !enemy ? 0.8f : 1f;
+            float scale = entity.IsCloaked && !enemy ? 0.8f : 1f;
             transform.localScale = new Vector3(scale, scale, scale);
         }
 

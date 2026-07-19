@@ -29,6 +29,15 @@ namespace TiberiumDusk.Sim
         public IonStormSystem IonStorm { get; }
         public CrateSystem Crates { get; }
         public GameSettings Settings { get; }
+        public VisionSystem Vision { get; }
+        public AISystem AI { get; }
+
+        /// <summary>-1 while the match is running; winner player id once decided.</summary>
+        public int WinnerPlayerId { get; private set; } = -1;
+        public bool IsGameOver => WinnerPlayerId >= 0;
+        public event System.Action<int> GameEnded;
+        /// <summary>Optional order log; attach before the first tick to record a replay.</summary>
+        public ReplayLog Recorder;
 
         private readonly MovementSystem _movement;
         private readonly HarvesterSystem _harvesters;
@@ -51,6 +60,8 @@ namespace TiberiumDusk.Sim
             Superweapons = new SuperweaponSystem(World, _movement, Combat, Random);
             IonStorm = new IonStormSystem(World, Superweapons, Combat, Random, Settings.IonStormsEnabled);
             Crates = new CrateSystem(World, Superweapons, Random, Settings.CratesEnabled);
+            Vision = new VisionSystem(World);
+            AI = new AISystem(World, Production, Combat, _movement, Random);
         }
 
         public void SetPlayerFaction(int playerId, string faction) =>
@@ -62,7 +73,9 @@ namespace TiberiumDusk.Sim
 
         public void Tick(IReadOnlyList<Order> orders)
         {
+            Recorder?.Record(CurrentTick, orders);
             ExecuteOrders(orders);
+            AI.Tick();
             Production.Tick();
             _harvesters.Tick();
             _stealth.Tick();
@@ -73,6 +86,8 @@ namespace TiberiumDusk.Sim
             _movement.Tick();
             _crystal.Tick();
             Crates.Tick();
+            Vision.Tick();
+            if (CurrentTick % 30 == 0) CheckVictory();
             CurrentTick++;
         }
 
@@ -239,6 +254,35 @@ namespace TiberiumDusk.Sim
             }
         }
 
+        private readonly bool[] _everActive = new bool[World.MaxPlayers];
+
+        /// <summary>Classic elimination: a player is out when nothing of theirs is left alive.</summary>
+        private void CheckVictory()
+        {
+            if (IsGameOver) return;
+            var alive = new bool[World.MaxPlayers];
+            foreach (var e in World.Entities)
+            {
+                if (e.Alive) alive[e.Owner] = true;
+            }
+            int activeCount = 0, lastActive = -1, everCount = 0;
+            for (int p = 0; p < World.MaxPlayers; p++)
+            {
+                if (alive[p]) _everActive[p] = true;
+                if (_everActive[p]) everCount++;
+                if (alive[p])
+                {
+                    activeCount++;
+                    lastActive = p;
+                }
+            }
+            if (everCount >= 2 && activeCount == 1)
+            {
+                WinnerPlayerId = lastActive;
+                GameEnded?.Invoke(lastActive);
+            }
+        }
+
         /// <summary>Deployed structure packs back into its unit (ConYard→MCV, entrenched tank).</summary>
         private void TryUndeploy(Entity structure)
         {
@@ -262,6 +306,9 @@ namespace TiberiumDusk.Sim
             Superweapons.AddToHash(ref hash);
             IonStorm.AddToHash(ref hash);
             Crates.AddToHash(ref hash);
+            Vision.AddToHash(ref hash);
+            AI.AddToHash(ref hash);
+            hash.Add(WinnerPlayerId);
             return hash.Value;
         }
     }
