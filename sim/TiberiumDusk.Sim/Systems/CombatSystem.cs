@@ -83,9 +83,43 @@ namespace TiberiumDusk.Sim.Systems
             StepProjectiles();
         }
 
+        /// <summary>Pick the weapon that can engage this target (primary first), or null.</summary>
+        private WeaponSpec SelectWeapon(Entity attacker, Entity target)
+        {
+            bool air = target.Spec.IsAircraft;
+            var primary = _world.Rules.Weapons[attacker.Spec.WeaponIndex];
+            if ((air ? primary.TargetsAir : primary.TargetsGround)) return primary;
+            if (attacker.Spec.SecondaryWeaponIndex >= 0)
+            {
+                var secondary = _world.Rules.Weapons[attacker.Spec.SecondaryWeaponIndex];
+                if (air ? secondary.TargetsAir : secondary.TargetsGround) return secondary;
+            }
+            return null;
+        }
+
+        /// <summary>May this attacker engage that entity at all (cloak, weapon coverage, allegiance)?</summary>
+        private bool CanEngage(Entity attacker, Entity target)
+        {
+            var weapon = _world.Rules.Weapons[attacker.Spec.WeaponIndex];
+            if (weapon.IsRestorative)
+            {
+                if (target.Owner != attacker.Owner || target.Id == attacker.Id) return false;
+                if (target.Hp >= target.Spec.Health.Max) return false;
+                return _world.Rules.Warheads[weapon.WarheadIndex].Verses[(int)target.Spec.Health.Armor] > 0;
+            }
+            if (target.Owner == attacker.Owner) return false;
+            if (target.IsCloaked) return false;   // Phase 6: sensors reveal
+            return SelectWeapon(attacker, target) != null;
+        }
+
         private void StepCombat(Entity entity)
         {
             var target = _world.GetEntity(entity.AttackTargetId);
+            if (target != null && !CanEngage(entity, target))
+            {
+                target = null;
+                entity.AttackTargetId = -1;
+            }
 
             // Auto-acquire when idle/attack-moving and unengaged.
             if (target == null)
@@ -103,9 +137,27 @@ namespace TiberiumDusk.Sim.Systems
                 }
             }
 
-            var weapon = _world.Rules.Weapons[entity.Spec.WeaponIndex];
+            // Aircraft with dry magazines break off (AircraftSystem sends them home).
+            if (entity.Spec.AircraftAmmo > 0 && entity.Ammo <= 0)
+            {
+                entity.AttackTargetId = -1;
+                return;
+            }
+
+            var weapon = SelectWeapon(entity, target);
+            if (weapon == null && _world.Rules.Weapons[entity.Spec.WeaponIndex].IsRestorative)
+                weapon = _world.Rules.Weapons[entity.Spec.WeaponIndex];
+            if (weapon == null)
+            {
+                entity.AttackTargetId = -1;
+                return;
+            }
             long rangeSq = (long)weapon.RangeLeptons * weapon.RangeLeptons;
             long distSq = entity.Pos.DistanceSquared(TargetAimPos(target));
+
+            // Inside minimum range (artillery): back away is the player's job; just hold fire.
+            if (weapon.MinRangeLeptons > 0 && distSq < (long)weapon.MinRangeLeptons * weapon.MinRangeLeptons)
+                return;
 
             if (distSq > rangeSq)
             {
@@ -145,6 +197,10 @@ namespace TiberiumDusk.Sim.Systems
 
             if (entity.WeaponCooldown > 0) return;
             entity.WeaponCooldown = weapon.Rof;
+            if (entity.Spec.AircraftAmmo > 0) entity.Ammo--;
+            // Firing breaks the cloak.
+            if (entity.Spec.Cloakable || entity.IsCloaked)
+                entity.RecloakTicks = _world.Rules.Combat.RecloakDelayTicks;
 
             if (weapon.Projectile == ProjectileKind.Instant)
             {
@@ -173,14 +229,23 @@ namespace TiberiumDusk.Sim.Systems
 
         private Entity FindTargetInSight(Entity entity)
         {
-            long sightSq = (long)entity.Spec.SightLeptons * entity.Spec.SightLeptons;
+            // Structures (defenses) engage at weapon range even beyond sight —
+            // the base's sensors feed them targeting.
+            int acquireRange = entity.Spec.SightLeptons;
+            if (entity.Spec.IsStructure && entity.Spec.WeaponIndex >= 0)
+            {
+                int weaponRange = _world.Rules.Weapons[entity.Spec.WeaponIndex].RangeLeptons;
+                if (weaponRange > acquireRange) acquireRange = weaponRange;
+            }
+            long sightSq = (long)acquireRange * acquireRange;
             Entity best = null;
             long bestDist = long.MaxValue;
             var entities = _world.Entities;
             for (int i = 0; i < entities.Count; i++)
             {
                 var candidate = entities[i];
-                if (!candidate.Alive || candidate.Owner == entity.Owner) continue;
+                if (!candidate.Alive || candidate.Id == entity.Id) continue;
+                if (!CanEngage(entity, candidate)) continue;
                 long distSq = entity.Pos.DistanceSquared(TargetAimPos(candidate));
                 if (distSq <= sightSq && distSq < bestDist)
                 {
@@ -265,6 +330,18 @@ namespace TiberiumDusk.Sim.Systems
                 return;
             }
 
+            // Heal/repair: direct ally target only, capped at max HP.
+            if (weapon.IsRestorative)
+            {
+                var patient = _world.GetEntity(directTargetId);
+                if (patient != null)
+                {
+                    int restore = -weapon.Damage * warhead.Verses[(int)patient.Spec.Health.Armor] / 100;
+                    patient.Hp = System.Math.Min(patient.Spec.Health.Max, patient.Hp + restore);
+                }
+                return;
+            }
+
             int baseDamage = weapon.Damage;
             if (attacker != null && attacker.Rank > 0)
             {
@@ -299,6 +376,7 @@ namespace TiberiumDusk.Sim.Systems
                 if (damage <= 0) continue;
 
                 victim.Hp -= damage;
+                victim.RecloakTicks = _world.Rules.Combat.RecloakDelayTicks;   // taking fire decloaks
                 if (victim.Hp <= 0)
                 {
                     OnKill(attacker, victim);
@@ -318,7 +396,7 @@ namespace TiberiumDusk.Sim.Systems
                 if (victim.Pos.DistanceSquared(impact) > radiusSq) continue;
 
                 // EMP hits machines: vehicles and structures. Organic infantry immune.
-                bool mechanical = victim.Spec.IsStructure
+                bool mechanical = victim.Spec.IsStructure || victim.Spec.IsCyborg
                     || (victim.Spec.Mobile != null && victim.Spec.Mobile.Locomotor != LocomotorId.Foot);
                 if (!mechanical) continue;
 

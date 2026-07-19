@@ -6,6 +6,8 @@ namespace TiberiumDusk.Sim.WorldModel
     public sealed class PlayerState
     {
         public int PlayerId;
+        /// <summary>Faction gating buildables ("dominion"/"serpent"); "shared" blueprints ignore it.</summary>
+        public string Faction = "dominion";
         public int Credits;
         public int PowerProduced;
         public int PowerDrained;

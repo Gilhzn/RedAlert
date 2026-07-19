@@ -62,6 +62,9 @@ namespace TiberiumDusk.Balance
                     WarheadIndex = warheads.indexById[w.Warhead],
                     Projectile = ParseEnum<ProjectileKind>(w.ProjectileKind ?? "instant", w.Id),
                     ProjectileSpeed = w.ProjectileSpeed,
+                    MinRangeLeptons = (int)(w.MinRange * 256),
+                    TargetsGround = (w.Targets ?? "g").Contains("g"),
+                    TargetsAir = (w.Targets ?? "g").Contains("a"),
                 })
                 .ToArray();
             return (specs, specs.ToDictionary(w => w.Id, w => w.Index));
@@ -175,6 +178,8 @@ namespace TiberiumDusk.Balance
                     TechLevel = GetInt(buildable, "techLevel", blueprint.Id),
                     Prerequisites = GetStringArray(buildable, "prerequisites", blueprint.Id),
                 };
+                if (buildable.ContainsKey("buildLimit"))
+                    spec.BuildLimit = GetInt(buildable, "buildLimit", blueprint.Id);
             }
 
             if (blueprint.Components.TryGetValue("Structure", out var structure))
@@ -235,12 +240,34 @@ namespace TiberiumDusk.Balance
                 spec.DeploysInto = GetString(deploys, "structure", blueprint.Id);
             }
 
-            spec.CrystalVulnerable = blueprint.Components.ContainsKey("TiberiumVulnerable");
+            spec.CrystalVulnerable = blueprint.Components.ContainsKey("TiberiumVulnerable")
+                && !blueprint.Components.ContainsKey("Cyborg");
 
             if (blueprint.Components.TryGetValue("Armament", out var armament))
             {
                 spec.WeaponIndex = weaponIndexById[GetString(armament, "weapon", blueprint.Id)];
+                if (armament.ContainsKey("secondary"))
+                    spec.SecondaryWeaponIndex = weaponIndexById[GetString(armament, "secondary", blueprint.Id)];
             }
+
+            if (blueprint.Components.TryGetValue("Aircraft", out var aircraft))
+            {
+                spec.AircraftAmmo = GetInt(aircraft, "ammo", blueprint.Id);
+            }
+
+            if (blueprint.Components.TryGetValue("CloakGenerator", out var cloakGen))
+            {
+                spec.CloakGeneratorLeptons = GetInt(cloakGen, "radius", blueprint.Id) * 256;
+            }
+
+            if (blueprint.Components.TryGetValue("UndeploysInto", out var undeploys))
+            {
+                spec.UndeploysInto = GetString(undeploys, "unit", blueprint.Id);
+            }
+
+            spec.Cloakable = blueprint.Components.ContainsKey("Cloakable");
+            spec.IsCyborg = blueprint.Components.ContainsKey("Cyborg");
+            spec.IsAircraftPad = blueprint.Components.ContainsKey("AircraftPad");
 
             if (blueprint.Components.TryGetValue("Turreted", out var turreted))
             {

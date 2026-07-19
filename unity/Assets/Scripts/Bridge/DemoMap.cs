@@ -54,12 +54,15 @@ namespace TiberiumDusk.Client
 
         public static void SpawnUnits(Game game)
         {
+            game.SetPlayerFaction(0, "dominion");
+            game.SetPlayerFaction(1, "serpent");
+
             // Player 0 (amber): an MCV ready to found a base (press D), an escort,
             // and crystal fields within reach.
-            game.Spawn("dm_mcv", 0, new CellPos(12, 14));
+            game.Spawn("nx_mcv", 0, new CellPos(12, 14));
             game.Spawn("dm_mbt_walker", 0, new CellPos(10, 18));
             game.Spawn("dm_mbt_walker", 0, new CellPos(14, 18));
-            game.Spawn("dm_rifle_infantry", 0, new CellPos(12, 19));
+            game.Spawn("dm_rifle", 0, new CellPos(12, 19));
             game.Spawn("so_scout_buggy", 0, new CellPos(16, 18));
 
             // Green crystal field near the player start.
@@ -70,12 +73,16 @@ namespace TiberiumDusk.Client
             // Player 0 also gets an engineer — try capturing the enemy power plant.
             game.Spawn("dm_engineer", 0, new CellPos(8, 20));
 
-            // Player 1 (crimson): a small base guarding the blue field.
-            game.World.SpawnStructure(game.World.Rules.Unit("dm_power_plant"), 1, new CellPos(50, 46));
-            game.World.SpawnStructure(game.World.Rules.Unit("dm_guard_tower"), 1, new CellPos(48, 44));
+            // Player 1 (crimson serpents): a base guarding the blue field —
+            // laser turret, SAM, and a cloaked phantom tank prowling.
+            game.World.SpawnStructure(game.World.Rules.Unit("so_power_plant"), 1, new CellPos(50, 46));
+            game.World.SpawnStructure(game.World.Rules.Unit("so_adv_power"), 1, new CellPos(53, 46));
+            game.World.SpawnStructure(game.World.Rules.Unit("so_laser_turret"), 1, new CellPos(48, 44));
+            game.World.SpawnStructure(game.World.Rules.Unit("so_sam"), 1, new CellPos(50, 44));
             game.Spawn("so_scout_buggy", 1, new CellPos(40, 45));
-            game.Spawn("dm_mbt_walker", 1, new CellPos(42, 42));
-            game.Spawn("dm_rifle_infantry", 1, new CellPos(44, 43));
+            game.Spawn("so_tick_tank", 1, new CellPos(42, 42));
+            game.Spawn("so_stealth_tank", 1, new CellPos(44, 47));
+            game.Spawn("so_rifle", 1, new CellPos(44, 43));
         }
 
         private static void SeedField(Game game, int centerX, int centerY, int radius,

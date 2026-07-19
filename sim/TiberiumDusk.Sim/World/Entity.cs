@@ -108,6 +108,12 @@ namespace TiberiumDusk.Sim.WorldModel
         public int Rank;
         /// <summary>Capture mission target (engineer), or -1.</summary>
         public int CaptureTargetId = -1;
+        /// <summary>Remaining aircraft ammo (only for AircraftAmmo specs).</summary>
+        public int Ammo;
+        /// <summary>Cloak state, recomputed by StealthSystem each tick.</summary>
+        public bool IsCloaked;
+        /// <summary>Ticks until a decloaked unit may re-cloak.</summary>
+        public int RecloakTicks;
 
         public void AddToHash(ref StateHash hash)
         {
@@ -130,6 +136,9 @@ namespace TiberiumDusk.Sim.WorldModel
             hash.Add(CombatXp);
             hash.Add(Rank);
             hash.Add(CaptureTargetId);
+            hash.Add(Ammo);
+            hash.Add(IsCloaked ? 1 : 0);
+            hash.Add(RecloakTicks);
             Harvest?.AddToHash(ref hash);
         }
     }

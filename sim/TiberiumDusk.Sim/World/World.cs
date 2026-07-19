@@ -79,9 +79,10 @@ namespace TiberiumDusk.Sim.WorldModel
                 HomeCell = cell,
             };
             if (spec.Harvester != null) entity.Harvest = new HarvesterState();
+            entity.Ammo = spec.AircraftAmmo;
             _entities.Add(entity);
             _byId.Add(entity.Id, entity);
-            ClaimCell(cell, entity.Id);
+            if (!spec.IsAircraft) ClaimCell(cell, entity.Id);   // aircraft fly above occupancy
             return entity;
         }
 
@@ -121,7 +122,7 @@ namespace TiberiumDusk.Sim.WorldModel
                         ReleaseCell(new CellPos(entity.HomeCell.X + dx, entity.HomeCell.Y + dy), entity.Id);
                 RecomputePlayerAggregates();
             }
-            else
+            else if (!entity.Spec.IsAircraft)
             {
                 ReleaseCell(entity.HomeCell, entity.Id);
                 if (entity.Move.HasClaim) ReleaseCell(entity.Move.ClaimedCell, entity.Id);

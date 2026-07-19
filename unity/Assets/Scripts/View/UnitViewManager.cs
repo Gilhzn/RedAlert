@@ -78,6 +78,10 @@ namespace TiberiumDusk.Client
         private Quaternion _prevTurretRot, _currTurretRot;
         private Transform _turret;
         private GameObject _selectionRing;
+        private bool _isAircraft;
+        private bool _cloaked;
+        private readonly System.Collections.Generic.List<MeshRenderer> _renderers =
+            new System.Collections.Generic.List<MeshRenderer>();
 
         public static UnitView Create(Entity entity, GameRunner runner, Transform parent)
         {
@@ -87,7 +91,9 @@ namespace TiberiumDusk.Client
             view.EntityId = entity.Id;
             view.Owner = entity.Owner;
             view._runner = runner;
+            view._isAircraft = entity.Spec.IsAircraft;
             view.BuildBody(entity);
+            view.CollectRenderers();
 
             var start = view.ComputeWorldPos(entity.Pos);
             var rot = FacingToRotation(entity.FacingValue);
@@ -193,6 +199,7 @@ namespace TiberiumDusk.Client
 
         public void PushSimState(Entity entity)
         {
+            ApplyCloakVisual(entity.IsCloaked);
             _prevPos = _currPos;
             _prevRot = _currRot;
             _currPos = ComputeWorldPos(entity.Pos);
@@ -208,7 +215,32 @@ namespace TiberiumDusk.Client
         {
             var world = TerrainView.LeptonToWorld(pos);
             world.y = _runner.Terrain.SurfaceHeight(world.x, world.z);
+            if (_isAircraft) world.y += 2.4f;   // flight altitude (visual only)
             return world;
+        }
+
+        private void CollectRenderers()
+        {
+            _renderers.Clear();
+            foreach (var renderer in GetComponentsInChildren<MeshRenderer>())
+            {
+                if (_selectionRing == null || renderer.gameObject != _selectionRing)
+                    _renderers.Add(renderer);
+            }
+        }
+
+        /// <summary>Cloak presentation: enemies see nothing; the owner sees a shrunken shimmer.</summary>
+        private void ApplyCloakVisual(bool cloaked)
+        {
+            if (_cloaked == cloaked) return;
+            _cloaked = cloaked;
+            bool enemy = Owner != GameRunner.LocalPlayerId;
+            foreach (var renderer in _renderers)
+            {
+                renderer.enabled = !cloaked || !enemy;
+            }
+            float scale = cloaked && !enemy ? 0.8f : 1f;
+            transform.localScale = new Vector3(scale, scale, scale);
         }
 
         private static Quaternion FacingToRotation(byte facing)

@@ -1,5 +1,5 @@
 {
-  "$comment": "Warheads: verses = damage % vs armor classes [none, wood, light, heavy, concrete]; spread = falloff step; special flags land with combat phase.",
+  "$comment": "Warheads: verses vs [none,wood,light,heavy,concrete]; spread step falloff.",
   "warheads": [
     {
       "id": "small_arms",
@@ -38,6 +38,105 @@
       ],
       "wall": true,
       "wood": true
+    },
+    {
+      "id": "artillery_he",
+      "spread": 6,
+      "verses": [
+        100,
+        85,
+        68,
+        35,
+        35
+      ]
+    },
+    {
+      "id": "fire",
+      "spread": 8,
+      "verses": [
+        600,
+        148,
+        59,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "sonic",
+      "spread": 2,
+      "verses": [
+        100,
+        100,
+        100,
+        80,
+        60
+      ]
+    },
+    {
+      "id": "rail",
+      "spread": 1,
+      "verses": [
+        200,
+        175,
+        160,
+        100,
+        25
+      ]
+    },
+    {
+      "id": "laser_super",
+      "spread": 0,
+      "verses": [
+        100,
+        100,
+        100,
+        100,
+        100
+      ]
+    },
+    {
+      "id": "plasma",
+      "spread": 0,
+      "verses": [
+        350,
+        260,
+        205,
+        150,
+        80
+      ]
+    },
+    {
+      "id": "sam_warhead",
+      "spread": 3,
+      "verses": [
+        100,
+        100,
+        100,
+        100,
+        100
+      ]
+    },
+    {
+      "id": "heal_organic",
+      "spread": 0,
+      "verses": [
+        100,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "repair_mech",
+      "spread": 0,
+      "verses": [
+        0,
+        100,
+        100,
+        100,
+        100
+      ]
     },
     {
       "id": "emp_pulse",

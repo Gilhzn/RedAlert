@@ -1,11 +1,64 @@
 {
-  "$comment": "Weapons: damage, rof (ticks between shots @15tps), range (cells), warhead ref, projectile behavior. kind: instant=hitscan, direct=straight shell, arcing=ballistic lob. speed in leptons/tick. emp weapons: damage = paralysis ticks.",
+  "$comment": "Weapons. targets: g/a/ga. minRange cells. negative damage = heal/repair (allies).",
   "weapons": [
     {
       "id": "assault_rifle",
       "damage": 8,
       "rof": 21,
       "range": 4,
+      "warhead": "small_arms",
+      "projectile": {
+        "kind": "instant"
+      }
+    },
+    {
+      "id": "grenade_disc",
+      "damage": 40,
+      "rof": 60,
+      "range": 4.5,
+      "warhead": "high_explosive",
+      "projectile": {
+        "kind": "arcing",
+        "speed": 40
+      }
+    },
+    {
+      "id": "heal_kit",
+      "damage": -50,
+      "rof": 80,
+      "range": 2.8,
+      "warhead": "heal_organic",
+      "projectile": {
+        "kind": "instant"
+      }
+    },
+    {
+      "id": "jump_cannon",
+      "damage": 15,
+      "rof": 40,
+      "range": 5,
+      "warhead": "small_arms",
+      "projectile": {
+        "kind": "instant"
+      },
+      "targets": "ga"
+    },
+    {
+      "id": "rail_hero",
+      "damage": 150,
+      "rof": 60,
+      "range": 6,
+      "warhead": "rail",
+      "projectile": {
+        "kind": "direct",
+        "speed": 120
+      }
+    },
+    {
+      "id": "assault_cannon",
+      "damage": 40,
+      "rof": 50,
+      "range": 5,
       "warhead": "small_arms",
       "projectile": {
         "kind": "instant"
@@ -23,13 +76,71 @@
       }
     },
     {
-      "id": "raider_gun",
-      "damage": 40,
-      "rof": 55,
-      "range": 4,
-      "warhead": "small_arms",
+      "id": "hover_missiles",
+      "damage": 30,
+      "rof": 68,
+      "range": 8,
+      "warhead": "armor_piercing",
       "projectile": {
-        "kind": "instant"
+        "kind": "direct",
+        "speed": 55
+      },
+      "targets": "ga"
+    },
+    {
+      "id": "sonic_beam",
+      "damage": 250,
+      "rof": 120,
+      "range": 6,
+      "warhead": "sonic",
+      "projectile": {
+        "kind": "direct",
+        "speed": 100
+      }
+    },
+    {
+      "id": "rail_quad",
+      "damage": 200,
+      "rof": 60,
+      "range": 8,
+      "warhead": "rail",
+      "projectile": {
+        "kind": "direct",
+        "speed": 120
+      }
+    },
+    {
+      "id": "mammoth_aa",
+      "damage": 40,
+      "rof": 80,
+      "range": 6,
+      "warhead": "high_explosive",
+      "projectile": {
+        "kind": "direct",
+        "speed": 60
+      },
+      "targets": "a"
+    },
+    {
+      "id": "orca_hellfire",
+      "damage": 60,
+      "rof": 50,
+      "range": 6,
+      "warhead": "armor_piercing",
+      "projectile": {
+        "kind": "direct",
+        "speed": 60
+      }
+    },
+    {
+      "id": "orca_bombs",
+      "damage": 160,
+      "rof": 40,
+      "range": 3,
+      "warhead": "high_explosive",
+      "projectile": {
+        "kind": "arcing",
+        "speed": 50
       }
     },
     {
@@ -40,6 +151,180 @@
       "warhead": "small_arms",
       "projectile": {
         "kind": "instant"
+      }
+    },
+    {
+      "id": "rocket_tower",
+      "damage": 110,
+      "rof": 80,
+      "range": 8,
+      "warhead": "armor_piercing",
+      "projectile": {
+        "kind": "direct",
+        "speed": 60
+      },
+      "minRange": 2
+    },
+    {
+      "id": "aa_missile",
+      "damage": 33,
+      "rof": 55,
+      "range": 10,
+      "warhead": "sam_warhead",
+      "projectile": {
+        "kind": "direct",
+        "speed": 90
+      },
+      "targets": "a"
+    },
+    {
+      "id": "raider_gun",
+      "damage": 40,
+      "rof": 55,
+      "range": 4,
+      "warhead": "small_arms",
+      "projectile": {
+        "kind": "instant"
+      }
+    },
+    {
+      "id": "rocket_launcher",
+      "damage": 25,
+      "rof": 60,
+      "range": 6,
+      "warhead": "armor_piercing",
+      "projectile": {
+        "kind": "direct",
+        "speed": 55
+      },
+      "targets": "ga"
+    },
+    {
+      "id": "cyborg_vulcan",
+      "damage": 30,
+      "rof": 30,
+      "range": 4,
+      "warhead": "small_arms",
+      "projectile": {
+        "kind": "instant"
+      }
+    },
+    {
+      "id": "plasma_commando",
+      "damage": 120,
+      "rof": 50,
+      "range": 7,
+      "warhead": "plasma",
+      "projectile": {
+        "kind": "direct",
+        "speed": 90
+      }
+    },
+    {
+      "id": "bike_missiles",
+      "damage": 40,
+      "rof": 60,
+      "range": 5,
+      "warhead": "armor_piercing",
+      "projectile": {
+        "kind": "direct",
+        "speed": 60
+      }
+    },
+    {
+      "id": "cannon_90",
+      "damage": 36,
+      "rof": 50,
+      "range": 6.75,
+      "warhead": "armor_piercing",
+      "projectile": {
+        "kind": "direct",
+        "speed": 80
+      }
+    },
+    {
+      "id": "artillery_155",
+      "damage": 150,
+      "rof": 110,
+      "range": 18,
+      "warhead": "artillery_he",
+      "projectile": {
+        "kind": "arcing",
+        "speed": 45
+      },
+      "minRange": 5
+    },
+    {
+      "id": "flame_stream",
+      "damage": 45,
+      "rof": 30,
+      "range": 4.25,
+      "warhead": "fire",
+      "projectile": {
+        "kind": "instant"
+      }
+    },
+    {
+      "id": "stealth_missiles",
+      "damage": 30,
+      "rof": 50,
+      "range": 6,
+      "warhead": "armor_piercing",
+      "projectile": {
+        "kind": "direct",
+        "speed": 60
+      },
+      "targets": "ga"
+    },
+    {
+      "id": "repair_beam",
+      "damage": -50,
+      "rof": 80,
+      "range": 1.8,
+      "warhead": "repair_mech",
+      "projectile": {
+        "kind": "instant"
+      }
+    },
+    {
+      "id": "laser_bolt",
+      "damage": 30,
+      "rof": 40,
+      "range": 5.5,
+      "warhead": "laser_super",
+      "projectile": {
+        "kind": "instant"
+      }
+    },
+    {
+      "id": "obelisk_beam",
+      "damage": 250,
+      "rof": 120,
+      "range": 10.5,
+      "warhead": "laser_super",
+      "projectile": {
+        "kind": "instant"
+      }
+    },
+    {
+      "id": "harpy_gun",
+      "damage": 60,
+      "rof": 36,
+      "range": 5,
+      "warhead": "small_arms",
+      "projectile": {
+        "kind": "instant"
+      }
+    },
+    {
+      "id": "banshee_plasma",
+      "damage": 60,
+      "rof": 45,
+      "range": 5,
+      "warhead": "plasma",
+      "projectile": {
+        "kind": "direct",
+        "speed": 90
       }
     },
     {

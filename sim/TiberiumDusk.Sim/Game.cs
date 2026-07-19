@@ -29,6 +29,8 @@ namespace TiberiumDusk.Sim
         private readonly MovementSystem _movement;
         private readonly HarvesterSystem _harvesters;
         private readonly CrystalSystem _crystal;
+        private readonly StealthSystem _stealth;
+        private readonly AircraftSystem _aircraft;
 
         public Game(RulesData rules, MapData map, ulong seed)
         {
@@ -39,7 +41,12 @@ namespace TiberiumDusk.Sim
             _harvesters = new HarvesterSystem(World, _movement);
             _crystal = new CrystalSystem(World, Random);
             Combat = new CombatSystem(World, _movement);
+            _stealth = new StealthSystem(World);
+            _aircraft = new AircraftSystem(World, _movement);
         }
+
+        public void SetPlayerFaction(int playerId, string faction) =>
+            World.Players[playerId].Faction = faction;
 
         /// <summary>Direct spawn for scenario setup and tests.</summary>
         public Entity Spawn(string specId, int owner, CellPos cell) =>
@@ -50,6 +57,8 @@ namespace TiberiumDusk.Sim
             ExecuteOrders(orders);
             Production.Tick();
             _harvesters.Tick();
+            _stealth.Tick();
+            _aircraft.Tick();
             Combat.Tick();
             _movement.Tick();
             _crystal.Tick();
@@ -152,10 +161,9 @@ namespace TiberiumDusk.Sim
                     case OrderType.Deploy:
                     {
                         var entity = World.GetEntity(order.EntityId);
-                        if (entity != null && entity.Owner == order.PlayerId && entity.Spec.DeploysInto != null)
-                        {
-                            TryDeploy(entity);
-                        }
+                        if (entity == null || entity.Owner != order.PlayerId) break;
+                        if (entity.Spec.DeploysInto != null) TryDeploy(entity);
+                        else if (entity.Spec.UndeploysInto != null) TryUndeploy(entity);
                         break;
                     }
                 }
@@ -213,6 +221,18 @@ namespace TiberiumDusk.Sim
                 World.ClaimCell(entity.HomeCell, entity.Id);
                 if (entity.Move.HasClaim) World.ClaimCell(entity.Move.ClaimedCell, entity.Id);
             }
+        }
+
+        /// <summary>Deployed structure packs back into its unit (ConYard→MCV, entrenched tank).</summary>
+        private void TryUndeploy(Entity structure)
+        {
+            var unitSpec = World.Rules.Unit(structure.Spec.UndeploysInto);
+            var s = structure.Spec.Structure;
+            var center = new CellPos(
+                structure.HomeCell.X + s.FootprintW / 2,
+                structure.HomeCell.Y + s.FootprintH / 2);
+            World.Kill(structure);
+            World.Spawn(unitSpec, structure.Owner, center);
         }
 
         /// <summary>State fingerprint for desync detection and determinism tests.</summary>

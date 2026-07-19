@@ -27,7 +27,7 @@ namespace TiberiumDusk.Sim.Tests
             var game = new Game(TestWorlds.Rules, map, seed);
             var scriptRng = new DeterministicRandom(seed ^ 0xFACE);
 
-            var specs = new[] { "dm_mbt_walker", "dm_rifle_infantry", "so_scout_buggy" };
+            var specs = new[] { "dm_mbt_walker", "dm_rifle", "so_scout_buggy" };
             var unitIds = new List<int>();
             for (int i = 0; i < 12; i++)
             {

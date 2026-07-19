@@ -59,13 +59,49 @@ namespace TiberiumDusk.Sim.Systems
         public bool CanBuild(int playerId, UnitSpec spec)
         {
             if (spec.Buildable == null || spec.Buildable.TechLevel < 0) return false;
+            // Faction gate: "shared" blueprints belong to everyone.
+            var player = _world.Players[playerId];
+            if (spec.Faction != "shared" && spec.Faction != player.Faction) return false;
             // Owner must have a factory hosting the queue.
             if (_world.FindPrimaryFactory(playerId, spec.Buildable.Queue) == null) return false;
             foreach (var prereq in spec.Buildable.Prerequisites)
             {
-                if (!_world.OwnsBlueprint(playerId, prereq)) return false;
+                if (!SatisfiesPrerequisite(playerId, prereq)) return false;
             }
+            if (spec.BuildLimit > 0 && CountOwnedAndQueued(playerId, spec) >= spec.BuildLimit) return false;
             return true;
+        }
+
+        /// <summary>"any:a|b|c" = own at least one of; plain id = own it.</summary>
+        private bool SatisfiesPrerequisite(int playerId, string prereq)
+        {
+            if (prereq.StartsWith("any:"))
+            {
+                foreach (var option in prereq.Substring(4).Split('|'))
+                {
+                    if (_world.OwnsBlueprint(playerId, option)) return true;
+                }
+                return false;
+            }
+            return _world.OwnsBlueprint(playerId, prereq);
+        }
+
+        private int CountOwnedAndQueued(int playerId, UnitSpec spec)
+        {
+            int count = 0;
+            var entities = _world.Entities;
+            for (int i = 0; i < entities.Count; i++)
+            {
+                var e = entities[i];
+                if (e.Alive && e.Owner == playerId && e.Spec.Index == spec.Index) count++;
+            }
+            var queue = GetQueue(playerId, spec.Buildable.Queue);
+            if (queue.ActiveSpecIndex == spec.Index) count++;
+            for (int i = 0; i < queue.Waiting.Count; i++)
+            {
+                if (queue.Waiting[i] == spec.Index) count++;
+            }
+            return count;
         }
 
         public void StartBuild(int playerId, int specIndex)

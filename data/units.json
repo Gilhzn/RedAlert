@@ -1,107 +1,24 @@
 {
-  "$comment": "Unit blueprints — component composition per unit. Baseline numbers derive from docs/research/units-and-tech.md. Full rosters land in Phase 5; these three exercise the loader and early phases.",
+  "$comment": "Full unit rosters (baseline stats: docs/research/units-and-tech.md). Prereq 'any:a|b' = any one of. faction 'shared' buildable by all.",
   "units": [
     {
-      "id": "dm_rifle_infantry",
-      "faction": "dominion",
-      "components": {
-        "Health": {
-          "max": 125,
-          "armor": "none"
-        },
-        "Mobile": {
-          "speed": 5,
-          "locomotor": "foot",
-          "rot": 8
-        },
-        "Armament": {
-          "weapon": "assault_rifle"
-        },
-        "Buildable": {
-          "cost": 120,
-          "queue": "infantry",
-          "techLevel": 1,
-          "prerequisites": [
-            "dm_barracks"
-          ]
-        },
-        "Crushable": {},
-        "TiberiumVulnerable": {},
-        "Sight": {
-          "range": 5
-        }
-      }
-    },
-    {
-      "id": "dm_mbt_walker",
-      "faction": "dominion",
-      "components": {
-        "Health": {
-          "max": 400,
-          "armor": "heavy"
-        },
-        "Mobile": {
-          "speed": 4,
-          "locomotor": "walker",
-          "rot": 5
-        },
-        "Turreted": {
-          "rot": 5
-        },
-        "Armament": {
-          "weapon": "cannon_120"
-        },
-        "Buildable": {
-          "cost": 800,
-          "queue": "vehicle",
-          "techLevel": 3,
-          "prerequisites": [
-            "dm_factory"
-          ]
-        },
-        "Crusher": {},
-        "Sight": {
-          "range": 6
-        }
-      }
-    },
-    {
-      "id": "so_scout_buggy",
-      "faction": "serpent",
-      "components": {
-        "Health": {
-          "max": 220,
-          "armor": "light"
-        },
-        "Mobile": {
-          "speed": 10,
-          "locomotor": "wheeled",
-          "rot": 7
-        },
-        "Armament": {
-          "weapon": "raider_gun"
-        },
-        "Buildable": {
-          "cost": 500,
-          "queue": "vehicle",
-          "techLevel": 2,
-          "prerequisites": [
-            "dm_factory"
-          ]
-        },
-        "Crusher": {},
-        "Sight": {
-          "range": 8
-        }
-      }
-    },
-    {
-      "id": "dm_harvester",
-      "faction": "dominion",
+      "id": "nx_harvester",
+      "faction": "shared",
       "components": {
         "Health": {
           "max": 1000,
           "armor": "heavy"
+        },
+        "Buildable": {
+          "cost": 1400,
+          "queue": "vehicle",
+          "techLevel": 1,
+          "prerequisites": [
+            "nx_refinery"
+          ]
+        },
+        "Sight": {
+          "range": 4
         },
         "Mobile": {
           "speed": 5,
@@ -111,28 +28,27 @@
         "Harvester": {
           "capacityBails": 28
         },
-        "Buildable": {
-          "cost": 1400,
-          "queue": "vehicle",
-          "techLevel": 1,
-          "prerequisites": [
-            "dm_factory",
-            "dm_refinery"
-          ]
-        },
-        "Crusher": {},
-        "Sight": {
-          "range": 4
-        }
+        "Crusher": {}
       }
     },
     {
-      "id": "dm_mcv",
-      "faction": "dominion",
+      "id": "nx_mcv",
+      "faction": "shared",
       "components": {
         "Health": {
           "max": 1000,
           "armor": "heavy"
+        },
+        "Buildable": {
+          "cost": 2500,
+          "queue": "vehicle",
+          "techLevel": 10,
+          "prerequisites": [
+            "any:dm_tech_center|so_tech_center"
+          ]
+        },
+        "Sight": {
+          "range": 4
         },
         "Mobile": {
           "speed": 3,
@@ -140,20 +56,102 @@
           "rot": 5
         },
         "DeploysInto": {
-          "structure": "dm_conyard"
+          "structure": "nx_conyard"
+        },
+        "Crusher": {}
+      }
+    },
+    {
+      "id": "dm_rifle",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 125,
+          "armor": "none"
         },
         "Buildable": {
-          "cost": 2500,
-          "queue": "vehicle",
-          "techLevel": 10,
+          "cost": 120,
+          "queue": "infantry",
+          "techLevel": 1,
           "prerequisites": [
-            "dm_factory"
+            "dm_barracks"
           ]
         },
-        "Crusher": {},
         "Sight": {
-          "range": 4
-        }
+          "range": 5
+        },
+        "Mobile": {
+          "speed": 5,
+          "locomotor": "foot",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "assault_rifle"
+        },
+        "Crushable": {},
+        "TiberiumVulnerable": {}
+      }
+    },
+    {
+      "id": "dm_grenadier",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 150,
+          "armor": "none"
+        },
+        "Buildable": {
+          "cost": 200,
+          "queue": "infantry",
+          "techLevel": 2,
+          "prerequisites": [
+            "dm_barracks"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        },
+        "Mobile": {
+          "speed": 4,
+          "locomotor": "foot",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "grenade_disc"
+        },
+        "Crushable": {},
+        "TiberiumVulnerable": {}
+      }
+    },
+    {
+      "id": "dm_medic",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 125,
+          "armor": "none"
+        },
+        "Buildable": {
+          "cost": 600,
+          "queue": "infantry",
+          "techLevel": 4,
+          "prerequisites": [
+            "dm_barracks"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        },
+        "Mobile": {
+          "speed": 4,
+          "locomotor": "foot",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "heal_kit"
+        },
+        "Crushable": {},
+        "TiberiumVulnerable": {}
       }
     },
     {
@@ -164,15 +162,6 @@
           "max": 100,
           "armor": "none"
         },
-        "Mobile": {
-          "speed": 4,
-          "locomotor": "foot",
-          "rot": 8
-        },
-        "Engineer": {},
-        "Sight": {
-          "range": 4
-        },
         "Buildable": {
           "cost": 500,
           "queue": "infantry",
@@ -181,8 +170,798 @@
             "dm_barracks"
           ]
         },
+        "Sight": {
+          "range": 4
+        },
+        "Mobile": {
+          "speed": 4,
+          "locomotor": "foot",
+          "rot": 8
+        },
+        "Crushable": {},
+        "TiberiumVulnerable": {},
+        "Engineer": {}
+      }
+    },
+    {
+      "id": "dm_jumptrooper",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 120,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 600,
+          "queue": "infantry",
+          "techLevel": 6,
+          "prerequisites": [
+            "dm_barracks",
+            "dm_radar"
+          ]
+        },
+        "Sight": {
+          "range": 6
+        },
+        "Mobile": {
+          "speed": 8,
+          "locomotor": "aircraft",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "jump_cannon"
+        },
+        "TiberiumVulnerable": {}
+      }
+    },
+    {
+      "id": "dm_railhero",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 200,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 1750,
+          "queue": "infantry",
+          "techLevel": 10,
+          "prerequisites": [
+            "dm_barracks",
+            "dm_tech_center"
+          ],
+          "buildLimit": 1
+        },
+        "Sight": {
+          "range": 7
+        },
+        "Mobile": {
+          "speed": 5,
+          "locomotor": "foot",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "rail_hero"
+        },
+        "Crushable": {}
+      }
+    },
+    {
+      "id": "dm_wolverine",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 175,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 500,
+          "queue": "vehicle",
+          "techLevel": 2,
+          "prerequisites": [
+            "dm_factory"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        },
+        "Mobile": {
+          "speed": 7,
+          "locomotor": "walker",
+          "rot": 6
+        },
+        "Armament": {
+          "weapon": "assault_cannon"
+        },
+        "Crusher": {}
+      }
+    },
+    {
+      "id": "dm_mbt_walker",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 400,
+          "armor": "heavy"
+        },
+        "Buildable": {
+          "cost": 800,
+          "queue": "vehicle",
+          "techLevel": 3,
+          "prerequisites": [
+            "dm_factory"
+          ]
+        },
+        "Sight": {
+          "range": 6
+        },
+        "Mobile": {
+          "speed": 4,
+          "locomotor": "walker",
+          "rot": 5
+        },
+        "Armament": {
+          "weapon": "cannon_120"
+        },
+        "Turreted": {
+          "rot": 5
+        },
+        "Crusher": {}
+      }
+    },
+    {
+      "id": "dm_apc",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 200,
+          "armor": "heavy"
+        },
+        "Buildable": {
+          "cost": 800,
+          "queue": "vehicle",
+          "techLevel": 6,
+          "prerequisites": [
+            "dm_factory",
+            "dm_barracks"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        },
+        "Mobile": {
+          "speed": 8,
+          "locomotor": "amphibious",
+          "rot": 6
+        },
+        "Crusher": {}
+      }
+    },
+    {
+      "id": "dm_hover_mlrs",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 230,
+          "armor": "wood"
+        },
+        "Buildable": {
+          "cost": 900,
+          "queue": "vehicle",
+          "techLevel": 7,
+          "prerequisites": [
+            "dm_factory",
+            "dm_radar"
+          ]
+        },
+        "Sight": {
+          "range": 6
+        },
+        "Mobile": {
+          "speed": 7,
+          "locomotor": "hover",
+          "rot": 6
+        },
+        "Armament": {
+          "weapon": "hover_missiles"
+        },
+        "Turreted": {
+          "rot": 6
+        }
+      }
+    },
+    {
+      "id": "dm_disruptor",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 500,
+          "armor": "heavy"
+        },
+        "Buildable": {
+          "cost": 1300,
+          "queue": "vehicle",
+          "techLevel": 9,
+          "prerequisites": [
+            "dm_factory",
+            "dm_tech_center"
+          ]
+        },
+        "Sight": {
+          "range": 6
+        },
+        "Mobile": {
+          "speed": 4,
+          "locomotor": "tracked",
+          "rot": 4
+        },
+        "Armament": {
+          "weapon": "sonic_beam"
+        },
+        "Crusher": {}
+      }
+    },
+    {
+      "id": "dm_mammoth",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 800,
+          "armor": "heavy"
+        },
+        "Buildable": {
+          "cost": 3000,
+          "queue": "vehicle",
+          "techLevel": 10,
+          "prerequisites": [
+            "dm_factory",
+            "dm_tech_center"
+          ],
+          "buildLimit": 1
+        },
+        "Sight": {
+          "range": 7
+        },
+        "Mobile": {
+          "speed": 3,
+          "locomotor": "walker",
+          "rot": 3
+        },
+        "Armament": {
+          "weapon": "rail_quad",
+          "secondary": "mammoth_aa"
+        },
+        "Turreted": {
+          "rot": 4
+        },
+        "Crusher": {}
+      }
+    },
+    {
+      "id": "dm_orca",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 200,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 1000,
+          "queue": "aircraft",
+          "techLevel": 5,
+          "prerequisites": [
+            "dm_helipad"
+          ]
+        },
+        "Sight": {
+          "range": 6
+        },
+        "Mobile": {
+          "speed": 20,
+          "locomotor": "aircraft",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "orca_hellfire"
+        },
+        "Aircraft": {
+          "ammo": 5
+        }
+      }
+    },
+    {
+      "id": "dm_orca_bomber",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 260,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 1600,
+          "queue": "aircraft",
+          "techLevel": 8,
+          "prerequisites": [
+            "dm_helipad",
+            "dm_tech_center"
+          ]
+        },
+        "Sight": {
+          "range": 6
+        },
+        "Mobile": {
+          "speed": 12,
+          "locomotor": "aircraft",
+          "rot": 6
+        },
+        "Armament": {
+          "weapon": "orca_bombs"
+        },
+        "Aircraft": {
+          "ammo": 2
+        }
+      }
+    },
+    {
+      "id": "so_rifle",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 125,
+          "armor": "none"
+        },
+        "Buildable": {
+          "cost": 120,
+          "queue": "infantry",
+          "techLevel": 1,
+          "prerequisites": [
+            "so_hand"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        },
+        "Mobile": {
+          "speed": 5,
+          "locomotor": "foot",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "assault_rifle"
+        },
         "Crushable": {},
         "TiberiumVulnerable": {}
+      }
+    },
+    {
+      "id": "so_rocket_trooper",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 100,
+          "armor": "none"
+        },
+        "Buildable": {
+          "cost": 250,
+          "queue": "infantry",
+          "techLevel": 2,
+          "prerequisites": [
+            "so_hand"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        },
+        "Mobile": {
+          "speed": 4,
+          "locomotor": "foot",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "rocket_launcher"
+        },
+        "Crushable": {},
+        "TiberiumVulnerable": {}
+      }
+    },
+    {
+      "id": "so_engineer",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 100,
+          "armor": "none"
+        },
+        "Buildable": {
+          "cost": 500,
+          "queue": "infantry",
+          "techLevel": 2,
+          "prerequisites": [
+            "so_hand"
+          ]
+        },
+        "Sight": {
+          "range": 4
+        },
+        "Mobile": {
+          "speed": 4,
+          "locomotor": "foot",
+          "rot": 8
+        },
+        "Crushable": {},
+        "TiberiumVulnerable": {},
+        "Engineer": {}
+      }
+    },
+    {
+      "id": "so_cyborg",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 300,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 650,
+          "queue": "infantry",
+          "techLevel": 4,
+          "prerequisites": [
+            "so_hand"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        },
+        "Mobile": {
+          "speed": 4,
+          "locomotor": "foot",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "cyborg_vulcan"
+        },
+        "Cyborg": {}
+      }
+    },
+    {
+      "id": "so_cyborg_commando",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 500,
+          "armor": "heavy"
+        },
+        "Buildable": {
+          "cost": 2000,
+          "queue": "infantry",
+          "techLevel": 10,
+          "prerequisites": [
+            "so_hand",
+            "so_temple"
+          ],
+          "buildLimit": 1
+        },
+        "Sight": {
+          "range": 7
+        },
+        "Mobile": {
+          "speed": 4,
+          "locomotor": "foot",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "plasma_commando"
+        },
+        "Cyborg": {}
+      }
+    },
+    {
+      "id": "so_scout_buggy",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 220,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 500,
+          "queue": "vehicle",
+          "techLevel": 2,
+          "prerequisites": [
+            "so_factory"
+          ]
+        },
+        "Sight": {
+          "range": 8
+        },
+        "Mobile": {
+          "speed": 10,
+          "locomotor": "wheeled",
+          "rot": 7
+        },
+        "Armament": {
+          "weapon": "raider_gun"
+        },
+        "Crusher": {}
+      }
+    },
+    {
+      "id": "so_attack_cycle",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 150,
+          "armor": "wood"
+        },
+        "Buildable": {
+          "cost": 600,
+          "queue": "vehicle",
+          "techLevel": 5,
+          "prerequisites": [
+            "so_factory"
+          ]
+        },
+        "Sight": {
+          "range": 6
+        },
+        "Mobile": {
+          "speed": 12,
+          "locomotor": "wheeled",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "bike_missiles"
+        }
+      }
+    },
+    {
+      "id": "so_tick_tank",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 350,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 800,
+          "queue": "vehicle",
+          "techLevel": 3,
+          "prerequisites": [
+            "so_factory"
+          ]
+        },
+        "Sight": {
+          "range": 6
+        },
+        "Mobile": {
+          "speed": 6,
+          "locomotor": "tracked",
+          "rot": 5
+        },
+        "Armament": {
+          "weapon": "cannon_90"
+        },
+        "Turreted": {
+          "rot": 5
+        },
+        "Crusher": {},
+        "DeploysInto": {
+          "structure": "so_tick_deployed"
+        }
+      }
+    },
+    {
+      "id": "so_artillery",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 300,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 975,
+          "queue": "vehicle",
+          "techLevel": 6,
+          "prerequisites": [
+            "so_factory",
+            "so_radar"
+          ]
+        },
+        "Sight": {
+          "range": 6
+        },
+        "Mobile": {
+          "speed": 5,
+          "locomotor": "tracked",
+          "rot": 5
+        },
+        "Crusher": {},
+        "DeploysInto": {
+          "structure": "so_artillery_deployed"
+        }
+      }
+    },
+    {
+      "id": "so_devil_tongue",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 300,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 750,
+          "queue": "vehicle",
+          "techLevel": 7,
+          "prerequisites": [
+            "so_factory",
+            "so_tech_center"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        },
+        "Mobile": {
+          "speed": 5,
+          "locomotor": "subterranean",
+          "rot": 5
+        },
+        "Armament": {
+          "weapon": "flame_stream"
+        },
+        "Crusher": {}
+      }
+    },
+    {
+      "id": "so_sub_apc",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 175,
+          "armor": "heavy"
+        },
+        "Buildable": {
+          "cost": 800,
+          "queue": "vehicle",
+          "techLevel": 6,
+          "prerequisites": [
+            "so_factory",
+            "so_tech_center"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        },
+        "Mobile": {
+          "speed": 5,
+          "locomotor": "subterranean",
+          "rot": 5
+        }
+      }
+    },
+    {
+      "id": "so_stealth_tank",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 180,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 1100,
+          "queue": "vehicle",
+          "techLevel": 8,
+          "prerequisites": [
+            "so_factory",
+            "so_tech_center"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        },
+        "Mobile": {
+          "speed": 6,
+          "locomotor": "tracked",
+          "rot": 6
+        },
+        "Armament": {
+          "weapon": "stealth_missiles"
+        },
+        "Cloakable": {}
+      }
+    },
+    {
+      "id": "so_repair_vehicle",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 200,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 1000,
+          "queue": "vehicle",
+          "techLevel": 7,
+          "prerequisites": [
+            "so_factory"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        },
+        "Mobile": {
+          "speed": 6,
+          "locomotor": "tracked",
+          "rot": 6
+        },
+        "Armament": {
+          "weapon": "repair_beam"
+        }
+      }
+    },
+    {
+      "id": "so_harpy",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 225,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 1000,
+          "queue": "aircraft",
+          "techLevel": 5,
+          "prerequisites": [
+            "so_helipad"
+          ]
+        },
+        "Sight": {
+          "range": 6
+        },
+        "Mobile": {
+          "speed": 14,
+          "locomotor": "aircraft",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "harpy_gun"
+        },
+        "Aircraft": {
+          "ammo": 12
+        }
+      }
+    },
+    {
+      "id": "so_banshee",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 280,
+          "armor": "light"
+        },
+        "Buildable": {
+          "cost": 1500,
+          "queue": "aircraft",
+          "techLevel": 9,
+          "prerequisites": [
+            "so_helipad",
+            "so_tech_center"
+          ]
+        },
+        "Sight": {
+          "range": 6
+        },
+        "Mobile": {
+          "speed": 18,
+          "locomotor": "aircraft",
+          "rot": 8
+        },
+        "Armament": {
+          "weapon": "banshee_plasma"
+        },
+        "Aircraft": {
+          "ammo": 3
+        }
       }
     }
   ]

@@ -14,7 +14,7 @@ namespace TiberiumDusk.Balance
     public static class GameDataLoader
     {
         public static readonly string[] ArmorClasses = { "none", "wood", "light", "heavy", "concrete" };
-        public static readonly string[] Locomotors = { "foot", "tracked", "wheeled", "walker", "hover", "amphibious", "subterranean" };
+        public static readonly string[] Locomotors = { "foot", "tracked", "wheeled", "walker", "hover", "amphibious", "subterranean", "aircraft" };
 
         public static GameData LoadFromDirectory(string dataDir)
         {
@@ -68,6 +68,8 @@ namespace TiberiumDusk.Balance
                     Range = Required<double>(token, "range", path),
                     Warhead = Required<string>(token, "warhead", path),
                 };
+                weapon.Targets = token["targets"]?.ToString() ?? "g";
+                weapon.MinRange = token["minRange"] != null ? (double)token["minRange"] : 0;
                 var projectile = token["projectile"];
                 if (projectile != null)
                 {

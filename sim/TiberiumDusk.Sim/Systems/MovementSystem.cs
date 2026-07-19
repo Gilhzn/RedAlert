@@ -43,6 +43,13 @@ namespace TiberiumDusk.Sim.Systems
 
         public void OrderMovePath(Entity entity, CellPos target)
         {
+            if (entity.Spec.IsAircraft)
+            {
+                entity.Move.Clear();
+                entity.Move.Mode = MoveMode.Path;
+                entity.Move.Target = target;
+                return;
+            }
             ReleaseTransientClaim(entity);
             // Cells held by other units cost extra so paths flow around blockers.
             int self = entity.Id;
@@ -79,6 +86,12 @@ namespace TiberiumDusk.Sim.Systems
         private void Step(Entity entity)
         {
             var move = entity.Move;
+
+            if (entity.Spec.IsAircraft)
+            {
+                StepAircraft(entity);
+                return;
+            }
 
             if (entity.HomeCell.Equals(move.Target) && !move.HasClaim)
             {
@@ -121,6 +134,34 @@ namespace TiberiumDusk.Sim.Systems
             }
 
             MoveToward(entity, LeptonPos.CellCenter(nextCell.Value));
+        }
+
+        /// <summary>Straight-line flight: no cells, no claims, terrain ignored.</summary>
+        private void StepAircraft(Entity entity)
+        {
+            var mobile = entity.Spec.Mobile;
+            var waypoint = LeptonPos.CellCenter(entity.Move.Target);
+            int dx = waypoint.X - entity.Pos.X;
+            int dy = waypoint.Y - entity.Pos.Y;
+
+            byte desired = Facing.FromVector(dx, dy, entity.FacingValue);
+            entity.FacingValue = Facing.TurnToward(entity.FacingValue, desired, mobile.Rot);
+
+            int speed = mobile.Speed * LeptonsPerSpeedUnit;
+            long dist = LeptonPos.IntSqrt((long)dx * dx + (long)dy * dy);
+            if (dist <= speed)
+            {
+                entity.Pos = waypoint;
+                entity.HomeCell = entity.Move.Target;
+                entity.Move.Clear();
+            }
+            else
+            {
+                entity.Pos = new LeptonPos(
+                    entity.Pos.X + (int)(dx * speed / dist),
+                    entity.Pos.Y + (int)(dy * speed / dist));
+                entity.HomeCell = entity.Pos.ToCell();
+            }
         }
 
         private CellPos? CurrentWaypoint(Entity entity)

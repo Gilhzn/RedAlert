@@ -32,9 +32,9 @@ namespace TiberiumDusk.Sim.Tests
         public void HarvesterCollectsAndUnloadsCredits()
         {
             var game = NewGame();
-            game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_conyard"), 0, new CellPos(5, 5));
-            game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_refinery"), 0, new CellPos(10, 5));
-            var harvester = game.Spawn("dm_harvester", 0, new CellPos(12, 10));
+            game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_conyard"), 0, new CellPos(5, 5));
+            game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_refinery"), 0, new CellPos(10, 5));
+            var harvester = game.Spawn("nx_harvester", 0, new CellPos(12, 10));
 
             // A small green field nearby.
             for (int x = 16; x <= 19; x++)
@@ -52,8 +52,8 @@ namespace TiberiumDusk.Sim.Tests
         public void HarvestedIncomeMatchesBailValues()
         {
             var game = NewGame();
-            game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_refinery"), 0, new CellPos(10, 5));
-            game.Spawn("dm_harvester", 0, new CellPos(12, 10));
+            game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_refinery"), 0, new CellPos(10, 5));
+            game.Spawn("nx_harvester", 0, new CellPos(12, 10));
             // Exactly 4 green bails on one cell, nothing else on the map.
             game.World.Crystal.Set(new CellPos(14, 10), CrystalType.Green, 4);
 
@@ -69,10 +69,10 @@ namespace TiberiumDusk.Sim.Tests
         {
             var game = NewGame();
             var player = game.World.Players[0];
-            game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_refinery"), 0, new CellPos(10, 5));
+            game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_refinery"), 0, new CellPos(10, 5));
             player.Credits = player.StorageCapacityCredits;   // already full
 
-            game.Spawn("dm_harvester", 0, new CellPos(12, 10));
+            game.Spawn("nx_harvester", 0, new CellPos(12, 10));
             game.World.Crystal.Set(new CellPos(14, 10), CrystalType.Green, 6);
 
             RunTicks(game, 2500);
@@ -85,7 +85,7 @@ namespace TiberiumDusk.Sim.Tests
         public void BuildsPowerPlantAndPlacesIt()
         {
             var game = NewGame();
-            game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_conyard"), 0, new CellPos(5, 5));
+            game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_conyard"), 0, new CellPos(5, 5));
             int before = game.World.Players[0].Credits;
 
             game.Tick(new List<Order> { BuildOrder(0, "dm_power_plant") });
@@ -107,7 +107,7 @@ namespace TiberiumDusk.Sim.Tests
         public void PlacementOutsideBaseRadiusRejected()
         {
             var game = NewGame();
-            game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_conyard"), 0, new CellPos(5, 5));
+            game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_conyard"), 0, new CellPos(5, 5));
             game.Tick(new List<Order> { BuildOrder(0, "dm_power_plant") });
             RunTicks(game, 300);
             Assert.True(game.Production.GetQueue(0, ProductionQueue.Structure).ReadyForPlacement);
@@ -126,9 +126,9 @@ namespace TiberiumDusk.Sim.Tests
         public void PrerequisitesGateProduction()
         {
             var game = NewGame();
-            game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_conyard"), 0, new CellPos(5, 5));
+            game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_conyard"), 0, new CellPos(5, 5));
             // Refinery requires power plant — must be rejected.
-            game.Tick(new List<Order> { BuildOrder(0, "dm_refinery") });
+            game.Tick(new List<Order> { BuildOrder(0, "nx_refinery") });
             Assert.Equal(-1, game.Production.GetQueue(0, ProductionQueue.Structure).ActiveSpecIndex);
         }
 
@@ -138,13 +138,13 @@ namespace TiberiumDusk.Sim.Tests
             int TicksToReady(bool withPower)
             {
                 var game = NewGame();
-                game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_conyard"), 0, new CellPos(5, 5));
+                game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_conyard"), 0, new CellPos(5, 5));
                 if (withPower)
                     game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_power_plant"), 0, new CellPos(9, 5));
                 // A drain structure to force deficit when no plant exists.
                 game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_barracks"), 0, new CellPos(5, 9));
 
-                game.Tick(new List<Order> { BuildOrder(0, "dm_silo") });
+                game.Tick(new List<Order> { BuildOrder(0, "nx_silo") });
                 // Silo requires refinery... use barracks-buildable instead: build power plant.
                 game.Tick(new List<Order> { BuildOrder(0, "dm_power_plant") });
 
@@ -167,7 +167,7 @@ namespace TiberiumDusk.Sim.Tests
         public void CancelRefundsSpentCredits()
         {
             var game = NewGame();
-            game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_conyard"), 0, new CellPos(5, 5));
+            game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_conyard"), 0, new CellPos(5, 5));
             int before = game.World.Players[0].Credits;
 
             game.Tick(new List<Order> { BuildOrder(0, "dm_power_plant") });
@@ -185,14 +185,14 @@ namespace TiberiumDusk.Sim.Tests
         public void FactoryProducesUnitAtExit()
         {
             var game = NewGame();
-            game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_conyard"), 0, new CellPos(5, 5));
+            game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_conyard"), 0, new CellPos(5, 5));
             game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_power_plant"), 0, new CellPos(9, 5));
-            game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_refinery"), 0, new CellPos(5, 9));
+            game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_refinery"), 0, new CellPos(5, 9));
             game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_barracks"), 0, new CellPos(9, 8));
             game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_factory"), 0, new CellPos(12, 5));
 
             int unitsBefore = CountMobiles(game);
-            game.Tick(new List<Order> { BuildOrder(0, "so_scout_buggy") });
+            game.Tick(new List<Order> { BuildOrder(0, "dm_wolverine") });
             RunTicks(game, 500);
 
             Assert.Equal(unitsBefore + 1, CountMobiles(game));
@@ -202,11 +202,11 @@ namespace TiberiumDusk.Sim.Tests
         public void McvDeploysIntoConstructionYard()
         {
             var game = NewGame();
-            var mcv = game.Spawn("dm_mcv", 0, new CellPos(20, 20));
+            var mcv = game.Spawn("nx_mcv", 0, new CellPos(20, 20));
             game.Tick(new List<Order> { new Order(OrderType.Deploy, 0, 0, mcv.Id) });
 
             Assert.Null(game.World.GetEntity(mcv.Id));
-            Assert.True(game.World.OwnsBlueprint(0, "dm_conyard"));
+            Assert.True(game.World.OwnsBlueprint(0, "nx_conyard"));
         }
 
         [Fact]
@@ -215,12 +215,12 @@ namespace TiberiumDusk.Sim.Tests
             // Water channel at x=30..33; MCV at (29,10) → 3x3 footprint origin
             // (28,9) spans x28..30 and hits the water column.
             var game = new Game(TestWorlds.Rules, TestWorlds.WaterChannel(), 7);
-            var mcv = game.Spawn("dm_mcv", 0, new CellPos(29, 10));
+            var mcv = game.Spawn("nx_mcv", 0, new CellPos(29, 10));
 
             game.Tick(new List<Order> { new Order(OrderType.Deploy, 0, 0, mcv.Id) });
 
             Assert.NotNull(game.World.GetEntity(mcv.Id));   // deploy refused, MCV intact
-            Assert.False(game.World.OwnsBlueprint(0, "dm_conyard"));
+            Assert.False(game.World.OwnsBlueprint(0, "nx_conyard"));
             Assert.Equal(mcv.Id, game.World.OccupantOf(new CellPos(29, 10)));   // cell claim restored
         }
 
@@ -265,7 +265,7 @@ namespace TiberiumDusk.Sim.Tests
         public void CrystalHurtsInfantryButNotVehicles()
         {
             var game = NewGame();
-            var soldier = game.Spawn("dm_rifle_infantry", 0, new CellPos(20, 20));
+            var soldier = game.Spawn("dm_rifle", 0, new CellPos(20, 20));
             var tank = game.Spawn("dm_mbt_walker", 0, new CellPos(25, 20));
             game.World.Crystal.Set(new CellPos(20, 20), CrystalType.Green, 11);
             game.World.Crystal.Set(new CellPos(25, 20), CrystalType.Green, 11);
@@ -284,9 +284,9 @@ namespace TiberiumDusk.Sim.Tests
             ulong Run()
             {
                 var game = NewGame(99);
-                game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_conyard"), 0, new CellPos(5, 5));
-                game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_refinery"), 0, new CellPos(10, 5));
-                game.Spawn("dm_harvester", 0, new CellPos(12, 10));
+                game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_conyard"), 0, new CellPos(5, 5));
+                game.World.SpawnStructure(TestWorlds.Rules.Unit("nx_refinery"), 0, new CellPos(10, 5));
+                game.Spawn("nx_harvester", 0, new CellPos(12, 10));
                 for (int x = 16; x <= 20; x++)
                     for (int y = 8; y <= 12; y++)
                         game.World.Crystal.Set(new CellPos(x, y), CrystalType.Green, 7);

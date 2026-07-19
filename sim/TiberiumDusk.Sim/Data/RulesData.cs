@@ -12,6 +12,7 @@ namespace TiberiumDusk.Sim.Data
         Hover = 4,
         Amphibious = 5,
         Subterranean = 6,
+        Aircraft = 7,
     }
 
     public enum ArmorClass : byte
@@ -131,6 +132,12 @@ namespace TiberiumDusk.Sim.Data
         public ProjectileKind Projectile;
         /// <summary>Leptons per tick for traveling projectiles.</summary>
         public int ProjectileSpeed;
+        /// <summary>Won't fire closer than this (artillery). 0 = none.</summary>
+        public int MinRangeLeptons;
+        public bool TargetsGround = true;
+        public bool TargetsAir;
+        /// <summary>Negative-damage weapons heal/repair ALLIES instead.</summary>
+        public bool IsRestorative => Damage < 0;
     }
 
     /// <summary>Compiled, sim-ready blueprint (units AND structures). Produced by TiberiumDusk.Balance.</summary>
@@ -157,6 +164,8 @@ namespace TiberiumDusk.Sim.Data
         public bool CrystalVulnerable;
         /// <summary>Weapon index into RulesData.Weapons, or -1 for unarmed.</summary>
         public int WeaponIndex = -1;
+        /// <summary>Fallback weapon (e.g. AA missiles beside a ground railgun), or -1.</summary>
+        public int SecondaryWeaponIndex = -1;
         /// <summary>Has an independently rotating turret.</summary>
         public bool Turreted;
         /// <summary>Turret rotation steps/tick (falls back to Mobile.Rot).</summary>
@@ -169,6 +178,21 @@ namespace TiberiumDusk.Sim.Data
         public bool Crushable;
         /// <summary>Crushes Crushable infantry by driving over them.</summary>
         public bool Crusher;
+        /// <summary>Self-cloaking unit (stealth tank).</summary>
+        public bool Cloakable;
+        /// <summary>Cloaks all allied objects within this radius (leptons); 0 = none.</summary>
+        public int CloakGeneratorLeptons;
+        /// <summary>Max simultaneous instances per player; 0 = unlimited.</summary>
+        public int BuildLimit;
+        /// <summary>Aircraft magazine size; 0 = not ammo-limited.</summary>
+        public int AircraftAmmo;
+        /// <summary>Aircraft rearm here (helipad).</summary>
+        public bool IsAircraftPad;
+        /// <summary>Unit id this structure packs back into (ConYard→MCV, deployed tank), or null.</summary>
+        public string UndeploysInto;
+        /// <summary>Machine-infantry: EMP-vulnerable, crystal-immune.</summary>
+        public bool IsCyborg;
+        public bool IsAircraft => Mobile != null && Mobile.Locomotor == LocomotorId.Aircraft;
 
         public bool IsStructure => Structure != null;
     }
@@ -178,6 +202,10 @@ namespace TiberiumDusk.Sim.Data
     {
         /// <summary>Leptons per warhead Spread step; damage halves per step from impact.</summary>
         public int SpreadStepLeptons = 64;
+        /// <summary>Ticks to rearm one aircraft ammo point at a pad.</summary>
+        public int ReloadTicksPerAmmo = 450;
+        /// <summary>Ticks a unit stays decloaked after firing/taking fire.</summary>
+        public int RecloakDelayTicks = 45;
         /// <summary>XP (destroyed value) = this × own cost per veterancy rank.</summary>
         public int VeteranRatioPercent = 1000;   // 10× cost
         public int VeteranMaxRank = 2;
@@ -220,7 +248,7 @@ namespace TiberiumDusk.Sim.Data
     /// </summary>
     public sealed class RulesData
     {
-        public const int LocomotorCount = 7;
+        public const int LocomotorCount = 8;
 
         public LandRule[] Lands;
         public SlopeRules Slopes;

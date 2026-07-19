@@ -25,7 +25,7 @@ namespace TiberiumDusk.Sim.Tests
         {
             var game = NewGame();
             var tank = game.Spawn("dm_mbt_walker", 0, new CellPos(10, 10));
-            var victim = game.Spawn("dm_rifle_infantry", 1, new CellPos(14, 10));
+            var victim = game.Spawn("dm_rifle", 1, new CellPos(14, 10));
             victim.AutoEngage = false;
 
             game.Tick(new List<Order> { AttackOrder(tank, victim) });
@@ -54,8 +54,8 @@ namespace TiberiumDusk.Sim.Tests
                 return int.MaxValue;
             }
 
-            int rifleVsTank = TicksToKill("dm_rifle_infantry", "dm_mbt_walker");
-            int tankVsRifle = TicksToKill("dm_mbt_walker", "dm_rifle_infantry");
+            int rifleVsTank = TicksToKill("dm_rifle", "dm_mbt_walker");
+            int tankVsRifle = TicksToKill("dm_mbt_walker", "dm_rifle");
             Assert.True(tankVsRifle < rifleVsTank / 3,
                 $"armor classes should matter (tank kills rifle in {tankVsRifle}, rifle kills tank in {rifleVsTank})");
         }
@@ -65,7 +65,7 @@ namespace TiberiumDusk.Sim.Tests
         {
             var game = NewGame();
             var tank = game.Spawn("dm_mbt_walker", 0, new CellPos(5, 10));
-            var victim = game.Spawn("dm_rifle_infantry", 1, new CellPos(40, 10));
+            var victim = game.Spawn("dm_rifle", 1, new CellPos(40, 10));
             victim.AutoEngage = false;
 
             game.Tick(new List<Order> { AttackOrder(tank, victim) });
@@ -79,7 +79,7 @@ namespace TiberiumDusk.Sim.Tests
         {
             var game = NewGame();
             var tank = game.Spawn("dm_mbt_walker", 0, new CellPos(10, 10));   // sight 6
-            var intruder = game.Spawn("dm_rifle_infantry", 1, new CellPos(14, 10));
+            var intruder = game.Spawn("dm_rifle", 1, new CellPos(14, 10));
             intruder.AutoEngage = false;
 
             RunTicks(game, 600);   // no explicit orders at all
@@ -92,7 +92,7 @@ namespace TiberiumDusk.Sim.Tests
         {
             var game = NewGame();
             game.World.SpawnStructure(TestWorlds.Rules.Unit("dm_guard_tower"), 0, new CellPos(10, 10));
-            var attacker = game.Spawn("dm_rifle_infantry", 1, new CellPos(13, 10));
+            var attacker = game.Spawn("dm_rifle", 1, new CellPos(13, 10));
             attacker.AutoEngage = false;
 
             RunTicks(game, 900);
@@ -119,7 +119,7 @@ namespace TiberiumDusk.Sim.Tests
         {
             var game = NewGame();
             var tank = game.Spawn("dm_mbt_walker", 0, new CellPos(5, 10));
-            var blocker = game.Spawn("dm_rifle_infantry", 1, new CellPos(20, 10));
+            var blocker = game.Spawn("dm_rifle", 1, new CellPos(20, 10));
             blocker.AutoEngage = false;
             var dest = new CellPos(40, 10);
 
@@ -138,7 +138,7 @@ namespace TiberiumDusk.Sim.Tests
         {
             var game = NewGame();
             var tank = game.Spawn("dm_mbt_walker", 1, new CellPos(12, 10));
-            var soldier = game.Spawn("dm_rifle_infantry", 1, new CellPos(13, 10));
+            var soldier = game.Spawn("dm_rifle", 1, new CellPos(13, 10));
             tank.AutoEngage = false;
             soldier.AutoEngage = false;
 
@@ -183,7 +183,7 @@ namespace TiberiumDusk.Sim.Tests
             var game = NewGame();
             var tank = game.Spawn("dm_mbt_walker", 0, new CellPos(5, 10));
             // Fence of enemy infantry directly on the path.
-            var i1 = game.Spawn("dm_rifle_infantry", 1, new CellPos(10, 10));
+            var i1 = game.Spawn("dm_rifle", 1, new CellPos(10, 10));
             i1.AutoEngage = false;
             tank.AutoEngage = false;
 
@@ -203,7 +203,7 @@ namespace TiberiumDusk.Sim.Tests
             var buggy = game.Spawn("so_scout_buggy", 0, new CellPos(10, 10));   // cost 500 → rank at 5000 value
             buggy.CombatXp = 4900;
 
-            var victim = game.Spawn("dm_rifle_infantry", 1, new CellPos(13, 10));   // cost 120
+            var victim = game.Spawn("dm_rifle", 1, new CellPos(13, 10));   // cost 120
             victim.AutoEngage = false;
             game.Tick(new List<Order> { AttackOrder(buggy, victim) });
             RunTicks(game, 400);
@@ -223,7 +223,7 @@ namespace TiberiumDusk.Sim.Tests
                 {
                     game.Spawn("dm_mbt_walker", 0, new CellPos(10 + i * 2, 10));
                     game.Spawn("so_scout_buggy", 1, new CellPos(10 + i * 2, 30));
-                    game.Spawn("dm_rifle_infantry", 1, new CellPos(11 + i * 2, 31));
+                    game.Spawn("dm_rifle", 1, new CellPos(11 + i * 2, 31));
                 }
                 var orders = new List<Order>();
                 foreach (var e in game.World.Entities)

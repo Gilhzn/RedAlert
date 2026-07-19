@@ -43,6 +43,9 @@ namespace TiberiumDusk.Balance
         /// <summary>instant | direct | arcing.</summary>
         public string ProjectileKind { get; set; }
         public int ProjectileSpeed { get; set; }
+        /// <summary>"g", "a", or "ga".</summary>
+        public string Targets { get; set; }
+        public double MinRange { get; set; }
     }
 
     public sealed class WarheadBlueprint
