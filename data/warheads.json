@@ -149,6 +149,41 @@
         0
       ],
       "empEffect": true
+    },
+    {
+      "id": "ion_blast",
+      "spread": 10,
+      "verses": [
+        100,
+        100,
+        100,
+        100,
+        100
+      ]
+    },
+    {
+      "id": "cluster_he",
+      "spread": 6,
+      "verses": [
+        100,
+        85,
+        70,
+        45,
+        40
+      ],
+      "wall": true,
+      "wood": true
+    },
+    {
+      "id": "seeker_blast",
+      "spread": 2,
+      "verses": [
+        100,
+        100,
+        100,
+        100,
+        100
+      ]
     }
   ]
 }

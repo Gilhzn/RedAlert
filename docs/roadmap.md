@@ -30,6 +30,12 @@ Each phase ends with: green `dotnet test`, commit+push, and (visual phases) a us
 - **Phase 9:** ‏"בצע את Phase 9: מולטיפלייר lockstep לפי docs/architecture.md — שרת relay, לובי, בדיקת שני קליינטים headless."
 - **Phase 10:** ‏"בצע את Phase 10: בניית WebGL, אופטימיזציה והפצה."
 
+## פריטים שנדחו (backlog מתועד)
+- Firestorm barrier (קיר אנרגיה) — מכניקת מעבר/חסימה דינמית, ליטוש עתידי
+- כלכלת Weed + טיל כימי, ויצורי טיבריום (ויסרואידים) — Phase 8+
+- גשרים הרוסים/מתוקנים ודפורמציית קרקע — Phase 8+
+- נוסעים בנגמ"שים (transport) — Phase 8+
+
 ## עקרונות חוצי־שלבים
 
 1. שום לוגיקת משחק ב-Unity — הכל בסים הנבדק.

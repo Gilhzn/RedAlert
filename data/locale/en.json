@@ -77,5 +77,15 @@
   "structure.so_stealth_generator": "Veil Generator",
   "structure.so_temple": "Serpent Sanctum",
   "structure.so_tick_deployed": "Entrenched Tank",
-  "structure.so_artillery_deployed": "Deployed Artillery"
+  "structure.so_artillery_deployed": "Deployed Artillery",
+  "structure.dm_ion_uplink": "Orbital Uplink",
+  "structure.so_missile_silo": "Missile Silo",
+  "structure.nx_emp_cannon": "EMP Cannon",
+  "unit.nx_seeker_drone": "Seeker Drone",
+  "sw.ion_cannon": "Ion Cannon",
+  "sw.cluster_missile": "Cluster Missile",
+  "sw.emp_blast": "EM Pulse",
+  "sw.hunter_seeker": "Hunter-Seeker",
+  "ui.storm_warning": "ION STORM APPROACHING",
+  "ui.storm_active": "ION STORM"
 }

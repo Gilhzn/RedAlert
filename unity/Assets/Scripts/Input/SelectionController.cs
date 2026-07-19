@@ -14,6 +14,7 @@ namespace TiberiumDusk.Client
         private GameRunner _runner;
         private UnitViewManager _units;
         private SidebarUI _sidebar;
+        private SuperweaponUI _superweapons;
         private Camera _camera;
 
         private readonly HashSet<int> _selected = new HashSet<int>();
@@ -25,6 +26,7 @@ namespace TiberiumDusk.Client
             _runner = FindFirstObjectByType<GameRunner>();
             _units = FindFirstObjectByType<UnitViewManager>();
             _sidebar = FindFirstObjectByType<SidebarUI>();
+            _superweapons = FindFirstObjectByType<SuperweaponUI>();
             _camera = Camera.main;
         }
 
@@ -32,6 +34,11 @@ namespace TiberiumDusk.Client
         {
             // The sidebar owns the mouse while placing a structure or hovered.
             if (_sidebar != null && (_sidebar.IsPlacing || _sidebar.IsPointerOverSidebar(Input.mousePosition)))
+            {
+                _dragging = false;
+                return;
+            }
+            if (_superweapons != null && _superweapons.IsTargeting)
             {
                 _dragging = false;
                 return;

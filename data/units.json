@@ -963,6 +963,30 @@
           "ammo": 3
         }
       }
+    },
+    {
+      "id": "nx_seeker_drone",
+      "faction": "shared",
+      "components": {
+        "Health": {
+          "max": 500,
+          "armor": "light"
+        },
+        "Mobile": {
+          "speed": 25,
+          "locomotor": "aircraft",
+          "rot": 12
+        },
+        "Sight": {
+          "range": 6
+        },
+        "Buildable": {
+          "cost": 0,
+          "queue": "vehicle",
+          "techLevel": -1,
+          "prerequisites": []
+        }
+      }
     }
   ]
 }

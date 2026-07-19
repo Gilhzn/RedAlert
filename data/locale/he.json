@@ -77,5 +77,15 @@
   "structure.so_stealth_generator": "מחולל הסוואה",
   "structure.so_temple": "מקדש הנחש",
   "structure.so_tick_deployed": "טנק מבוצר",
-  "structure.so_artillery_deployed": "ארטילריה פרוסה"
+  "structure.so_artillery_deployed": "ארטילריה פרוסה",
+  "structure.dm_ion_uplink": "מקשר לווייני",
+  "structure.so_missile_silo": "ממגורת טילים",
+  "structure.nx_emp_cannon": "תותח אמ\"פ",
+  "unit.nx_seeker_drone": "רחפן ציד",
+  "sw.ion_cannon": "תותח יונים",
+  "sw.cluster_missile": "טיל מצרר",
+  "sw.emp_blast": "פולס אלקטרומגנטי",
+  "sw.hunter_seeker": "צייד-מחפש",
+  "ui.storm_warning": "סופת יונים מתקרבת",
+  "ui.storm_active": "סופת יונים"
 }

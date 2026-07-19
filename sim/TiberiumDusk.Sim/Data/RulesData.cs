@@ -192,6 +192,8 @@ namespace TiberiumDusk.Sim.Data
         public string UndeploysInto;
         /// <summary>Machine-infantry: EMP-vulnerable, crystal-immune.</summary>
         public bool IsCyborg;
+        /// <summary>Reveals cloaked enemies within this radius (leptons); 0 = none.</summary>
+        public int SensorRadiusLeptons;
         public bool IsAircraft => Mobile != null && Mobile.Locomotor == LocomotorId.Aircraft;
 
         public bool IsStructure => Structure != null;
@@ -255,6 +257,8 @@ namespace TiberiumDusk.Sim.Data
         public UnitSpec[] Units;
         public WeaponSpec[] Weapons = new WeaponSpec[0];
         public WarheadSpec[] Warheads = new WarheadSpec[0];
+        public SuperweaponSpec[] Superweapons = new SuperweaponSpec[0];
+        public SpecialRules Special = new SpecialRules();
         public EconomyRules Economy = new EconomyRules();
         public CombatRules Combat = new CombatRules();
 

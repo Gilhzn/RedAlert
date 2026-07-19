@@ -75,7 +75,63 @@ namespace TiberiumDusk.Balance
             var data = GameDataLoader.LoadFromDirectory(dataDir);
             var terrainJson = JObject.Parse(File.ReadAllText(Path.Combine(dataDir, "terrain.json")));
             var economyJson = JObject.Parse(File.ReadAllText(Path.Combine(dataDir, "economy.json")));
-            return Compile(data, terrainJson, economyJson);
+            var rules = Compile(data, terrainJson, economyJson);
+            rules.Superweapons = CompileSuperweapons(
+                JObject.Parse(File.ReadAllText(Path.Combine(dataDir, "superweapons.json"))));
+            rules.Special = CompileSpecial(
+                JObject.Parse(File.ReadAllText(Path.Combine(dataDir, "special.json"))));
+            return rules;
+        }
+
+        private static SuperweaponSpec[] CompileSuperweapons(JObject json)
+        {
+            var list = new List<SuperweaponSpec>();
+            int index = 0;
+            foreach (var token in (JArray)json["superweapons"])
+            {
+                var kindText = token["kind"].ToString();
+                var spec = new SuperweaponSpec
+                {
+                    Id = token["id"].ToString(),
+                    Index = index++,
+                    GrantedBy = token["grantedBy"].ToString(),
+                    ChargeTicks = (int)token["chargeTicks"],
+                    Kind = ParseEnum<SuperweaponKind>(kindText, "superweapon"),
+                    Damage = token["damage"] != null ? (int)token["damage"] : 0,
+                    RadiusLeptons = token["radiusCells"] != null ? (int)((double)token["radiusCells"] * 256) : 0,
+                    DurationTicks = token["durationTicks"] != null ? (int)token["durationTicks"] : 0,
+                    RangeLeptons = token["rangeCells"] != null ? (int)((double)token["rangeCells"] * 256) : 0,
+                    ClusterCount = token["clusterCount"] != null ? (int)token["clusterCount"] : 0,
+                    DroneUnit = token["drone"]?.ToString(),
+                };
+                list.Add(spec);
+            }
+            return list.ToArray();
+        }
+
+        private static SpecialRules CompileSpecial(JObject json)
+        {
+            var storm = (JObject)json["ionStorm"];
+            var crates = (JObject)json["crates"];
+            return new SpecialRules
+            {
+                StormMinIntervalTicks = (int)storm["minIntervalTicks"],
+                StormMaxIntervalTicks = (int)storm["maxIntervalTicks"],
+                StormWarningTicks = (int)storm["warningTicks"],
+                StormDurationTicks = (int)storm["durationTicks"],
+                StormBoltEveryTicks = (int)storm["boltEveryTicks"],
+                StormBoltChancePercent = (int)storm["boltChancePercent"],
+                StormBoltDamage = (int)storm["boltDamage"],
+                StormBoltRadiusLeptons = (int)((double)storm["boltRadiusCells"] * 256),
+                CrateMax = (int)crates["maxCrates"],
+                CrateRegenTicks = (int)crates["regenTicks"],
+                CrateMoneyAmount = (int)crates["moneyAmount"],
+                CrateSharesMoney = (int)crates["sharesMoney"],
+                CrateSharesVeterancy = (int)crates["sharesVeterancy"],
+                CrateSharesTrap = (int)crates["sharesTrap"],
+                CrateSharesHeal = (int)crates["sharesHeal"],
+                CrateTrapDamage = (int)crates["trapDamage"],
+            };
         }
 
         private static EconomyRules CompileEconomy(JObject json)
@@ -263,6 +319,11 @@ namespace TiberiumDusk.Balance
             if (blueprint.Components.TryGetValue("UndeploysInto", out var undeploys))
             {
                 spec.UndeploysInto = GetString(undeploys, "unit", blueprint.Id);
+            }
+
+            if (blueprint.Components.TryGetValue("Sensors", out var sensors))
+            {
+                spec.SensorRadiusLeptons = GetInt(sensors, "radius", blueprint.Id) * 256;
             }
 
             spec.Cloakable = blueprint.Components.ContainsKey("Cloakable");

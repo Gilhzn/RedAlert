@@ -251,6 +251,9 @@
         },
         "Sight": {
           "range": 5
+        },
+        "Sensors": {
+          "radius": 9
         }
       }
     },
@@ -631,6 +634,9 @@
         },
         "Sight": {
           "range": 5
+        },
+        "Sensors": {
+          "radius": 9
         }
       }
     },
@@ -938,6 +944,96 @@
         },
         "UndeploysInto": {
           "unit": "so_artillery"
+        }
+      }
+    },
+    {
+      "id": "dm_ion_uplink",
+      "faction": "dominion",
+      "components": {
+        "Health": {
+          "max": 800,
+          "armor": "wood"
+        },
+        "Structure": {
+          "footprint": [
+            2,
+            2
+          ],
+          "power": -150,
+          "adjacent": 2,
+          "baseNormal": true
+        },
+        "Buildable": {
+          "cost": 1500,
+          "queue": "structure",
+          "techLevel": 10,
+          "prerequisites": [
+            "dm_tech_center"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        }
+      }
+    },
+    {
+      "id": "so_missile_silo",
+      "faction": "serpent",
+      "components": {
+        "Health": {
+          "max": 1000,
+          "armor": "wood"
+        },
+        "Structure": {
+          "footprint": [
+            2,
+            2
+          ],
+          "power": -50,
+          "adjacent": 2,
+          "baseNormal": true
+        },
+        "Buildable": {
+          "cost": 1300,
+          "queue": "structure",
+          "techLevel": 10,
+          "prerequisites": [
+            "so_tech_center"
+          ]
+        },
+        "Sight": {
+          "range": 5
+        }
+      }
+    },
+    {
+      "id": "nx_emp_cannon",
+      "faction": "shared",
+      "components": {
+        "Health": {
+          "max": 500,
+          "armor": "heavy"
+        },
+        "Structure": {
+          "footprint": [
+            2,
+            2
+          ],
+          "power": -150,
+          "adjacent": 2,
+          "baseNormal": true
+        },
+        "Buildable": {
+          "cost": 1000,
+          "queue": "structure",
+          "techLevel": 6,
+          "prerequisites": [
+            "any:dm_radar|so_radar"
+          ]
+        },
+        "Sight": {
+          "range": 5
         }
       }
     }

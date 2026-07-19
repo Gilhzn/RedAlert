@@ -33,7 +33,12 @@ namespace TiberiumDusk.Client
         {
             var rules = RulesCompiler.CompileFromDirectory(ResolveDataDirectory());
             var map = DemoMap.Build(rules);
-            Game = new Game(rules, map, seed: 20260719UL);
+            var settings = new TiberiumDusk.Sim.Data.GameSettings
+            {
+                IonStormsEnabled = true,
+                CratesEnabled = true,
+            };
+            Game = new Game(rules, map, seed: 20260719UL, settings);
             DemoMap.SpawnUnits(Game);
 
             Terrain = TerrainView.Build(map, rules, transform);
@@ -73,6 +78,12 @@ namespace TiberiumDusk.Client
         {
             _pendingOrders.Add(new Order(OrderType.AttackMove, LocalPlayerId, Game.CurrentTick + 1,
                 entityId, targetPos: target));
+        }
+
+        public void IssueSuperweapon(int superweaponIndex, LeptonPos target)
+        {
+            _pendingOrders.Add(new Order(OrderType.UseSuperweapon, LocalPlayerId,
+                Game.CurrentTick + 1, data: superweaponIndex, targetPos: target));
         }
 
         public void IssueDeploy(int entityId)

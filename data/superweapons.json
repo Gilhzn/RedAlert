@@ -1,0 +1,39 @@
+{
+  "$comment": "Superweapons: grantedBy = structure blueprint enabling the power; chargeTicks @15tps (8.5min=7650 etc, baseline docs/research/mechanics.md \u00a75). Charging pauses on low power / ion storm.",
+  "superweapons": [
+    {
+      "id": "ion_cannon",
+      "grantedBy": "dm_ion_uplink",
+      "chargeTicks": 7650,
+      "kind": "ionCannon",
+      "damage": 751,
+      "radiusCells": 2.5
+    },
+    {
+      "id": "cluster_missile",
+      "grantedBy": "so_missile_silo",
+      "chargeTicks": 9000,
+      "kind": "clusterMissile",
+      "damage": 130,
+      "clusterCount": 8,
+      "radiusCells": 4
+    },
+    {
+      "id": "emp_blast",
+      "grantedBy": "nx_emp_cannon",
+      "chargeTicks": 4050,
+      "kind": "empBlast",
+      "durationTicks": 1200,
+      "radiusCells": 5,
+      "rangeCells": 40
+    },
+    {
+      "id": "hunter_seeker",
+      "grantedBy": "any:so_temple|dm_tech_center",
+      "chargeTicks": 10800,
+      "kind": "hunterSeeker",
+      "damage": 11000,
+      "drone": "nx_seeker_drone"
+    }
+  ]
+}

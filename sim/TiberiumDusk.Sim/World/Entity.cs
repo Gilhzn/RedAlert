@@ -114,6 +114,8 @@ namespace TiberiumDusk.Sim.WorldModel
         public bool IsCloaked;
         /// <summary>Ticks until a decloaked unit may re-cloak.</summary>
         public int RecloakTicks;
+        /// <summary>Bit per player: this (cloaked) entity is revealed to them by sensors.</summary>
+        public byte DetectedMask;
 
         public void AddToHash(ref StateHash hash)
         {
@@ -139,6 +141,7 @@ namespace TiberiumDusk.Sim.WorldModel
             hash.Add(Ammo);
             hash.Add(IsCloaked ? 1 : 0);
             hash.Add(RecloakTicks);
+            hash.Add(DetectedMask);
             Harvest?.AddToHash(ref hash);
         }
     }

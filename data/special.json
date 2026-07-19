@@ -1,0 +1,23 @@
+{
+  "$comment": "Special systems. Ion storm baseline: 31s warning, 120s duration, bolts 500dmg. Crates: money/veterancy/trap.",
+  "ionStorm": {
+    "minIntervalTicks": 13500,
+    "maxIntervalTicks": 27000,
+    "warningTicks": 465,
+    "durationTicks": 1800,
+    "boltEveryTicks": 12,
+    "boltChancePercent": 55,
+    "boltDamage": 500,
+    "boltRadiusCells": 1.5
+  },
+  "crates": {
+    "maxCrates": 6,
+    "regenTicks": 2700,
+    "moneyAmount": 2000,
+    "sharesMoney": 55,
+    "sharesVeterancy": 20,
+    "sharesTrap": 15,
+    "sharesHeal": 10,
+    "trapDamage": 300
+  }
+}

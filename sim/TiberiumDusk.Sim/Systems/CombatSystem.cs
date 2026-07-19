@@ -108,7 +108,8 @@ namespace TiberiumDusk.Sim.Systems
                 return _world.Rules.Warheads[weapon.WarheadIndex].Verses[(int)target.Spec.Health.Armor] > 0;
             }
             if (target.Owner == attacker.Owner) return false;
-            if (target.IsCloaked) return false;   // Phase 6: sensors reveal
+            bool detected = (target.DetectedMask & (1 << attacker.Owner)) != 0;
+            if (target.IsCloaked && !detected) return false;
             return SelectWeapon(attacker, target) != null;
         }
 

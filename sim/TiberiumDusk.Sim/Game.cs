@@ -25,6 +25,10 @@ namespace TiberiumDusk.Sim
         public World World { get; }
         public ProductionSystem Production { get; }
         public CombatSystem Combat { get; }
+        public SuperweaponSystem Superweapons { get; }
+        public IonStormSystem IonStorm { get; }
+        public CrateSystem Crates { get; }
+        public GameSettings Settings { get; }
 
         private readonly MovementSystem _movement;
         private readonly HarvesterSystem _harvesters;
@@ -32,8 +36,9 @@ namespace TiberiumDusk.Sim
         private readonly StealthSystem _stealth;
         private readonly AircraftSystem _aircraft;
 
-        public Game(RulesData rules, MapData map, ulong seed)
+        public Game(RulesData rules, MapData map, ulong seed, GameSettings settings = null)
         {
+            Settings = settings ?? new GameSettings();
             Random = new DeterministicRandom(seed);
             World = new World(map, rules);
             _movement = new MovementSystem(World);
@@ -43,6 +48,9 @@ namespace TiberiumDusk.Sim
             Combat = new CombatSystem(World, _movement);
             _stealth = new StealthSystem(World);
             _aircraft = new AircraftSystem(World, _movement);
+            Superweapons = new SuperweaponSystem(World, _movement, Combat, Random);
+            IonStorm = new IonStormSystem(World, Superweapons, Combat, Random, Settings.IonStormsEnabled);
+            Crates = new CrateSystem(World, Superweapons, Random, Settings.CratesEnabled);
         }
 
         public void SetPlayerFaction(int playerId, string faction) =>
@@ -59,9 +67,12 @@ namespace TiberiumDusk.Sim
             _harvesters.Tick();
             _stealth.Tick();
             _aircraft.Tick();
+            Superweapons.Tick();
+            IonStorm.Tick();
             Combat.Tick();
             _movement.Tick();
             _crystal.Tick();
+            Crates.Tick();
             CurrentTick++;
         }
 
@@ -158,6 +169,11 @@ namespace TiberiumDusk.Sim
                         }
                         break;
                     }
+                    case OrderType.UseSuperweapon:
+                    {
+                        Superweapons.TryFire(order.PlayerId, order.Data, order.TargetPos);
+                        break;
+                    }
                     case OrderType.Deploy:
                     {
                         var entity = World.GetEntity(order.EntityId);
@@ -243,6 +259,9 @@ namespace TiberiumDusk.Sim
             hash.Add(Random.State);
             World.AddToHash(ref hash);
             Production.AddToHash(ref hash);
+            Superweapons.AddToHash(ref hash);
+            IonStorm.AddToHash(ref hash);
+            Crates.AddToHash(ref hash);
             return hash.Value;
         }
     }

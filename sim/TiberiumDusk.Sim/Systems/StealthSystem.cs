@@ -37,6 +37,31 @@ namespace TiberiumDusk.Sim.Systems
                 if (!cloaked) cloaked = InsideAlliedCloakField(entity);
                 entity.IsCloaked = cloaked;
             }
+
+            ComputeSensorDetection();
+        }
+
+        /// <summary>Sensors (radars, arrays) reveal cloaked enemies within radius.</summary>
+        private void ComputeSensorDetection()
+        {
+            var entities = _world.Entities;
+            for (int i = 0; i < entities.Count; i++)
+            {
+                if (entities[i].Alive) entities[i].DetectedMask = 0;
+            }
+            for (int i = 0; i < entities.Count; i++)
+            {
+                var sensor = entities[i];
+                if (!sensor.Alive || sensor.Spec.SensorRadiusLeptons <= 0) continue;
+                long radiusSq = (long)sensor.Spec.SensorRadiusLeptons * sensor.Spec.SensorRadiusLeptons;
+                byte bit = (byte)(1 << sensor.Owner);
+                for (int j = 0; j < entities.Count; j++)
+                {
+                    var other = entities[j];
+                    if (!other.Alive || other.Owner == sensor.Owner) continue;
+                    if (other.Pos.DistanceSquared(sensor.Pos) <= radiusSq) other.DetectedMask |= bit;
+                }
+            }
         }
 
         private bool InsideAlliedCloakField(Entity entity)
