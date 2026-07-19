@@ -21,7 +21,9 @@ namespace TiberiumDusk.Balance
             var warheads = LoadWarheads(Path.Combine(dataDir, "warheads.json"));
             var weapons = LoadWeapons(Path.Combine(dataDir, "weapons.json"), warheads);
             var landTypes = LoadTerrain(Path.Combine(dataDir, "terrain.json"));
-            var units = LoadUnits(Path.Combine(dataDir, "units.json"), weapons);
+            var units = LoadUnits(Path.Combine(dataDir, "units.json"), "units", weapons, null);
+            // Structures share the blueprint model and land in the same registry.
+            LoadUnits(Path.Combine(dataDir, "structures.json"), "structures", weapons, units);
             return new GameData(units, weapons, warheads, landTypes);
         }
 
@@ -95,10 +97,11 @@ namespace TiberiumDusk.Balance
         }
 
         private static Dictionary<string, UnitBlueprint> LoadUnits(
-            string path, IReadOnlyDictionary<string, WeaponBlueprint> weapons)
+            string path, string arrayKey, IReadOnlyDictionary<string, WeaponBlueprint> weapons,
+            Dictionary<string, UnitBlueprint> existing)
         {
-            var result = new Dictionary<string, UnitBlueprint>();
-            foreach (var token in (JArray)ParseFile(path)["units"])
+            var result = existing ?? new Dictionary<string, UnitBlueprint>();
+            foreach (var token in (JArray)ParseFile(path)[arrayKey])
             {
                 var unit = new UnitBlueprint
                 {

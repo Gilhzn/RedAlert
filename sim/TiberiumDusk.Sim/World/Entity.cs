@@ -35,10 +35,41 @@ namespace TiberiumDusk.Sim.WorldModel
         }
     }
 
+    public enum HarvestPhase : byte
+    {
+        Idle = 0,
+        ToField,
+        Harvesting,
+        ToRefinery,
+        Unloading,
+    }
+
+    /// <summary>Autonomous harvester state machine data.</summary>
+    public sealed class HarvesterState
+    {
+        public HarvestPhase Phase;
+        public int CarriedBails;
+        public int CarriedValue;
+        public CellPos TargetCell;
+        public int Timer;
+        /// <summary>Ticks with no progress; forces a rescan.</summary>
+        public int StallTicks;
+
+        public void AddToHash(ref StateHash hash)
+        {
+            hash.Add((int)Phase);
+            hash.Add(CarriedBails);
+            hash.Add(CarriedValue);
+            hash.Add(TargetCell.X);
+            hash.Add(TargetCell.Y);
+            hash.Add(Timer);
+        }
+    }
+
     /// <summary>
-    /// A simulation entity (unit; structures join in Phase 3). Deliberately a
-    /// plain mutable class — systems process entities in id order, which is the
-    /// canonical deterministic iteration order.
+    /// A simulation entity — unit or structure. Deliberately a plain mutable
+    /// class — systems process entities in id order, which is the canonical
+    /// deterministic iteration order.
     /// </summary>
     public sealed class Entity
     {
@@ -51,10 +82,12 @@ namespace TiberiumDusk.Sim.WorldModel
         public byte FacingValue;
         public int Hp;
 
-        /// <summary>The cell this entity occupies in the occupancy grid.</summary>
+        /// <summary>The cell this entity occupies; for structures, the footprint origin (top-left).</summary>
         public CellPos HomeCell;
 
         public readonly MoveState Move = new MoveState();
+        /// <summary>Non-null only for entities with a Harvester spec.</summary>
+        public HarvesterState Harvest;
 
         public void AddToHash(ref StateHash hash)
         {
@@ -70,6 +103,7 @@ namespace TiberiumDusk.Sim.WorldModel
             hash.Add(Move.Target.Y);
             hash.Add(Move.PathIndex);
             hash.Add(Move.BlockedTicks);
+            Harvest?.AddToHash(ref hash);
         }
     }
 }

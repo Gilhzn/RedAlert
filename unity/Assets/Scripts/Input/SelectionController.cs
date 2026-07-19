@@ -13,6 +13,7 @@ namespace TiberiumDusk.Client
 
         private GameRunner _runner;
         private UnitViewManager _units;
+        private SidebarUI _sidebar;
         private Camera _camera;
 
         private readonly HashSet<int> _selected = new HashSet<int>();
@@ -23,11 +24,18 @@ namespace TiberiumDusk.Client
         {
             _runner = FindFirstObjectByType<GameRunner>();
             _units = FindFirstObjectByType<UnitViewManager>();
+            _sidebar = FindFirstObjectByType<SidebarUI>();
             _camera = Camera.main;
         }
 
         private void Update()
         {
+            // The sidebar owns the mouse while placing a structure or hovered.
+            if (_sidebar != null && (_sidebar.IsPlacing || _sidebar.IsPointerOverSidebar(Input.mousePosition)))
+            {
+                _dragging = false;
+                return;
+            }
             HandleSelection();
             HandleCommands();
         }
@@ -110,6 +118,24 @@ namespace TiberiumDusk.Client
                 foreach (var id in _selected)
                 {
                     _runner.IssueStop(id);
+                }
+            }
+
+            // Deploy (MCV → Construction Yard).
+            if (Input.GetKeyDown(KeyCode.D))
+            {
+                foreach (var id in _selected)
+                {
+                    _runner.IssueDeploy(id);
+                }
+            }
+
+            // Sell selected structures.
+            if (Input.GetKeyDown(KeyCode.Delete))
+            {
+                foreach (var id in _selected)
+                {
+                    _runner.IssueSell(id);
                 }
             }
         }

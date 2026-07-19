@@ -35,5 +35,25 @@ namespace TiberiumDusk.Client
             if (material.HasProperty("_Glossiness")) material.SetFloat("_Glossiness", 0.1f);
             return material;
         }
+
+        /// <summary>Saturated glow on a dark base — the style guide's "only light sources are saturated".</summary>
+        public static Material Emissive(Color baseColor, Color emission)
+        {
+            var material = Solid(baseColor);
+            material.EnableKeyword("_EMISSION");
+            if (material.HasProperty("_EmissionColor")) material.SetColor("_EmissionColor", emission);
+            return material;
+        }
+
+        /// <summary>Flat unlit color (placement ghosts, UI-ish world markers).</summary>
+        public static Material Unlit(Color color)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader == null) shader = Shader.Find("Unlit/Color");
+            var material = new Material(shader);
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+            if (material.HasProperty("_Color")) material.SetColor("_Color", color);
+            return material;
+        }
     }
 }

@@ -64,7 +64,8 @@ namespace TiberiumDusk.Sim.Tests
             var en = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(dataDir, "locale/en.json")));
             foreach (var unit in data.Units.Values)
             {
-                Assert.True(en.ContainsKey($"unit.{unit.Id}"), $"locale/en.json missing display name for unit '{unit.Id}'");
+                bool named = en.ContainsKey($"unit.{unit.Id}") || en.ContainsKey($"structure.{unit.Id}");
+                Assert.True(named, $"locale/en.json missing display name for blueprint '{unit.Id}'");
             }
         }
     }

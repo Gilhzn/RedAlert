@@ -63,6 +63,32 @@ namespace TiberiumDusk.Client
             _pendingOrders.Add(new Order(OrderType.Stop, LocalPlayerId, Game.CurrentTick + 1, entityId));
         }
 
+        public void IssueDeploy(int entityId)
+        {
+            _pendingOrders.Add(new Order(OrderType.Deploy, LocalPlayerId, Game.CurrentTick + 1, entityId));
+        }
+
+        public void IssueSell(int entityId)
+        {
+            _pendingOrders.Add(new Order(OrderType.Sell, LocalPlayerId, Game.CurrentTick + 1, entityId));
+        }
+
+        public void IssueBuildStart(int specIndex)
+        {
+            _pendingOrders.Add(new Order(OrderType.BuildStart, LocalPlayerId, Game.CurrentTick + 1, data: specIndex));
+        }
+
+        public void IssueBuildCancel(int specIndex)
+        {
+            _pendingOrders.Add(new Order(OrderType.BuildCancel, LocalPlayerId, Game.CurrentTick + 1, data: specIndex));
+        }
+
+        public void IssuePlaceStructure(int specIndex, LeptonPos origin)
+        {
+            _pendingOrders.Add(new Order(OrderType.PlaceStructure, LocalPlayerId, Game.CurrentTick + 1,
+                data: specIndex, targetPos: origin));
+        }
+
         /// <summary>
         /// data/ lives at the repo root. In the editor we read it directly; in
         /// player builds it is copied into StreamingAssets (build hook, Phase 10).

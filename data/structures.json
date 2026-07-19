@@ -1,0 +1,65 @@
+{
+  "$comment": "Structure blueprints. Footprint origin = top-left cell; exit/dock offsets are cells relative to origin. Baseline stats from docs/research/units-and-tech.md §1.",
+  "structures": [
+    {
+      "id": "dm_conyard",
+      "faction": "dominion",
+      "components": {
+        "Health": { "max": 1000, "armor": "heavy" },
+        "Structure": { "footprint": [3, 3], "power": 0, "adjacent": 2, "baseNormal": true },
+        "Production": { "queues": ["structure"] },
+        "Buildable": { "cost": 2500, "queue": "structure", "techLevel": -1, "prerequisites": [] }
+      }
+    },
+    {
+      "id": "dm_power_plant",
+      "faction": "dominion",
+      "components": {
+        "Health": { "max": 750, "armor": "wood" },
+        "Structure": { "footprint": [2, 2], "power": 100, "adjacent": 2, "baseNormal": true },
+        "Buildable": { "cost": 300, "queue": "structure", "techLevel": 1, "prerequisites": ["dm_conyard"] }
+      }
+    },
+    {
+      "id": "dm_refinery",
+      "faction": "dominion",
+      "components": {
+        "Health": { "max": 900, "armor": "heavy" },
+        "Structure": { "footprint": [3, 3], "power": -30, "adjacent": 2, "baseNormal": true, "exit": [1, 3] },
+        "Storage": { "bails": 80 },
+        "Refinery": { "dock": [1, 2], "freeUnit": "dm_harvester" },
+        "Buildable": { "cost": 2000, "queue": "structure", "techLevel": 1, "prerequisites": ["dm_power_plant"] }
+      }
+    },
+    {
+      "id": "dm_silo",
+      "faction": "dominion",
+      "components": {
+        "Health": { "max": 300, "armor": "wood" },
+        "Structure": { "footprint": [1, 1], "power": -10, "adjacent": 2, "baseNormal": true },
+        "Storage": { "bails": 60 },
+        "Buildable": { "cost": 150, "queue": "structure", "techLevel": 1, "prerequisites": ["dm_refinery"] }
+      }
+    },
+    {
+      "id": "dm_barracks",
+      "faction": "dominion",
+      "components": {
+        "Health": { "max": 800, "armor": "wood" },
+        "Structure": { "footprint": [2, 2], "power": -20, "adjacent": 2, "baseNormal": true, "exit": [0, 2] },
+        "Production": { "queues": ["infantry"] },
+        "Buildable": { "cost": 300, "queue": "structure", "techLevel": 1, "prerequisites": ["dm_power_plant"] }
+      }
+    },
+    {
+      "id": "dm_factory",
+      "faction": "dominion",
+      "components": {
+        "Health": { "max": 1000, "armor": "heavy" },
+        "Structure": { "footprint": [3, 2], "power": -30, "adjacent": 2, "baseNormal": true, "exit": [1, 2] },
+        "Production": { "queues": ["vehicle"] },
+        "Buildable": { "cost": 2000, "queue": "structure", "techLevel": 2, "prerequisites": ["dm_refinery", "dm_barracks"] }
+      }
+    }
+  ]
+}

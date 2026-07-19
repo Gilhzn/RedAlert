@@ -13,5 +13,22 @@
   "eva.base_under_attack": "הבסיס מותקף.",
   "eva.low_power": "מחסור בחשמל.",
   "eva.silos_needed": "נדרשים מחסני אחסון.",
-  "eva.unit_lost": "יחידה אבדה."
+  "eva.unit_lost": "יחידה אבדה.",
+  "unit.dm_harvester": "קציר",
+  "unit.dm_mcv": "רכב פיקוד נייד",
+  "structure.dm_conyard": "מתחם בנייה",
+  "structure.dm_power_plant": "תחנת כוח",
+  "structure.dm_refinery": "בית זיקוק",
+  "structure.dm_silo": "ממגורת אחסון",
+  "structure.dm_barracks": "מגורי חיילים",
+  "structure.dm_factory": "מפעל נשק",
+  "ui.credits": "קרדיטים",
+  "ui.power": "חשמל",
+  "ui.tab.structures": "מבנים",
+  "ui.tab.infantry": "חי\"ר",
+  "ui.tab.vehicles": "רכבים",
+  "ui.ready": "מוכן",
+  "ui.building": "בבנייה",
+  "ui.on_hold": "מושהה",
+  "ui.sell": "מכירה"
 }

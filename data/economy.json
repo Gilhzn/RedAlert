@@ -1,0 +1,30 @@
+{
+  "$comment": "Economy + production constants. Baseline from docs/research/mechanics.md §1-2 (RULES.INI values converted to ticks: 1 game minute = 900 ticks @15tps).",
+  "crystal": {
+    "greenBailValue": 25,
+    "blueBailValue": 40,
+    "maxDensity": 11,
+    "growDensityThreshold": 11,
+    "seedDensityThreshold": 6,
+    "growthIntervalTicks": 2200,
+    "growthChancePercent": 50,
+    "spreadChancePercent": 20,
+    "damageIntervalTicks": 9,
+    "damageHp": 2
+  },
+  "harvesting": {
+    "capacityBails": 28,
+    "harvestTicksPerBail": 12,
+    "unloadTicksPerBail": 4,
+    "fieldScanRadiusCells": 12,
+    "farScanRadiusCells": 48
+  },
+  "production": {
+    "buildTicksPerThousandCost": 720,
+    "maxQueuedPerClass": 4,
+    "lowPowerWorstPercent": 30,
+    "lowPowerBestPercent": 75,
+    "sellRefundPercent": 50,
+    "startingCredits": 10000
+  }
+}

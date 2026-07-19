@@ -13,5 +13,22 @@
   "eva.base_under_attack": "Base under attack.",
   "eva.low_power": "Low power.",
   "eva.silos_needed": "Storage silos needed.",
-  "eva.unit_lost": "Unit lost."
+  "eva.unit_lost": "Unit lost.",
+  "unit.dm_harvester": "Harvester",
+  "unit.dm_mcv": "Mobile Command Vehicle",
+  "structure.dm_conyard": "Construction Yard",
+  "structure.dm_power_plant": "Power Plant",
+  "structure.dm_refinery": "Refinery",
+  "structure.dm_silo": "Storage Silo",
+  "structure.dm_barracks": "Barracks",
+  "structure.dm_factory": "War Factory",
+  "ui.credits": "Credits",
+  "ui.power": "Power",
+  "ui.tab.structures": "Structures",
+  "ui.tab.infantry": "Infantry",
+  "ui.tab.vehicles": "Vehicles",
+  "ui.ready": "READY",
+  "ui.building": "BUILDING",
+  "ui.on_hold": "ON HOLD",
+  "ui.sell": "Sell"
 }

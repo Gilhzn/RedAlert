@@ -100,6 +100,12 @@ namespace TiberiumDusk.Client
             var color = UnitViewManager.PlayerColors[entity.Owner % UnitViewManager.PlayerColors.Length];
             bool isInfantry = entity.Spec.Mobile != null && entity.Spec.Mobile.Locomotor == LocomotorId.Foot;
 
+            if (entity.Spec.IsStructure)
+            {
+                BuildStructureBody(entity, color);
+                return;
+            }
+
             GameObject body;
             if (isInfantry)
             {
@@ -137,6 +143,41 @@ namespace TiberiumDusk.Client
             _selectionRing.transform.localPosition = new Vector3(0f, 0.03f, 0f);
             _selectionRing.GetComponent<MeshRenderer>().sharedMaterial =
                 MaterialFactory.Solid(new Color(0.2f, 1f, 0.33f)); // phosphor green
+            Destroy(_selectionRing.GetComponent<Collider>());
+            _selectionRing.SetActive(false);
+        }
+
+        private void BuildStructureBody(Entity entity, Color ownerColor)
+        {
+            var s = entity.Spec.Structure;
+
+            // Main hull: a slab sized to the footprint, tinted by structure role.
+            var hull = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            hull.transform.SetParent(transform, worldPositionStays: false);
+            hull.transform.localScale = new Vector3(s.FootprintW * 0.92f, 0.55f, s.FootprintH * 0.92f);
+            hull.transform.localPosition = new Vector3(0f, 0.3f, 0f);
+            hull.GetComponent<MeshRenderer>().sharedMaterial =
+                MaterialFactory.Solid(new Color(0.32f, 0.34f, 0.36f));
+
+            // Owner-colored trim block on top so allegiance reads at a glance.
+            var trim = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            trim.transform.SetParent(transform, worldPositionStays: false);
+            trim.transform.localScale = new Vector3(s.FootprintW * 0.5f, 0.35f, s.FootprintH * 0.5f);
+            trim.transform.localPosition = new Vector3(0f, 0.72f, 0f);
+            trim.GetComponent<MeshRenderer>().sharedMaterial = MaterialFactory.Solid(ownerColor);
+            Destroy(trim.GetComponent<Collider>());
+
+            var reference = hull.AddComponent<EntityRef>();
+            reference.EntityId = EntityId;
+            reference.Owner = Owner;
+
+            _selectionRing = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            _selectionRing.transform.SetParent(transform, worldPositionStays: false);
+            float ringSize = Mathf.Max(s.FootprintW, s.FootprintH) * 1.05f;
+            _selectionRing.transform.localScale = new Vector3(ringSize, 0.01f, ringSize);
+            _selectionRing.transform.localPosition = new Vector3(0f, 0.03f, 0f);
+            _selectionRing.GetComponent<MeshRenderer>().sharedMaterial =
+                MaterialFactory.Solid(new Color(0.2f, 1f, 0.33f));
             Destroy(_selectionRing.GetComponent<Collider>());
             _selectionRing.SetActive(false);
         }
