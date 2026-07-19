@@ -1,0 +1,3 @@
+{
+  "_readme": "Per-model tuning, all optional. Example: \"nx_harvester\": { \"scale\": 1.2, \"rotY\": 180, \"y\": 0.05 }"
+}

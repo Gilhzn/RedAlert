@@ -117,6 +117,45 @@ namespace TiberiumDusk.Client
             var color = UnitViewManager.PlayerColors[entity.Owner % UnitViewManager.PlayerColors.Length];
             bool isInfantry = entity.Spec.Mobile != null && entity.Spec.Mobile.Locomotor == LocomotorId.Foot;
 
+            // Drop-in external model (Resources/Models/<id>) wins over any
+            // procedural body, for units and structures alike.
+            var model = ModelLibrary.TryInstantiate(entity.Spec, transform, out var modelTurret);
+            if (model != null)
+            {
+                _turret = modelTurret;
+                // Collider + ref live on the unscaled root: the model's own
+                // transform carries the auto-fit scale, which would distort a
+                // collider attached to it.
+                ModelLibrary.FitCollider(gameObject, model);
+                var modelRef = gameObject.AddComponent<EntityRef>();
+                modelRef.EntityId = EntityId;
+                modelRef.Owner = Owner;
+
+                float ringSize = entity.Spec.IsStructure
+                    ? Mathf.Max(entity.Spec.Structure.FootprintW, entity.Spec.Structure.FootprintH) * 1.05f
+                    : isInfantry ? 0.5f : 0.9f;
+                _selectionRing = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                _selectionRing.transform.SetParent(transform, worldPositionStays: false);
+                _selectionRing.transform.localScale = new Vector3(ringSize, 0.01f, ringSize);
+                _selectionRing.transform.localPosition = new Vector3(0f, 0.03f, 0f);
+                _selectionRing.GetComponent<MeshRenderer>().sharedMaterial =
+                    MaterialFactory.Solid(new Color(0.2f, 1f, 0.33f));
+                Destroy(_selectionRing.GetComponent<Collider>());
+                _selectionRing.SetActive(false);
+
+                // Owner beacon so allegiance reads on any external model.
+                var beacon = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                beacon.transform.SetParent(transform, worldPositionStays: false);
+                float beaconW = entity.Spec.IsStructure ? entity.Spec.Structure.FootprintW * 0.55f : 0.3f;
+                beacon.transform.localScale = new Vector3(beaconW, 0.05f, 0.08f);
+                beacon.transform.localPosition = new Vector3(
+                    0f, 0.04f, entity.Spec.IsStructure ? -entity.Spec.Structure.FootprintH * 0.48f : -0.35f);
+                beacon.GetComponent<MeshRenderer>().sharedMaterial =
+                    MaterialFactory.Emissive(color * 0.4f, color);
+                Destroy(beacon.GetComponent<Collider>());
+                return;
+            }
+
             if (entity.Spec.IsStructure)
             {
                 BuildStructureBody(entity, color);
