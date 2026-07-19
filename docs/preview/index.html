@@ -1,0 +1,1202 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiberium Dusk — תצוגה מקדימה</title>
+<style>
+  :root {
+    --ground: #050806;
+    --panel: #0a120d;
+    --panel2: #0d1810;
+    --phosphor: #37e86e;
+    --phos-dim: #3e5a47;
+    --phos-faint: #1c2b21;
+    --veridium: #49ff7a;
+    --azurite: #41b9ff;
+    --gold: #c9a24b;
+    --crimson: #d8404a;
+    --amber: #ffc94d;
+    --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, "Courier New", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: var(--ground); }
+  body { font-family: var(--mono); color: var(--phosphor); }
+  #game { position: fixed; inset: 0; display: block; cursor: crosshair; }
+
+  /* CRT overlay */
+  #crt { position: fixed; inset: 0; pointer-events: none; z-index: 40;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.13) 0 1px, transparent 1px 3px);
+  }
+  #crt::after { content: ""; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.5) 100%);
+  }
+
+  .hud { position: fixed; z-index: 20; }
+
+  /* Top command strip */
+  #topbar { top: 0; left: 0; right: 0; height: 42px; display: flex; align-items: stretch;
+    background: linear-gradient(180deg, rgba(10,18,13,0.96), rgba(10,18,13,0.88));
+    border-bottom: 1px solid var(--phos-faint); font-size: 13px; }
+  #topbar .seg { display: flex; align-items: center; gap: 8px; padding: 0 14px;
+    border-inline-end: 1px solid var(--phos-faint); white-space: nowrap; }
+  #topbar .title { color: var(--phosphor); letter-spacing: 2px; font-weight: bold; }
+  #topbar .tag { color: var(--amber); font-size: 11px; }
+  .num { font-variant-numeric: tabular-nums; }
+  #credits { color: var(--veridium); font-weight: bold; }
+  #powerwrap { width: 90px; height: 8px; background: #08130c; border: 1px solid var(--phos-faint); }
+  #powerbar { height: 100%; background: var(--phosphor); width: 60%; transition: width .3s; }
+  #powerbar.low { background: var(--crimson); }
+  .spacer { flex: 1; }
+  button { font-family: var(--mono); background: transparent; color: var(--phos-dim);
+    border: 1px solid var(--phos-faint); padding: 4px 10px; cursor: pointer; font-size: 12px; }
+  button:hover { color: var(--phosphor); border-color: var(--phos-dim); }
+  button:focus-visible { outline: 1px solid var(--phosphor); outline-offset: 1px; }
+  button.on { color: var(--phosphor); border-color: var(--phosphor); }
+
+  /* Sidebar */
+  #sidebar { top: 42px; bottom: 34px; right: 0; width: 216px; overflow-y: auto;
+    background: rgba(10,18,13,0.93); border-inline-start: 1px solid var(--phos-faint);
+    padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+  #minimap { width: 100%; aspect-ratio: 1; background: #000; border: 1px solid var(--phos-faint);
+    cursor: pointer; display: block; }
+  .sb-head { font-size: 10px; letter-spacing: 2px; color: var(--phos-dim); }
+  .build-grid { display: flex; flex-direction: column; gap: 6px; }
+  .build-btn { position: relative; text-align: start; padding: 7px 9px; overflow: hidden; }
+  .build-btn .nm { color: var(--phosphor); font-size: 12px; display: block; }
+  .build-btn .cost { color: var(--gold); font-size: 11px; }
+  .build-btn:disabled { opacity: 0.4; cursor: default; }
+  .build-btn .prog { position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+    background: rgba(55,232,110,0.18); pointer-events: none; }
+  .build-btn.q .nm { color: var(--amber); }
+
+  /* Bottom log */
+  #botbar { bottom: 0; left: 0; right: 0; height: 34px; display: flex; align-items: center;
+    gap: 16px; padding: 0 14px; font-size: 12px;
+    background: rgba(10,18,13,0.93); border-top: 1px solid var(--phos-faint); }
+  #selinfo { color: var(--gold); white-space: nowrap; }
+  #evalog { color: var(--phos-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  #evalog b { color: var(--phosphor); font-weight: normal; }
+
+  /* Intro / end overlays */
+  .overlay { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center;
+    justify-content: center; background: rgba(3,6,4,0.88); }
+  .card { max-width: 560px; width: calc(100% - 40px); background: var(--panel);
+    border: 1px solid var(--phos-dim); padding: 30px 34px;
+    box-shadow: 0 0 60px rgba(55,232,110,0.12); }
+  .card h1 { font-size: 30px; letter-spacing: 1px; color: var(--phosphor);
+    text-shadow: 0 0 14px rgba(55,232,110,0.55); text-wrap: balance; }
+  .card .en-title { font-size: 12px; letter-spacing: 6px; color: var(--phos-dim); margin-top: 4px; }
+  .card p { margin-top: 14px; font-size: 13px; line-height: 1.7; color: #9dbfa8; }
+  .card .note { color: var(--amber); border: 1px dashed rgba(255,201,77,0.4);
+    padding: 8px 12px; font-size: 12px; margin-top: 14px; line-height: 1.6; }
+  .card ul { margin: 12px 0 0; padding-inline-start: 18px; font-size: 12.5px;
+    line-height: 1.9; color: #9dbfa8; }
+  .card ul b { color: var(--phosphor); font-weight: normal; }
+  .card .go { margin-top: 22px; width: 100%; padding: 12px; font-size: 16px;
+    color: var(--phosphor); border-color: var(--phosphor); letter-spacing: 3px; }
+  .card .go:hover { background: rgba(55,232,110,0.1); }
+  #endcard h1.win { color: var(--veridium); }
+  #endcard h1.lose { color: var(--crimson); text-shadow: 0 0 14px rgba(216,64,74,0.5); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+<div id="crt"></div>
+
+<div id="topbar" class="hud">
+  <div class="seg"><span class="title" id="t-title">TIBERIUM DUSK</span><span class="tag" id="t-preview">PREVIEW</span></div>
+  <div class="seg"><span id="t-credits">אשראי</span> <span class="num" id="credits">3000</span></div>
+  <div class="seg"><span id="t-power">חשמל</span> <div id="powerwrap"><div id="powerbar"></div></div> <span class="num" id="powernum"></span></div>
+  <div class="spacer"></div>
+  <div class="seg" style="border-inline-start:1px solid var(--phos-faint); border-inline-end:none;">
+    <button id="lang-he" class="on">עברית</button><button id="lang-en">English</button>
+  </div>
+</div>
+
+<div id="sidebar" class="hud" dir="rtl">
+  <canvas id="minimap" width="194" height="194"></canvas>
+  <div class="sb-head" id="h-structures">מבנים</div>
+  <div class="build-grid" id="grid-structures"></div>
+  <div class="sb-head" id="h-units">יחידות</div>
+  <div class="build-grid" id="grid-units"></div>
+</div>
+
+<div id="botbar" class="hud" dir="rtl">
+  <span id="selinfo"></span>
+  <span id="evalog"></span>
+</div>
+
+<div class="overlay" id="intro">
+  <div class="card" dir="rtl" id="introcard">
+    <h1>דמדומי טיבריום</h1>
+    <div class="en-title">TIBERIUM DUSK</div>
+    <p id="i-desc">תצוגה מקדימה אינטראקטיבית בדפדפן: סקירמיש מוקטן נגד מסדר הנחש, עם נתוני היחידות האמיתיים מקובצי המשחק. קצרו ורידיום, בנו בסיס, הדפו גלים — והשמידו את בסיס האויב.</p>
+    <div class="note" id="i-note">זו הדגמת JavaScript — לא בניית ה־Unity WebGL המלאה. את המשחק המלא בונים ב־Unity Editor דרך התפריט Tiberium Dusk ← Build ← WebGL.</div>
+    <ul id="i-controls">
+      <li><b>קליק שמאלי / גרירה</b> — בחירת יחידות</li>
+      <li><b>קליק ימני</b> — תנועה / תקיפה</li>
+      <li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום</li>
+      <li><b>סרגל צד</b> — בנייה (מבנים ממוקמים בקליק על המפה)</li>
+    </ul>
+    <button class="go" id="startbtn">התחל קרב</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="endcard">
+  <div class="card" dir="rtl">
+    <h1 id="end-title"></h1>
+    <p id="end-desc"></p>
+    <button class="go" id="againbtn">קרב חוזר</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================== i18n ============================== */
+const L = {
+  he: {
+    title: "דמדומי טיבריום", preview: "תצוגה מקדימה", credits: "אשראי", power: "חשמל",
+    structures: "מבנים", units: "יחידות",
+    "nx_harvester": "קציר", "dm_wolverine": "הולך לינקס", "dm_mbt_walker": "וורדן מק-1",
+    "dm_rifle": "חייל רובאי", "so_rifle": "לוחם מיליציה", "so_scout_buggy": "באגי פשיטה",
+    "so_tick_tank": "טנק מתחפר", "nx_conyard": "מתחם בנייה", "nx_refinery": "בית זיקוק",
+    "dm_power_plant": "תחנת כוח", "dm_factory": "מפעל נשק", "dm_guard_tower": "מגדל שמירה",
+    "so_laser_turret": "צריח לייזר", "so_factory": "מפעל נשק", "so_power_plant": "תחנת כוח",
+    placement: "בחרו מיקום למבנה (קליק ימני לביטול)",
+    badspot: "אי אפשר לבנות כאן — צריך שטח פנוי ליד הבסיס",
+    lowfunds: "אין מספיק אשראי", building: "בבנייה...", ready: "המבנה מוכן",
+    unitready: "יחידה מוכנה", underattack: "הבסיס מותקף!",
+    wave: "גל תקיפה של מסדר הנחש בדרך!", lowpower: "מחסור בחשמל — הייצור הואט",
+    harvest: "הקציר פורק ורידיום", win: "ניצחון", lose: "תבוסה",
+    windesc: "בסיס מסדר הנחש הושמד. הדומיניון שולט באזור.",
+    losedesc: "המתחם נפל. מסדר הנחש השתלט על שדות הוורידיום.",
+    again: "קרב חוזר", start: "התחל קרב", nsel: n => n + " יחידות נבחרו",
+  },
+  en: {
+    title: "TIBERIUM DUSK", preview: "PREVIEW", credits: "CREDITS", power: "POWER",
+    structures: "STRUCTURES", units: "UNITS",
+    "nx_harvester": "Harvester", "dm_wolverine": "Lynx Walker", "dm_mbt_walker": "Warden Mk.I",
+    "dm_rifle": "Rifle Trooper", "so_rifle": "Militant", "so_scout_buggy": "Raider Buggy",
+    "so_tick_tank": "Burrow Tank", "nx_conyard": "Construction Yard", "nx_refinery": "Refinery",
+    "dm_power_plant": "Power Plant", "dm_factory": "War Factory", "dm_guard_tower": "Guard Tower",
+    "so_laser_turret": "Laser Turret", "so_factory": "War Factory", "so_power_plant": "Power Plant",
+    placement: "Choose a build location (right-click to cancel)",
+    badspot: "Cannot build here — needs clear ground near your base",
+    lowfunds: "Insufficient credits", building: "Building...", ready: "Structure ready",
+    unitready: "Unit ready", underattack: "Base under attack!",
+    wave: "Serpent Order attack wave inbound!", lowpower: "Low power — production slowed",
+    harvest: "Harvester unloading veridium", win: "VICTORY", lose: "DEFEAT",
+    windesc: "The Serpent Order base is destroyed. The Dominion holds the region.",
+    losedesc: "Your compound has fallen. The Serpent Order controls the veridium fields.",
+    again: "PLAY AGAIN", start: "START BATTLE", nsel: n => n + " units selected",
+  }
+};
+let lang = "he";
+const T = k => L[lang][k] ?? k;
+
+/* ==================== Blueprints (from data/*.json) ==================== */
+// Stats copied from the repo's data/units.json, structures.json, weapons.json.
+// Times/ranges rescaled for a compact demo map; costs, HP, damage are the real values.
+const WEAPONS = {
+  assault_cannon: { dmg: 40, rof: 0.85, range: 4.2, tracer: "#ffd27a", instant: true },
+  cannon_120:    { dmg: 70, rof: 1.35, range: 5.6, tracer: "#ffe9b0", speed: 14 },
+  cannon_90:     { dmg: 36, rof: 0.85, range: 5.6, tracer: "#ff9d8a", speed: 14 },
+  raider_gun:    { dmg: 40, rof: 0.9,  range: 3.6, tracer: "#ff8d7a", instant: true },
+  rifle:         { dmg: 14, rof: 0.9,  range: 3.4, tracer: "#e8e8c8", instant: true },
+  vulcan_tower:  { dmg: 30, rof: 0.5,  range: 5.2, tracer: "#ffd27a", instant: true },
+  laser_bolt:    { dmg: 60, rof: 1.6,  range: 5.6, tracer: "#ff4b55", beam: true },
+};
+const UNITS = {
+  nx_harvester:  { hp: 1000, cost: 1400, speed: 2.1, sight: 4, r: 0.42, harvester: true },
+  dm_wolverine:  { hp: 175,  cost: 500,  speed: 2.9, sight: 5, r: 0.3,  weapon: "assault_cannon", walker: true },
+  dm_mbt_walker: { hp: 400,  cost: 800,  speed: 1.8, sight: 6, r: 0.36, weapon: "cannon_120", walker: true },
+  dm_rifle:      { hp: 125,  cost: 120,  speed: 2.0, sight: 5, r: 0.17, weapon: "rifle", infantry: true },
+  so_rifle:      { hp: 125,  cost: 120,  speed: 2.0, sight: 5, r: 0.17, weapon: "rifle", infantry: true },
+  so_scout_buggy:{ hp: 220,  cost: 500,  speed: 3.8, sight: 8, r: 0.32, weapon: "raider_gun" },
+  so_tick_tank:  { hp: 350,  cost: 800,  speed: 2.4, sight: 6, r: 0.36, weapon: "cannon_90" },
+};
+const STRUCTS = {
+  nx_conyard:     { hp: 1000, cost: 2500, fw: 3, fh: 3, power: 0,   sight: 5 },
+  nx_refinery:    { hp: 900,  cost: 2000, fw: 3, fh: 2, power: -30, sight: 4 },
+  dm_power_plant: { hp: 750,  cost: 300,  fw: 2, fh: 2, power: 100, sight: 3 },
+  dm_factory:     { hp: 1000, cost: 2000, fw: 3, fh: 2, power: -30, sight: 4 },
+  dm_guard_tower: { hp: 500,  cost: 350,  fw: 1, fh: 1, power: -10, sight: 6, weapon: "vulcan_tower" },
+  so_power_plant: { hp: 750,  cost: 300,  fw: 2, fh: 2, power: 100, sight: 3 },
+  so_factory:     { hp: 1000, cost: 2000, fw: 3, fh: 2, power: -30, sight: 4 },
+  so_laser_turret:{ hp: 500,  cost: 300,  fw: 1, fh: 1, power: -40, sight: 6, weapon: "laser_bolt" },
+};
+const BUILD_STRUCTS = ["dm_power_plant", "nx_refinery", "dm_factory", "dm_guard_tower"];
+const BUILD_UNITS   = ["nx_harvester", "dm_rifle", "dm_wolverine", "dm_mbt_walker"];
+
+/* ============================== World ============================== */
+const MAP = 46;
+const TW = 52, TH = 26;                 // iso tile size
+let seed = 1337;
+const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+
+// terrain: 0 dirt, 1 rock(block), 2 dark dirt
+let terrain, crystal, blocked, explored, visible;
+let ents, projectiles, particles, beams;
+let credits, powerOut, powerUse, queues, placing;
+let camX, camY, zoom, running = false, over = false;
+let waveTimer, waveNum, evaTimer = 0, atkWarnCd = 0, selBox = null, tSec = 0;
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const mm = document.getElementById("minimap");
+const mmctx = mm.getContext("2d");
+
+function idx(x, y) { return y * MAP + x; }
+function inMap(x, y) { return x >= 0 && y >= 0 && x < MAP && y < MAP; }
+
+function makeWorld() {
+  seed = 1337 + (waveNum || 0);
+  terrain = new Uint8Array(MAP * MAP);
+  crystal = new Uint8Array(MAP * MAP);   // 0 none, 1..4 green density, 9 blue
+  blocked = new Uint8Array(MAP * MAP);
+  explored = new Uint8Array(MAP * MAP);
+  visible = new Uint8Array(MAP * MAP);
+  ents = []; projectiles = []; particles = []; beams = [];
+  credits = 3000; queues = { structure: null, vehicle: null }; placing = null;
+  waveTimer = 35; waveNum = 0; over = false; tSec = 0;
+
+  for (let i = 0; i < MAP * MAP; i++) terrain[i] = rnd() < 0.22 ? 2 : 0;
+  // rock ridges
+  for (let n = 0; n < 26; n++) {
+    let x = (rnd() * MAP) | 0, y = (rnd() * MAP) | 0;
+    const len = 2 + (rnd() * 5) | 0;
+    for (let k = 0; k < len; k++) {
+      if (inMap(x, y) && !(x < 12 && y > MAP - 13) && !(x > MAP - 13 && y < 12)) {
+        terrain[idx(x, y)] = 1; blocked[idx(x, y)] = 1;
+      }
+      x += (rnd() * 3 - 1) | 0; y += (rnd() * 3 - 1) | 0;
+    }
+  }
+  // crystal fields
+  const fields = [[16, 32, 5, 1], [30, 15, 5, 1], [23, 23, 4, 1], [36, 34, 3, 9], [10, 12, 4, 1]];
+  for (const [cx, cy, r, kind] of fields) {
+    for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
+      if (!inMap(x, y) || blocked[idx(x, y)]) continue;
+      const d = Math.hypot(x - cx, y - cy);
+      if (d <= r && rnd() < 1 - d / (r + 1)) crystal[idx(x, y)] = kind === 9 ? 9 : 1 + ((rnd() * 4) | 0);
+    }
+  }
+
+  // bases: player bottom-left, enemy top-right
+  spawnStruct("nx_conyard", 4, MAP - 9, 0);
+  spawnStruct("dm_power_plant", 9, MAP - 8, 0);
+  spawnStruct("nx_refinery", 4, MAP - 5, 0);
+  spawnUnit("nx_harvester", 8.5, MAP - 4.5, 0);
+  spawnUnit("dm_wolverine", 10, MAP - 7, 0);
+  spawnUnit("dm_wolverine", 11, MAP - 6, 0);
+  spawnUnit("dm_rifle", 9.5, MAP - 5.2, 0);
+  spawnUnit("dm_rifle", 10.3, MAP - 5.8, 0);
+
+  spawnStruct("so_factory", MAP - 8, 3, 1);
+  spawnStruct("so_power_plant", MAP - 4, 3, 1);
+  spawnStruct("so_power_plant", MAP - 4, 6, 1);
+  spawnStruct("so_laser_turret", MAP - 10, 6, 1);
+  spawnStruct("so_laser_turret", MAP - 5, 9, 1);
+  spawnUnit("so_tick_tank", MAP - 9, 8, 1);
+  spawnUnit("so_rifle", MAP - 7, 8, 1);
+
+  camX = 7; camY = MAP - 8; zoom = 1;
+  updatePower();
+}
+
+let nextId = 1;
+function spawnUnit(type, x, y, owner) {
+  const b = UNITS[type];
+  const e = { id: nextId++, kind: "unit", type, owner, x, y, hp: b.hp, maxhp: b.hp,
+    sel: false, path: null, tx: null, ty: null, target: null, cd: 0, face: rnd() * 6.28,
+    bails: 0, hstate: "seek", anim: rnd() * 10 };
+  ents.push(e); return e;
+}
+function spawnStruct(type, gx, gy, owner) {
+  const b = STRUCTS[type];
+  const e = { id: nextId++, kind: "struct", type, owner, gx, gy, fw: b.fw, fh: b.fh,
+    x: gx + b.fw / 2, y: gy + b.fh / 2, hp: b.hp, maxhp: b.hp, sel: false, cd: 0, target: null };
+  for (let y = gy; y < gy + b.fh; y++) for (let x = gx; x < gx + b.fw; x++)
+    if (inMap(x, y)) blocked[idx(x, y)] = 1;
+  ents.push(e); updatePower(); return e;
+}
+function killEnt(e) {
+  e.dead = true;
+  if (e.kind === "struct") {
+    for (let y = e.gy; y < e.gy + e.fh; y++) for (let x = e.gx; x < e.gx + e.fw; x++)
+      if (inMap(x, y)) blocked[idx(x, y)] = 0;
+    boom(e.x, e.y, 1.6, e.owner);
+    updatePower();
+  } else boom(e.x, e.y, UNITS[e.type].infantry ? 0.5 : 1, e.owner);
+}
+function updatePower() {
+  powerOut = 0; powerUse = 0;
+  for (const e of ents) if (!e.dead && e.kind === "struct" && e.owner === 0) {
+    const p = STRUCTS[e.type].power;
+    if (p > 0) powerOut += p; else powerUse -= p;
+  }
+}
+
+/* ============================== Pathfinding ============================== */
+function findPath(sx, sy, gx, gy) {
+  sx |= 0; sy |= 0; gx |= 0; gy |= 0;
+  if (!inMap(gx, gy)) return null;
+  if (blocked[idx(gx, gy)]) {   // nudge goal to nearest free cell
+    let best = null, bd = 1e9;
+    for (let r = 1; r < 6 && !best; r++)
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        const nx = gx + dx, ny = gy + dy;
+        if (inMap(nx, ny) && !blocked[idx(nx, ny)]) {
+          const d = dx * dx + dy * dy;
+          if (d < bd) { bd = d; best = [nx, ny]; }
+        }
+      }
+    if (!best) return null;
+    [gx, gy] = best;
+  }
+  const open = [[0, sx, sy]], came = new Map(), gs = new Map();
+  const key = (x, y) => x * 1000 + y;
+  gs.set(key(sx, sy), 0);
+  const h = (x, y) => Math.hypot(x - gx, y - gy);
+  let iter = 0;
+  while (open.length && iter++ < 4000) {
+    let bi = 0;
+    for (let i = 1; i < open.length; i++) if (open[i][0] < open[bi][0]) bi = i;
+    const [, cx, cy] = open.splice(bi, 1)[0];
+    if (cx === gx && cy === gy) {
+      const path = [];
+      let k = key(gx, gy);
+      while (came.has(k)) { path.push([(k / 1000) | 0, k % 1000]); k = came.get(k); }
+      path.reverse();
+      return path.map(([x, y]) => [x + 0.5, y + 0.5]);
+    }
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      const nx = cx + dx, ny = cy + dy;
+      if (!inMap(nx, ny) || blocked[idx(nx, ny)]) continue;
+      if (dx && dy && (blocked[idx(cx + dx, cy)] || blocked[idx(cx, cy + dy)])) continue;
+      const ng = gs.get(key(cx, cy)) + (dx && dy ? 1.414 : 1);
+      if (ng < (gs.get(key(nx, ny)) ?? 1e9)) {
+        gs.set(key(nx, ny), ng); came.set(key(nx, ny), key(cx, cy));
+        open.push([ng + h(nx, ny), nx, ny]);
+      }
+    }
+  }
+  return null;
+}
+
+/* ============================== Orders ============================== */
+function orderMove(e, x, y, target) {
+  e.target = target || null;
+  e.hstate = e.target ? e.hstate : "manual";
+  e.path = findPath(e.x, e.y, x, y);
+  e.tx = x; e.ty = y;
+}
+
+/* ============================== Simulation ============================== */
+function step(dt) {
+  tSec += dt;
+  // production queues
+  for (const q of ["structure", "vehicle"]) {
+    const job = queues[q];
+    if (!job) continue;
+    const slow = powerUse > powerOut ? 0.45 : 1;
+    job.t += dt * slow;
+    if (job.t >= job.dur) {
+      if (q === "vehicle") {
+        const fac = ents.find(e => !e.dead && e.owner === 0 && e.kind === "struct" &&
+          (job.type === "nx_harvester" || job.type === "dm_rifle" ? true : e.type === "dm_factory"));
+        const src = ents.find(e => !e.dead && e.owner === 0 && e.type === "dm_factory") ||
+                    ents.find(e => !e.dead && e.owner === 0 && e.type === "nx_conyard");
+        if (src) {
+          const u = spawnUnit(job.type, src.x + src.fw / 2 + 0.6, src.y + 1.2, 0);
+          orderMove(u, src.x + 2.5 + rnd() * 2, src.y + 2.5 + rnd() * 2);
+          eva(T("unitready")); sfx("done");
+        }
+        queues[q] = null;
+      } else {
+        job.done = true; // structure waits for placement
+        if (!placing) { placing = job.type; eva(T("placement")); sfx("done"); }
+      }
+    }
+  }
+  waveTimer -= dt;
+  if (waveTimer <= 0) spawnWave();
+  if (atkWarnCd > 0) atkWarnCd -= dt;
+
+  for (const e of ents) {
+    if (e.dead) continue;
+    if (e.cd > 0) e.cd -= dt;
+    if (e.kind === "struct") { structAI(e, dt); continue; }
+    const b = UNITS[e.type];
+    e.anim += dt * (b.speed || 1);
+
+    if (b.harvester) harvesterAI(e, dt);
+    else combatAI(e, b, dt);
+
+    // follow path
+    if (e.path && e.path.length) {
+      const [px, py] = e.path[0];
+      const dx = px - e.x, dy = py - e.y, d = Math.hypot(dx, dy);
+      if (d < 0.15) e.path.shift();
+      else {
+        const sp = b.speed * dt;
+        e.x += dx / d * sp; e.y += dy / d * sp;
+        e.face = Math.atan2(dy, dx);
+      }
+      if (!e.path.length) e.path = null;
+    }
+    // gentle separation
+    for (const o of ents) {
+      if (o === e || o.dead || o.kind !== "unit") continue;
+      const dx = e.x - o.x, dy = e.y - o.y, d = Math.hypot(dx, dy), min = 0.55;
+      if (d > 0.001 && d < min) { e.x += dx / d * (min - d) * 0.5 * dt * 6; e.y += dy / d * (min - d) * 0.5 * dt * 6; }
+    }
+    e.x = Math.max(0.3, Math.min(MAP - 0.3, e.x));
+    e.y = Math.max(0.3, Math.min(MAP - 0.3, e.y));
+  }
+
+  // projectiles
+  for (const p of projectiles) {
+    if (p.dead) continue;
+    const t = p.target;
+    if (!t || t.dead) { p.dead = true; continue; }
+    const dx = t.x - p.x, dy = t.y - p.y, d = Math.hypot(dx, dy);
+    const sp = p.speed * dt;
+    if (d <= sp) { p.dead = true; hit(t, p.dmg, p.owner); }
+    else { p.x += dx / d * sp; p.y += dy / d * sp; }
+  }
+  projectiles = projectiles.filter(p => !p.dead);
+  for (const pt of particles) { pt.t += dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.vy += pt.g * dt; }
+  particles = particles.filter(p => p.t < p.life);
+  for (const bm of beams) bm.t += dt;
+  beams = beams.filter(b => b.t < 0.12);
+  ents = ents.filter(e => !e.dead);
+
+  // fog
+  visible.fill(0);
+  for (const e of ents) {
+    if (e.owner !== 0) continue;
+    const s = (e.kind === "unit" ? UNITS[e.type].sight : STRUCTS[e.type].sight) + 1;
+    const cx = e.x | 0, cy = e.y | 0;
+    for (let y = cy - s; y <= cy + s; y++) for (let x = cx - s; x <= cx + s; x++)
+      if (inMap(x, y) && (x - cx) ** 2 + (y - cy) ** 2 <= s * s) {
+        visible[idx(x, y)] = 1; explored[idx(x, y)] = 1;
+      }
+  }
+
+  // victory / defeat
+  const eStr = ents.some(e => e.owner === 1 && e.kind === "struct");
+  const pStr = ents.some(e => e.owner === 0 && e.kind === "struct");
+  if (!eStr) endGame(true);
+  else if (!pStr) endGame(false);
+}
+
+function harvesterAI(e, dt) {
+  if (e.hstate === "manual") { if (!e.path) e.hstate = "seek"; return; }
+  if (e.hstate === "seek") {
+    if (e.bails >= 28) { e.hstate = "return"; return; }
+    const c = nearestCrystal(e.x, e.y);
+    if (!c) { e.hstate = e.bails > 0 ? "return" : "idle"; return; }
+    const [cx, cy] = c;
+    if (Math.hypot(cx + 0.5 - e.x, cy + 0.5 - e.y) < 0.8) {
+      e.hstate = "harvest"; e.ht = 0; e.hcell = c; e.path = null;
+    } else if (!e.path) orderMove(e, cx + 0.5, cy + 0.5), e.hstate = "seek";
+  } else if (e.hstate === "harvest") {
+    e.ht += dt;
+    if (e.ht > 0.55) {
+      e.ht = 0;
+      const ci = idx(e.hcell[0], e.hcell[1]);
+      if (crystal[ci] && e.bails < 28) {
+        e.bails++; e.bailKind = crystal[ci] === 9 ? 9 : 1;
+        if (crystal[ci] !== 9 && rnd() < 0.4) crystal[ci]--;
+        else if (crystal[ci] === 9 && rnd() < 0.25) crystal[ci] = 0;
+      } else e.hstate = "seek";
+      if (e.bails >= 28) e.hstate = "return";
+    }
+  } else if (e.hstate === "return") {
+    const rf = ents.find(s => !s.dead && s.owner === e.owner && s.type === "nx_refinery");
+    if (!rf) { e.hstate = "idle"; return; }
+    const dockX = rf.gx + rf.fw / 2, dockY = rf.gy + rf.fh + 0.6;
+    if (Math.hypot(dockX - e.x, dockY - e.y) < 0.9) {
+      e.hstate = "unload"; e.ht = 0; e.path = null;
+    } else if (!e.path) { e.path = findPath(e.x, e.y, dockX, dockY); }
+  } else if (e.hstate === "unload") {
+    e.ht += dt;
+    if (e.ht > 0.12) {
+      e.ht = 0;
+      if (e.bails > 0) {
+        e.bails--;
+        if (e.owner === 0) { credits += e.bailKind === 9 ? 40 : 25; }
+      } else { e.hstate = "seek"; if (e.owner === 0) { eva(T("harvest")); } }
+    }
+  } else if (e.hstate === "idle") { if (((tSec | 0) % 4) === 0) e.hstate = "seek"; }
+}
+function nearestCrystal(x, y) {
+  let best = null, bd = 1e9;
+  for (let cy = 0; cy < MAP; cy++) for (let cx = 0; cx < MAP; cx++) {
+    if (!crystal[idx(cx, cy)]) continue;
+    const d = (cx - x) ** 2 + (cy - y) ** 2;
+    if (d < bd) { bd = d; best = [cx, cy]; }
+  }
+  return best;
+}
+
+function combatAI(e, b, dt) {
+  if (!b.weapon) return;
+  const w = WEAPONS[b.weapon];
+  // validate explicit target
+  if (e.target && e.target.dead) e.target = null;
+  // acquire
+  if (!e.target) {
+    let best = null, bd = 1e9;
+    for (const o of ents) {
+      if (o.dead || o.owner === e.owner) continue;
+      if (e.owner === 0 && !visible[idx(o.x | 0, o.y | 0)]) continue;
+      const d = Math.hypot(o.x - e.x, o.y - e.y);
+      if (d < bd && d <= (e.owner === 1 ? w.range + 2.5 : w.range + 1.5)) { bd = d; best = o; }
+    }
+    if (best) e.target = best;
+  }
+  if (e.target) {
+    const d = Math.hypot(e.target.x - e.x, e.target.y - e.y);
+    if (d <= w.range) {
+      e.path = null;
+      e.face = Math.atan2(e.target.y - e.y, e.target.x - e.x);
+      if (e.cd <= 0) { fire(e, e.target, w, b.weapon); e.cd = w.rof; }
+    } else if (!e.path || ((tSec * 2) | 0) % 2 === 0) {
+      if (!e.path) e.path = findPath(e.x, e.y, e.target.x, e.target.y);
+    }
+  }
+}
+function structAI(e, dt) {
+  const b = STRUCTS[e.type];
+  if (!b.weapon) return;
+  if (e.owner === 0 && powerUse > powerOut) return;  // towers offline on low power
+  const w = WEAPONS[b.weapon];
+  if (e.target && (e.target.dead || Math.hypot(e.target.x - e.x, e.target.y - e.y) > w.range)) e.target = null;
+  if (!e.target) {
+    let bd = 1e9;
+    for (const o of ents) {
+      if (o.dead || o.owner === e.owner || o.kind === "struct") continue;
+      if (e.owner === 0 && !visible[idx(o.x | 0, o.y | 0)]) continue;
+      const d = Math.hypot(o.x - e.x, o.y - e.y);
+      if (d < bd && d <= w.range) { bd = d; e.target = o; }
+    }
+  }
+  if (e.target && e.cd <= 0) { fire(e, e.target, w, b.weapon); e.cd = w.rof; }
+}
+function fire(e, t, w, wid) {
+  sfx(w.beam ? "laser" : "shot");
+  const ox = e.x + Math.cos(e.face || 0) * 0.3, oy = e.y + Math.sin(e.face || 0) * 0.3;
+  if (w.beam) { beams.push({ x1: e.x, y1: e.y - 0.5, x2: t.x, y2: t.y, t: 0, c: w.tracer }); hit(t, w.dmg, e.owner); }
+  else if (w.instant) {
+    beams.push({ x1: ox, y1: oy - 0.2, x2: t.x + (rnd() - 0.5) * 0.3, y2: t.y + (rnd() - 0.5) * 0.3, t: 0.06, c: w.tracer });
+    hit(t, w.dmg, e.owner);
+  } else projectiles.push({ x: ox, y: oy, target: t, dmg: w.dmg, speed: w.speed, owner: e.owner, c: w.tracer });
+}
+function hit(t, dmg, byOwner) {
+  t.hp -= dmg;
+  spark(t.x, t.y);
+  if (t.owner === 0 && byOwner === 1 && atkWarnCd <= 0) { eva(T("underattack")); sfx("warn"); atkWarnCd = 12; }
+  if (t.hp <= 0) killEnt(t);
+}
+
+function spawnWave() {
+  waveNum++;
+  waveTimer = Math.max(28, 55 - waveNum * 3);
+  const fac = ents.find(e => !e.dead && e.owner === 1 && e.type === "so_factory");
+  const sx = fac ? fac.x : MAP - 6, sy = fac ? fac.y + 2 : 6;
+  const comp = [];
+  const n = Math.min(2 + waveNum, 8);
+  for (let i = 0; i < n; i++) {
+    const roll = rnd();
+    comp.push(roll < 0.4 ? "so_rifle" : roll < 0.75 ? "so_scout_buggy" : "so_tick_tank");
+  }
+  // pick a player target
+  const targets = ents.filter(e => !e.dead && e.owner === 0 && e.kind === "struct");
+  const tgt = targets.length ? targets[(rnd() * targets.length) | 0] : null;
+  for (let i = 0; i < comp.length; i++) {
+    const u = spawnUnit(comp[i], sx + (rnd() - 0.5) * 3, sy + (rnd() - 0.5) * 3, 1);
+    if (tgt) orderMove(u, tgt.x, tgt.y, tgt);
+  }
+  eva(T("wave")); sfx("warn");
+}
+
+/* ============================== FX / audio ============================== */
+function boom(x, y, scale, owner) {
+  sfx("boom");
+  for (let i = 0; i < 22 * scale; i++) {
+    const a = rnd() * 6.28, v = rnd() * 3 * scale;
+    particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 2 * scale, g: 5,
+      t: 0, life: 0.4 + rnd() * 0.5, c: rnd() < 0.5 ? "#ff9d4a" : (rnd() < 0.5 ? "#ffe9b0" : "#5a5a52"), s: 2 + rnd() * 3 * scale });
+  }
+}
+function spark(x, y) {
+  for (let i = 0; i < 4; i++) {
+    const a = rnd() * 6.28, v = rnd() * 2;
+    particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1, g: 4, t: 0, life: 0.25, c: "#ffe9b0", s: 1.5 });
+  }
+}
+let AC = null;
+function sfx(kind) {
+  if (!AC) return;
+  const t = AC.currentTime, g = AC.createGain(); g.connect(AC.destination);
+  const o = AC.createOscillator(); o.connect(g);
+  if (kind === "click") { o.type = "square"; o.frequency.value = 880; g.gain.setValueAtTime(0.04, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05); o.start(t); o.stop(t + 0.05); }
+  else if (kind === "done") { o.type = "square"; o.frequency.setValueAtTime(660, t); o.frequency.setValueAtTime(990, t + 0.08); g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.2); o.start(t); o.stop(t + 0.2); }
+  else if (kind === "warn") { o.type = "sawtooth"; o.frequency.setValueAtTime(220, t); o.frequency.setValueAtTime(160, t + 0.12); g.gain.setValueAtTime(0.07, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3); o.start(t); o.stop(t + 0.3); }
+  else if (kind === "laser") { o.type = "sawtooth"; o.frequency.setValueAtTime(1400, t); o.frequency.exponentialRampToValueAtTime(200, t + 0.12); g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.12); o.start(t); o.stop(t + 0.12); }
+  else if (kind === "shot") { o.type = "triangle"; o.frequency.setValueAtTime(300 + Math.random() * 120, t); o.frequency.exponentialRampToValueAtTime(80, t + 0.07); g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.08); o.start(t); o.stop(t + 0.08); }
+  else if (kind === "boom") { o.type = "sawtooth"; o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(30, t + 0.4); g.gain.setValueAtTime(0.1, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.45); o.start(t); o.stop(t + 0.45); }
+}
+function eva(msg) {
+  const el = document.getElementById("evalog");
+  el.innerHTML = "<b>EVA ▸</b> " + msg;
+  evaTimer = 6;
+}
+
+/* ============================== Rendering ============================== */
+function isoX(x, y) { return (x - y) * TW / 2; }
+function isoY(x, y) { return (x + y) * TH / 2; }
+function toScreen(x, y) {
+  return [ (isoX(x, y) - isoX(camX, camY)) * zoom + canvas.width / 2,
+           (isoY(x, y) - isoY(camX, camY)) * zoom + canvas.height / 2 ];
+}
+function toWorld(sx, sy) {
+  const ix = (sx - canvas.width / 2) / zoom + isoX(camX, camY);
+  const iy = (sy - canvas.height / 2) / zoom + isoY(camX, camY);
+  return [ (ix / (TW / 2) + iy / (TH / 2)) / 2, (iy / (TH / 2) - ix / (TW / 2)) / 2 ];
+}
+function tilePath(sx, sy) {
+  ctx.beginPath();
+  ctx.moveTo(sx, sy - TH / 2 * zoom);
+  ctx.lineTo(sx + TW / 2 * zoom, sy);
+  ctx.lineTo(sx, sy + TH / 2 * zoom);
+  ctx.lineTo(sx - TW / 2 * zoom, sy);
+  ctx.closePath();
+}
+
+function draw() {
+  ctx.fillStyle = "#03050[4]".includes("[") ? "#030504" : "#030504";
+  ctx.fillStyle = "#030504";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const pad = 2;
+  // visible cell range (rough)
+  for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
+    const [sx, sy] = toScreen(x + 0.5, y + 0.5);
+    if (sx < -TW * zoom || sx > canvas.width + TW * zoom || sy < -TH * 2 * zoom || sy > canvas.height + TH * zoom) continue;
+    const i = idx(x, y);
+    if (!explored[i]) continue;
+    const t = terrain[i];
+    tilePath(sx, sy);
+    ctx.fillStyle = t === 1 ? "#1a201c" : t === 2 ? "#11170f" : "#151b12";
+    ctx.fill();
+    if (t === 1) {  // rock spires
+      ctx.fillStyle = "#242c26";
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - 14 * zoom);
+      ctx.lineTo(sx + 9 * zoom, sy + 2 * zoom);
+      ctx.lineTo(sx - 9 * zoom, sy + 2 * zoom);
+      ctx.closePath(); ctx.fill();
+    }
+    const c = crystal[i];
+    if (c) {
+      const blue = c === 9;
+      const glow = blue ? "#41b9ff" : "#49ff7a";
+      ctx.save();
+      ctx.shadowColor = glow; ctx.shadowBlur = 10 * zoom;
+      ctx.fillStyle = blue ? "#2e86c9" : "#2fae57";
+      const n = blue ? 3 : Math.min(c, 4);
+      for (let k = 0; k < n; k++) {
+        const ox = ((k * 53 + x * 31) % 20 - 10) / 28 * TW / 2 * zoom;
+        const oy = ((k * 37 + y * 17) % 12 - 6) / 24 * TH * zoom;
+        const h = (5 + (k * 29 + x * 7) % 6) * zoom;
+        ctx.beginPath();
+        ctx.moveTo(sx + ox, sy + oy - h);
+        ctx.lineTo(sx + ox + 3.4 * zoom, sy + oy + 1.6 * zoom);
+        ctx.lineTo(sx + ox - 3.4 * zoom, sy + oy + 1.6 * zoom);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+    }
+    if (!visible[i]) { tilePath(sx, sy); ctx.fillStyle = "rgba(2,4,3,0.62)"; ctx.fill(); }
+  }
+  // unexplored cells drawn as solid void diamonds (over map edge continuity)
+  ctx.fillStyle = "#020403";
+  for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
+    if (explored[idx(x, y)]) continue;
+    const [sx, sy] = toScreen(x + 0.5, y + 0.5);
+    if (sx < -TW * zoom || sx > canvas.width + TW * zoom || sy < -TH * 2 * zoom || sy > canvas.height + TH * zoom) continue;
+    tilePath(sx, sy); ctx.fill();
+  }
+
+  // placement ghost
+  if (placing) {
+    const [wx, wy] = toWorld(mouseX, mouseY);
+    const b = STRUCTS[placing];
+    const gx = Math.round(wx - b.fw / 2), gy = Math.round(wy - b.fh / 2);
+    const ok = canPlace(placing, gx, gy);
+    for (let y = gy; y < gy + b.fh; y++) for (let x = gx; x < gx + b.fw; x++) {
+      if (!inMap(x, y)) continue;
+      const [sx, sy] = toScreen(x + 0.5, y + 0.5);
+      tilePath(sx, sy);
+      ctx.fillStyle = ok ? "rgba(55,232,110,0.3)" : "rgba(216,64,74,0.35)";
+      ctx.fill();
+    }
+    placingSpot = [gx, gy, ok];
+  }
+
+  // entities sorted for painter's algorithm
+  const sorted = [...ents].sort((a, b) => (a.x + a.y) - (b.x + b.y));
+  for (const e of sorted) {
+    if (e.owner === 1 && !visible[idx(Math.min(MAP-1, e.x | 0), Math.min(MAP-1, e.y | 0))]) continue;
+    if (e.kind === "struct") drawStruct(e); else drawUnit(e);
+  }
+
+  // beams & projectiles & particles
+  for (const bm of beams) {
+    const [x1, y1] = toScreen(bm.x1, bm.y1), [x2, y2] = toScreen(bm.x2, bm.y2);
+    ctx.strokeStyle = bm.c; ctx.lineWidth = 1.6 * zoom; ctx.globalAlpha = 1 - bm.t / 0.12;
+    ctx.beginPath(); ctx.moveTo(x1, y1 - 8 * zoom); ctx.lineTo(x2, y2 - 4 * zoom); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  for (const p of projectiles) {
+    const [sx, sy] = toScreen(p.x, p.y);
+    ctx.fillStyle = p.c;
+    ctx.fillRect(sx - 2 * zoom, sy - 8 * zoom, 4 * zoom, 4 * zoom);
+  }
+  for (const pt of particles) {
+    const [sx, sy] = toScreen(pt.x, pt.y);
+    ctx.globalAlpha = 1 - pt.t / pt.life;
+    ctx.fillStyle = pt.c;
+    ctx.fillRect(sx - pt.s * zoom / 2, sy - pt.s * zoom / 2 - 6 * zoom, pt.s * zoom, pt.s * zoom);
+    ctx.globalAlpha = 1;
+  }
+
+  // selection box
+  if (selBox) {
+    ctx.strokeStyle = "rgba(55,232,110,0.9)"; ctx.lineWidth = 1;
+    ctx.strokeRect(selBox.x1, selBox.y1, selBox.x2 - selBox.x1, selBox.y2 - selBox.y1);
+  }
+  drawMinimap();
+}
+
+function factionColors(owner) {
+  return owner === 0
+    ? { body: "#8a7434", edge: "#c9a24b", hi: "#e8cf8a" }
+    : { body: "#6e2328", edge: "#d8404a", hi: "#ff8d94" };
+}
+function drawUnit(e) {
+  const b = UNITS[e.type];
+  const [sx, sy] = toScreen(e.x, e.y);
+  const c = factionColors(e.owner);
+  const z = zoom;
+  // shadow
+  ctx.fillStyle = "rgba(0,0,0,0.4)";
+  ctx.beginPath(); ctx.ellipse(sx, sy + 2 * z, 9 * z * (b.infantry ? 0.5 : 1), 4 * z * (b.infantry ? 0.5 : 1), 0, 0, 6.29); ctx.fill();
+
+  if (e.sel) {
+    ctx.strokeStyle = "#37e86e"; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.ellipse(sx, sy + 2 * z, 11 * z, 5.5 * z, 0, 0, 6.29); ctx.stroke();
+  }
+  const bob = b.walker ? Math.sin(e.anim * 4) * 1.4 * z : 0;
+  if (b.infantry) {
+    ctx.fillStyle = c.body;
+    ctx.fillRect(sx - 2 * z, sy - 9 * z, 4 * z, 8 * z);
+    ctx.fillStyle = c.hi;
+    ctx.fillRect(sx - 2 * z, sy - 11 * z, 4 * z, 3 * z);
+  } else if (b.harvester) {
+    ctx.fillStyle = c.body;
+    ctx.fillRect(sx - 9 * z, sy - 12 * z, 18 * z, 11 * z);
+    ctx.fillStyle = c.edge;
+    ctx.fillRect(sx - 9 * z, sy - 14 * z, 8 * z, 5 * z);
+    // load indicator: green crystals in the hopper
+    if (e.bails > 0) {
+      ctx.fillStyle = e.bailKind === 9 ? "#41b9ff" : "#49ff7a";
+      const load = Math.ceil(e.bails / 7);
+      for (let k = 0; k < load; k++) ctx.fillRect(sx - 1 * z + k * 3 * z, sy - 15 * z, 2.4 * z, 3 * z);
+    }
+  } else if (b.walker) {
+    // legged mech: two legs + boxy torso + gun
+    ctx.strokeStyle = c.body; ctx.lineWidth = 2.4 * z;
+    const lp = Math.sin(e.anim * 4) * 3 * z;
+    ctx.beginPath(); ctx.moveTo(sx - 3 * z, sy - 7 * z + bob); ctx.lineTo(sx - 4 * z + lp, sy + 1 * z); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx + 3 * z, sy - 7 * z + bob); ctx.lineTo(sx + 4 * z - lp, sy + 1 * z); ctx.stroke();
+    const big = e.type === "dm_mbt_walker";
+    ctx.fillStyle = c.body;
+    ctx.fillRect(sx - (big ? 8 : 6) * z, sy - (big ? 17 : 14) * z + bob, (big ? 16 : 12) * z, (big ? 10 : 8) * z);
+    ctx.fillStyle = c.edge;
+    ctx.fillRect(sx - (big ? 8 : 6) * z, sy - (big ? 19 : 16) * z + bob, (big ? 16 : 12) * z, 3 * z);
+    ctx.strokeStyle = c.hi; ctx.lineWidth = 1.6 * z;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - 13 * z + bob);
+    ctx.lineTo(sx + Math.cos(e.face) * 12 * z, sy - 13 * z + bob + Math.sin(e.face) * 6 * z);
+    ctx.stroke();
+  } else {
+    // vehicle: low hull + turret barrel
+    ctx.fillStyle = c.body;
+    ctx.fillRect(sx - 8 * z, sy - 8 * z, 16 * z, 7 * z);
+    ctx.fillStyle = c.edge;
+    ctx.fillRect(sx - 5 * z, sy - 11 * z, 10 * z, 4 * z);
+    ctx.strokeStyle = c.hi; ctx.lineWidth = 1.6 * z;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - 9 * z);
+    ctx.lineTo(sx + Math.cos(e.face) * 11 * z, sy - 9 * z + Math.sin(e.face) * 5.5 * z);
+    ctx.stroke();
+  }
+  drawHpBar(e, sx, sy - (b.infantry ? 15 : 20) * zoom, 18);
+}
+function drawStruct(e) {
+  const [sx1, sy1] = toScreen(e.gx, e.gy);
+  const [sx2, sy2] = toScreen(e.gx + e.fw, e.gy);
+  const [sx3, sy3] = toScreen(e.gx + e.fw, e.gy + e.fh);
+  const [sx4, sy4] = toScreen(e.gx, e.gy + e.fh);
+  const c = factionColors(e.owner);
+  const z = zoom;
+  const h = (e.type.includes("tower") || e.type.includes("turret") ? 26 : e.type === "nx_conyard" ? 22 : 16) * z;
+  // walls (extruded prism)
+  ctx.fillStyle = "#0c0f0b";
+  ctx.beginPath(); ctx.moveTo(sx4, sy4); ctx.lineTo(sx3, sy3); ctx.lineTo(sx3, sy3 - h); ctx.lineTo(sx4, sy4 - h); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#121710";
+  ctx.beginPath(); ctx.moveTo(sx3, sy3); ctx.lineTo(sx2, sy2); ctx.lineTo(sx2, sy2 - h); ctx.lineTo(sx3, sy3 - h); ctx.closePath(); ctx.fill();
+  // roof
+  ctx.fillStyle = c.body;
+  ctx.beginPath(); ctx.moveTo(sx1, sy1 - h); ctx.lineTo(sx2, sy2 - h); ctx.lineTo(sx3, sy3 - h); ctx.lineTo(sx4, sy4 - h); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = c.edge; ctx.lineWidth = 1.4;
+  ctx.stroke();
+  const [cx, cy] = toScreen(e.x, e.y);
+  // type glyphs
+  ctx.fillStyle = c.hi;
+  if (e.type.includes("power")) {
+    for (let k = 0; k < 2; k++) {
+      ctx.beginPath(); ctx.ellipse(cx + (k * 10 - 5) * z, cy - h - 4 * z, 4 * z, 2.6 * z, 0, 0, 6.29); ctx.fill();
+      ctx.fillRect(cx + (k * 10 - 5) * z - 4 * z, cy - h - 4 * z, 8 * z, 4 * z);
+    }
+  } else if (e.type === "nx_refinery") {
+    ctx.save(); ctx.shadowColor = "#49ff7a"; ctx.shadowBlur = 8 * z;
+    ctx.fillStyle = "#2fae57";
+    ctx.fillRect(cx - 4 * z, cy - h - 6 * z, 8 * z, 6 * z);
+    ctx.restore();
+  } else if (e.type.includes("factory")) {
+    ctx.fillRect(cx - 8 * z, cy - h - 5 * z, 4 * z, 5 * z);
+    ctx.fillRect(cx + 4 * z, cy - h - 5 * z, 4 * z, 5 * z);
+  } else if (e.type === "nx_conyard") {
+    ctx.strokeStyle = c.hi; ctx.lineWidth = 2 * z;
+    ctx.beginPath(); ctx.moveTo(cx - 8 * z, cy - h - 2 * z); ctx.lineTo(cx, cy - h - 9 * z); ctx.lineTo(cx + 8 * z, cy - h - 2 * z); ctx.stroke();
+  } else if (e.type.includes("tower") || e.type.includes("turret")) {
+    const laser = e.type.includes("laser");
+    ctx.fillStyle = laser ? "#d8404a" : c.hi;
+    if (laser) { ctx.save(); ctx.shadowColor = "#ff4b55"; ctx.shadowBlur = 9 * z; }
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - h - 10 * z);
+    ctx.lineTo(cx + 5 * z, cy - h + 1 * z);
+    ctx.lineTo(cx - 5 * z, cy - h + 1 * z);
+    ctx.closePath(); ctx.fill();
+    if (laser) ctx.restore();
+  }
+  if (e.sel) {
+    ctx.strokeStyle = "#37e86e"; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.lineTo(sx3, sy3); ctx.lineTo(sx4, sy4); ctx.closePath(); ctx.stroke();
+  }
+  drawHpBar(e, cx, sy1 - h - 14 * zoom, 30);
+}
+function drawHpBar(e, sx, sy, w) {
+  if (!e.sel && e.hp >= e.maxhp) return;
+  const frac = Math.max(0, e.hp / e.maxhp);
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.fillRect(sx - w / 2 * zoom, sy, w * zoom, 3.4 * zoom);
+  ctx.fillStyle = frac > 0.55 ? "#37e86e" : frac > 0.25 ? "#ffc94d" : "#d8404a";
+  ctx.fillRect(sx - w / 2 * zoom, sy, w * frac * zoom, 3.4 * zoom);
+}
+
+function drawMinimap() {
+  const s = mm.width / MAP;
+  mmctx.fillStyle = "#000"; mmctx.fillRect(0, 0, mm.width, mm.height);
+  for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
+    const i = idx(x, y);
+    if (!explored[i]) continue;
+    mmctx.fillStyle = terrain[i] === 1 ? "#232a24" : "#101710";
+    if (crystal[i]) mmctx.fillStyle = crystal[i] === 9 ? "#2b7fb3" : "#2f9e52";
+    mmctx.fillRect(x * s, y * s, s + 0.5, s + 0.5);
+    if (!visible[i]) { mmctx.fillStyle = "rgba(0,0,0,0.45)"; mmctx.fillRect(x * s, y * s, s + 0.5, s + 0.5); }
+  }
+  for (const e of ents) {
+    if (e.owner === 1 && !visible[idx(Math.min(MAP-1, e.x|0), Math.min(MAP-1, e.y|0))]) continue;
+    mmctx.fillStyle = e.owner === 0 ? "#e8cf8a" : "#ff5a64";
+    const sz = e.kind === "struct" ? e.fw * s : Math.max(2, s);
+    mmctx.fillRect((e.x - (e.kind === "struct" ? e.fw / 2 : 0.5)) * s, (e.y - (e.kind === "struct" ? e.fh / 2 : 0.5)) * s, sz, e.kind === "struct" ? e.fh * s : Math.max(2, s));
+  }
+  // camera frame
+  const [wx1, wy1] = toWorld(0, 42), [wx2, wy2] = toWorld(canvas.width, canvas.height);
+  mmctx.strokeStyle = "rgba(55,232,110,0.8)"; mmctx.lineWidth = 1;
+  const [wx3, wy3] = toWorld(canvas.width, 42), [wx4, wy4] = toWorld(0, canvas.height);
+  mmctx.beginPath();
+  mmctx.moveTo(wx1 * s, wy1 * s); mmctx.lineTo(wx3 * s, wy3 * s);
+  mmctx.lineTo(wx2 * s, wy2 * s); mmctx.lineTo(wx4 * s, wy4 * s);
+  mmctx.closePath(); mmctx.stroke();
+}
+
+/* ============================== Build UI ============================== */
+let placingSpot = null;
+function canPlace(type, gx, gy) {
+  const b = STRUCTS[type];
+  for (let y = gy; y < gy + b.fh; y++) for (let x = gx; x < gx + b.fw; x++)
+    if (!inMap(x, y) || blocked[idx(x, y)] || crystal[idx(x, y)]) return false;
+  // adjacency: within 4 cells of an own structure
+  for (const e of ents) {
+    if (e.dead || e.owner !== 0 || e.kind !== "struct") continue;
+    if (gx < e.gx + e.fw + 4 && gx + b.fw > e.gx - 4 && gy < e.gy + e.fh + 4 && gy + b.fh > e.gy - 4) return true;
+  }
+  return false;
+}
+function buildButtons() {
+  const gs = document.getElementById("grid-structures");
+  const gu = document.getElementById("grid-units");
+  gs.innerHTML = ""; gu.innerHTML = "";
+  for (const [list, host, q] of [[BUILD_STRUCTS, gs, "structure"], [BUILD_UNITS, gu, "vehicle"]]) {
+    for (const type of list) {
+      const b = q === "structure" ? STRUCTS[type] : UNITS[type];
+      const btn = document.createElement("button");
+      btn.className = "build-btn"; btn.dataset.type = type; btn.dataset.q = q;
+      btn.innerHTML = `<span class="prog"></span><span class="nm">${T(type)}</span><span class="cost num">$${b.cost}</span>`;
+      btn.addEventListener("click", () => {
+        if (!running || over) return;
+        const job = queues[q];
+        if (job && job.done && q === "structure") { placing = job.type; eva(T("placement")); return; }
+        if (job) return;
+        if (credits < b.cost) { eva(T("lowfunds")); sfx("warn"); return; }
+        credits -= b.cost;
+        queues[q] = { type, t: 0, dur: Math.max(1.5, b.cost / 400), done: false };
+        sfx("click");
+      });
+      host.appendChild(btn);
+    }
+  }
+}
+function refreshButtons() {
+  document.querySelectorAll(".build-btn").forEach(btn => {
+    const q = btn.dataset.q, type = btn.dataset.type;
+    const job = queues[q];
+    const prog = btn.querySelector(".prog");
+    const mine = job && job.type === type;
+    btn.classList.toggle("q", !!mine);
+    prog.style.width = mine ? Math.min(100, job.t / job.dur * 100) + "%" : "0%";
+    const cost = (q === "structure" ? STRUCTS[type] : UNITS[type]).cost;
+    btn.disabled = (!mine && !!job) || (!job && credits < cost);
+  });
+}
+
+/* ============================== Input ============================== */
+let mouseX = 0, mouseY = 0, dragStart = null, panning = false, panLast = null;
+const keys = {};
+canvas.addEventListener("mousemove", ev => {
+  mouseX = ev.clientX; mouseY = ev.clientY;
+  if (panning && panLast) {
+    const dx = (ev.clientX - panLast[0]) / zoom, dy = (ev.clientY - panLast[1]) / zoom;
+    camX -= (dx / (TW / 2) + dy / (TH / 2)) / 2;
+    camY -= (dy / (TH / 2) - dx / (TW / 2)) / 2;
+    panLast = [ev.clientX, ev.clientY];
+  }
+  if (dragStart) selBox = { x1: Math.min(dragStart[0], mouseX), y1: Math.min(dragStart[1], mouseY),
+                            x2: Math.max(dragStart[0], mouseX), y2: Math.max(dragStart[1], mouseY) };
+});
+canvas.addEventListener("mousedown", ev => {
+  if (!running) return;
+  if (ev.button === 1) { panning = true; panLast = [ev.clientX, ev.clientY]; ev.preventDefault(); return; }
+  if (ev.button === 0) {
+    if (placing && placingSpot) {
+      const [gx, gy, ok] = placingSpot;
+      if (ok) {
+        spawnStruct(placing, gx, gy, 0);
+        queues.structure = null; placing = null;
+        eva(T("ready")); sfx("done");
+      } else { eva(T("badspot")); sfx("warn"); }
+      return;
+    }
+    dragStart = [ev.clientX, ev.clientY];
+  }
+});
+window.addEventListener("mouseup", ev => {
+  if (ev.button === 1) { panning = false; return; }
+  if (ev.button !== 0 || !running) return;
+  if (!dragStart) return;
+  const wasBox = selBox && (selBox.x2 - selBox.x1 > 6 || selBox.y2 - selBox.y1 > 6);
+  if (wasBox) {
+    for (const e of ents) e.sel = false;
+    let n = 0;
+    for (const e of ents) {
+      if (e.owner !== 0 || e.kind !== "unit") continue;
+      const [sx, sy] = toScreen(e.x, e.y);
+      if (sx >= selBox.x1 && sx <= selBox.x2 && sy >= selBox.y1 && sy <= selBox.y2) { e.sel = true; n++; }
+    }
+    updateSelInfo();
+  } else {
+    // click select
+    const pick = pickEntity(mouseX, mouseY);
+    for (const e of ents) e.sel = false;
+    if (pick && pick.owner === 0) { pick.sel = true; sfx("click"); }
+    updateSelInfo();
+  }
+  dragStart = null; selBox = null;
+});
+canvas.addEventListener("contextmenu", ev => {
+  ev.preventDefault();
+  if (!running || over) return;
+  if (placing) { placing = null; return; }
+  const pick = pickEntity(ev.clientX, ev.clientY);
+  const [wx, wy] = toWorld(ev.clientX, ev.clientY);
+  const sel = ents.filter(e => e.sel && e.kind === "unit");
+  if (!sel.length) return;
+  sfx("click");
+  let k = 0;
+  for (const u of sel) {
+    if (pick && pick.owner === 1) { u.target = pick; orderMove(u, pick.x, pick.y, pick); }
+    else {
+      u.target = null;
+      if (UNITS[u.type].harvester) {
+        const ci = inMap(wx | 0, wy | 0) && crystal[idx(wx | 0, wy | 0)];
+        u.hstate = ci ? "seek" : "manual";
+      }
+      const a = k * 2.4, r = Math.sqrt(k) * 0.7;
+      orderMove(u, wx + Math.cos(a) * r, wy + Math.sin(a) * r);
+      k++;
+    }
+  }
+});
+function pickEntity(sx, sy) {
+  let best = null, bd = 1e9;
+  for (const e of ents) {
+    if (e.dead) continue;
+    if (e.owner === 1 && !visible[idx(Math.min(MAP-1, e.x|0), Math.min(MAP-1, e.y|0))]) continue;
+    const [ex, ey] = toScreen(e.x, e.y);
+    const rad = e.kind === "struct" ? (e.fw * TW / 3) * zoom : 16 * zoom;
+    const d = Math.hypot(ex - sx, (ey - 8 * zoom) - sy);
+    if (d < rad && d < bd) { bd = d; best = e; }
+  }
+  return best;
+}
+function updateSelInfo() {
+  const sel = ents.filter(e => e.sel);
+  const el = document.getElementById("selinfo");
+  if (!sel.length) el.textContent = "";
+  else if (sel.length === 1) el.textContent = T(sel[0].type);
+  else el.textContent = L[lang].nsel(sel.length);
+}
+canvas.addEventListener("wheel", ev => {
+  ev.preventDefault();
+  zoom = Math.max(0.5, Math.min(2.2, zoom * (ev.deltaY < 0 ? 1.12 : 0.89)));
+}, { passive: false });
+window.addEventListener("keydown", ev => { keys[ev.key.toLowerCase()] = true; });
+window.addEventListener("keyup", ev => { keys[ev.key.toLowerCase()] = false; });
+mm.addEventListener("mousedown", ev => {
+  const r = mm.getBoundingClientRect();
+  camX = (ev.clientX - r.left) / r.width * MAP;
+  camY = (ev.clientY - r.top) / r.height * MAP;
+});
+
+/* ============================== Language ============================== */
+function applyLang() {
+  const rtl = lang === "he";
+  document.getElementById("t-title").textContent = L[lang].title;
+  document.getElementById("t-preview").textContent = L[lang].preview;
+  document.getElementById("t-credits").textContent = L[lang].credits;
+  document.getElementById("t-power").textContent = L[lang].power;
+  document.getElementById("h-structures").textContent = L[lang].structures;
+  document.getElementById("h-units").textContent = L[lang].units;
+  document.getElementById("sidebar").dir = rtl ? "rtl" : "ltr";
+  document.getElementById("botbar").dir = rtl ? "rtl" : "ltr";
+  document.getElementById("lang-he").classList.toggle("on", rtl);
+  document.getElementById("lang-en").classList.toggle("on", !rtl);
+  document.getElementById("introcard").dir = rtl ? "rtl" : "ltr";
+  if (!rtl) {
+    document.querySelector("#introcard h1").textContent = "TIBERIUM DUSK";
+    document.querySelector("#introcard .en-title").textContent = "דמדומי טיבריום";
+    document.getElementById("i-desc").textContent = "An interactive browser preview: a compact skirmish against the Serpent Order, using the real unit stats from the game's data files. Harvest veridium, build your base, repel the waves — and destroy the enemy base.";
+    document.getElementById("i-note").textContent = "This is a JavaScript demo — not the full Unity WebGL build. The full game is built in the Unity Editor via Tiberium Dusk → Build → WebGL.";
+    document.getElementById("i-controls").innerHTML =
+      "<li><b>Left click / drag</b> — select units</li><li><b>Right click</b> — move / attack</li><li><b>WASD / arrows / middle-drag</b> — pan camera, <b>wheel</b> — zoom</li><li><b>Sidebar</b> — build (structures are placed by clicking the map)</li>";
+    document.getElementById("startbtn").textContent = "START BATTLE";
+  } else {
+    document.querySelector("#introcard h1").textContent = "דמדומי טיבריום";
+    document.querySelector("#introcard .en-title").textContent = "TIBERIUM DUSK";
+    document.getElementById("i-desc").textContent = "תצוגה מקדימה אינטראקטיבית בדפדפן: סקירמיש מוקטן נגד מסדר הנחש, עם נתוני היחידות האמיתיים מקובצי המשחק. קצרו ורידיום, בנו בסיס, הדפו גלים — והשמידו את בסיס האויב.";
+    document.getElementById("i-note").textContent = "זו הדגמת JavaScript — לא בניית ה־Unity WebGL המלאה. את המשחק המלא בונים ב־Unity Editor דרך התפריט Tiberium Dusk ← Build ← WebGL.";
+    document.getElementById("i-controls").innerHTML =
+      "<li><b>קליק שמאלי / גרירה</b> — בחירת יחידות</li><li><b>קליק ימני</b> — תנועה / תקיפה</li><li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום</li><li><b>סרגל צד</b> — בנייה (מבנים ממוקמים בקליק על המפה)</li>";
+    document.getElementById("startbtn").textContent = "התחל קרב";
+  }
+  buildButtons();
+  updateSelInfo();
+}
+document.getElementById("lang-he").addEventListener("click", () => { lang = "he"; applyLang(); });
+document.getElementById("lang-en").addEventListener("click", () => { lang = "en"; applyLang(); });
+
+/* ============================== Game over ============================== */
+function endGame(win) {
+  if (over) return;
+  over = true; running = false;
+  const card = document.getElementById("endcard");
+  card.classList.remove("hidden");
+  const h = document.getElementById("end-title");
+  h.textContent = T(win ? "win" : "lose");
+  h.className = win ? "win" : "lose";
+  document.getElementById("end-desc").textContent = T(win ? "windesc" : "losedesc");
+  document.getElementById("againbtn").textContent = T("again");
+  card.querySelector(".card").dir = lang === "he" ? "rtl" : "ltr";
+  sfx(win ? "done" : "warn");
+}
+document.getElementById("againbtn").addEventListener("click", () => {
+  document.getElementById("endcard").classList.add("hidden");
+  makeWorld(); running = true;
+});
+document.getElementById("startbtn").addEventListener("click", () => {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  document.getElementById("intro").classList.add("hidden");
+  running = true; sfx("done");
+});
+
+/* ============================== Main loop ============================== */
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+makeWorld();
+applyLang();
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  if (running && !over) {
+    const pan = 12 * dt / Math.max(zoom, 0.7);
+    if (keys["w"] || keys["arrowup"]) camY -= pan, camX -= pan;
+    if (keys["s"] || keys["arrowdown"]) camY += pan, camX += pan;
+    if (keys["a"] || keys["arrowleft"]) camX -= pan, camY += pan;
+    if (keys["d"] || keys["arrowright"]) camX += pan, camY -= pan;
+    camX = Math.max(0, Math.min(MAP, camX));
+    camY = Math.max(0, Math.min(MAP, camY));
+    step(dt);
+    if (evaTimer > 0) { evaTimer -= dt; if (evaTimer <= 0) document.getElementById("evalog").textContent = ""; }
+  }
+  document.getElementById("credits").textContent = credits;
+  const frac = powerOut > 0 ? Math.min(1, powerOut / Math.max(powerUse, 1)) : 0;
+  const pb = document.getElementById("powerbar");
+  pb.style.width = (powerUse > powerOut ? 30 : 40 + frac * 60) + "%";
+  pb.classList.toggle("low", powerUse > powerOut);
+  document.getElementById("powernum").textContent = powerOut + "/" + powerUse;
+  refreshButtons();
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+
+</body>
+</html>
