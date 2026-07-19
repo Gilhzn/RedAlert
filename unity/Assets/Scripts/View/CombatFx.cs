@@ -23,6 +23,11 @@ namespace TiberiumDusk.Client
         private void Start()
         {
             _runner = FindFirstObjectByType<GameRunner>();
+            _runner.WhenReady(InitAfterGame);
+        }
+
+        private void InitAfterGame()
+        {
             _units = FindFirstObjectByType<UnitViewManager>();
             _camera = Camera.main;
             _tracerMaterial = MaterialFactory.Emissive(new Color(1f, 0.6f, 0.2f), new Color(1f, 0.75f, 0.3f));
@@ -123,6 +128,7 @@ namespace TiberiumDusk.Client
 
         private void OnGUI()
         {
+            if (_runner == null || !_runner.Ready) return;
             // HP bars over damaged or selected units.
             var world = _runner.Game.World;
             foreach (var pair in _units.Views)

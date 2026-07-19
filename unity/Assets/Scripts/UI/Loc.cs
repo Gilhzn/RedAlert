@@ -1,6 +1,6 @@
-using System.Collections.Generic;
 using System.Text;
 using TiberiumDusk.Balance;
+using System.Collections.Generic;
 
 namespace TiberiumDusk.Client
 {
@@ -15,18 +15,21 @@ namespace TiberiumDusk.Client
         public static bool IsRtl => Language == "he";
 
         private static Dictionary<string, string> _table = new Dictionary<string, string>();
-        private static string _dataDir;
+        private static readonly Dictionary<string, Dictionary<string, string>> _byLanguage =
+            new Dictionary<string, Dictionary<string, string>>();
 
-        public static void Init(string dataDir)
+        /// <summary>Initialize from the loaded data-file contents (works on every platform).</summary>
+        public static void InitFromContent(IReadOnlyDictionary<string, string> files)
         {
-            _dataDir = dataDir;
+            _byLanguage["en"] = LocaleLoader.LoadFromJson(files["locale/en.json"]);
+            _byLanguage["he"] = LocaleLoader.LoadFromJson(files["locale/he.json"]);
             SetLanguage(Language);
         }
 
         public static void SetLanguage(string language)
         {
             Language = language;
-            _table = LocaleLoader.Load(_dataDir, language);
+            if (_byLanguage.TryGetValue(language, out var table)) _table = table;
         }
 
         public static string T(string key)

@@ -15,6 +15,9 @@ unity/[Tt]emp/
 unity/[Oo]bj/
 unity/[Bb]uild/
 unity/[Bb]uilds/
+unity/Assets/StreamingAssets/data/
+unity/Assets/StreamingAssets/data.meta
+builds/
 unity/[Ll]ogs/
 unity/[Uu]serSettings/
 unity/[Mm]emoryCaptures/

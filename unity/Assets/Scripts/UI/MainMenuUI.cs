@@ -43,6 +43,13 @@ namespace TiberiumDusk.Client
             GUI.Label(new Rect(0, y, Screen.width, 28), Loc.T("menu.subtitle"), sub);
             y += 64;
 
+            if (!_runner.Ready)
+            {
+                GUI.Label(new Rect(0, y, Screen.width, 28), "LOADING...", sub);
+                GUI.color = Color.white;
+                return;
+            }
+
             // Difficulty selector.
             GUI.color = Phosphor;
             GUI.Label(new Rect(cx - 220, y, 200, 28), Loc.T("menu.difficulty"));

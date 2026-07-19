@@ -22,6 +22,11 @@ namespace TiberiumDusk.Client
         private void Start()
         {
             _runner = FindFirstObjectByType<GameRunner>();
+            _runner.WhenReady(InitAfterGame);
+        }
+
+        private void InitAfterGame()
+        {
             _combatFx = FindFirstObjectByType<CombatFx>();
             _boltMaterial = MaterialFactory.Unlit(new Color(0.75f, 0.9f, 1f));
             _crateMaterial = MaterialFactory.Emissive(new Color(0.5f, 0.42f, 0.2f), new Color(0.9f, 0.75f, 0.3f));

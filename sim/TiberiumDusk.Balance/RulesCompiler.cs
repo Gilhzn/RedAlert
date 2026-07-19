@@ -70,16 +70,18 @@ namespace TiberiumDusk.Balance
             return (specs, specs.ToDictionary(w => w.Id, w => w.Index));
         }
 
-        public static RulesData CompileFromDirectory(string dataDir)
+        public static RulesData CompileFromDirectory(string dataDir) =>
+            CompileFromContent(GameDataLoader.ReadDirectory(dataDir));
+
+        /// <summary>Content-based compile: the WebGL path (files fetched over HTTP).</summary>
+        public static RulesData CompileFromContent(IReadOnlyDictionary<string, string> files)
         {
-            var data = GameDataLoader.LoadFromDirectory(dataDir);
-            var terrainJson = JObject.Parse(File.ReadAllText(Path.Combine(dataDir, "terrain.json")));
-            var economyJson = JObject.Parse(File.ReadAllText(Path.Combine(dataDir, "economy.json")));
-            var rules = Compile(data, terrainJson, economyJson);
-            rules.Superweapons = CompileSuperweapons(
-                JObject.Parse(File.ReadAllText(Path.Combine(dataDir, "superweapons.json"))));
-            rules.Special = CompileSpecial(
-                JObject.Parse(File.ReadAllText(Path.Combine(dataDir, "special.json"))));
+            var data = GameDataLoader.LoadFromContent(files);
+            var rules = Compile(data,
+                JObject.Parse(files["terrain.json"]),
+                JObject.Parse(files["economy.json"]));
+            rules.Superweapons = CompileSuperweapons(JObject.Parse(files["superweapons.json"]));
+            rules.Special = CompileSpecial(JObject.Parse(files["special.json"]));
             return rules;
         }
 

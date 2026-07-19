@@ -33,7 +33,8 @@ namespace TiberiumDusk.Client
             var runner = FindFirstObjectByType<GameRunner>();
             if (runner != null)
             {
-                _mapSize = new Vector2(runner.Game.World.Map.Width, runner.Game.World.Map.Height);
+                runner.WhenReady(() =>
+                    _mapSize = new Vector2(runner.Game.World.Map.Width, runner.Game.World.Map.Height));
             }
             _pivot = new Vector3(_mapSize.x * 0.25f, 0f, _mapSize.y * 0.35f);
             Apply();

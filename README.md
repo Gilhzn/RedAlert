@@ -20,11 +20,23 @@
 - `unity/` — Unity 6 client (URP), renders the sim; targets Desktop + WebGL
 - `server/` — lockstep relay server (later phase)
 
+## Status
+
+All 10 roadmap phases are implemented: deterministic sim core, 3D Unity client,
+economy/construction, combat, full faction rosters + tech trees, superweapons +
+ion storms, skirmish AI with fog of war and replays, bilingual UI (he/en) with
+procedural audio, lockstep multiplayer over a relay server, and WebGL/desktop
+build tooling. See [docs/checklists/](docs/checklists/) for per-phase
+verification and [docs/deploy.md](docs/deploy.md) for shipping.
+
 ## Development
 
 ```bash
-cd sim
-dotnet test           # all game-logic tests, no Unity needed
+cd sim && dotnet test TiberiumDusk.sln    # 105 tests: game logic, AI matches,
+                                          # replay reproduction, real-socket lockstep
+dotnet run --project server/TiberiumDusk.Server   # multiplayer relay
 ```
 
-The Unity project (from Phase 2) is opened with Unity 6 LTS on a developer machine; the simulation itself is fully testable headless.
+The Unity project (`unity/`) opens with Unity 6 LTS on a developer machine —
+run the menu item "Tiberium Dusk → Setup Project" once, then Play. The
+simulation itself is fully testable headless.

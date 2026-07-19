@@ -24,6 +24,11 @@ namespace TiberiumDusk.Client
         private void Start()
         {
             _runner = FindFirstObjectByType<GameRunner>();
+            _runner.WhenReady(InitAfterGame);
+        }
+
+        private void InitAfterGame()
+        {
             _source2d = gameObject.AddComponent<AudioSource>();
             _source2d.spatialBlend = 0f;
 

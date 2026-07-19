@@ -23,6 +23,11 @@ namespace TiberiumDusk.Client
         private void Start()
         {
             _runner = FindFirstObjectByType<GameRunner>();
+            _runner.WhenReady(InitAfterGame);
+        }
+
+        private void InitAfterGame()
+        {
             _greenMaterial = MaterialFactory.Emissive(new Color(0.12f, 0.55f, 0.25f), new Color(0.22f, 1f, 0.42f));
             _blueMaterial = MaterialFactory.Emissive(new Color(0.15f, 0.35f, 0.60f), new Color(0.30f, 0.78f, 1f));
             _runner.AfterTick += OnTick;

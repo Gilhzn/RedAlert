@@ -32,6 +32,7 @@ namespace TiberiumDusk.Client
 
         private void Update()
         {
+            if (_runner == null || !_runner.Ready) return;
             // The sidebar owns the mouse while placing a structure or hovered.
             if (_sidebar != null && (_sidebar.IsPlacing || _sidebar.IsPointerOverSidebar(Input.mousePosition)))
             {

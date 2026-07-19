@@ -27,6 +27,7 @@ namespace TiberiumDusk.Client
 
         private void Update()
         {
+            if (_runner == null || !_runner.Ready) return;
             if (_targetingIndex < 0) return;
 
             if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
@@ -49,6 +50,7 @@ namespace TiberiumDusk.Client
 
         private void OnGUI()
         {
+            if (_runner == null || !_runner.Ready || !_runner.MatchStarted) return;
             var rules = _runner.Game.World.Rules;
             float y = 60f;
 

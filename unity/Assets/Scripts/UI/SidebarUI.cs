@@ -38,6 +38,11 @@ namespace TiberiumDusk.Client
         private void Start()
         {
             _runner = FindFirstObjectByType<GameRunner>();
+            _runner.WhenReady(InitAfterGame);
+        }
+
+        private void InitAfterGame()
+        {
             _displayedCredits = _runner.Game.World.Players[GameRunner.LocalPlayerId].Credits;
             _ghostValid = MaterialFactory.Unlit(new Color(0.2f, 1f, 0.33f, 1f));
             _ghostInvalid = MaterialFactory.Unlit(new Color(1f, 0.25f, 0.2f, 1f));
@@ -47,6 +52,7 @@ namespace TiberiumDusk.Client
 
         private void Update()
         {
+            if (_runner == null || !_runner.Ready) return;
             // Credit ticker: display value chases the real value.
             float real = _runner.Game.World.Players[GameRunner.LocalPlayerId].Credits;
             float speed = Mathf.Max(40f, Mathf.Abs(real - _displayedCredits) * 3f);
@@ -126,6 +132,7 @@ namespace TiberiumDusk.Client
 
         private void OnGUI()
         {
+            if (_runner == null || !_runner.Ready || !_runner.MatchStarted) return;
             var player = _runner.Game.World.Players[GameRunner.LocalPlayerId];
             var panel = new Rect(Screen.width - Width, 0, Width, Screen.height);
 

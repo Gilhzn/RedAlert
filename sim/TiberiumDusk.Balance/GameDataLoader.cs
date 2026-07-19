@@ -16,28 +16,46 @@ namespace TiberiumDusk.Balance
         public static readonly string[] ArmorClasses = { "none", "wood", "light", "heavy", "concrete" };
         public static readonly string[] Locomotors = { "foot", "tracked", "wheeled", "walker", "hover", "amphibious", "subterranean", "aircraft" };
 
-        public static GameData LoadFromDirectory(string dataDir)
+        /// <summary>Every data file the game needs — the load manifest for all platforms.</summary>
+        public static readonly string[] DataFiles =
         {
-            var warheads = LoadWarheads(Path.Combine(dataDir, "warheads.json"));
-            var weapons = LoadWeapons(Path.Combine(dataDir, "weapons.json"), warheads);
-            var landTypes = LoadTerrain(Path.Combine(dataDir, "terrain.json"));
-            var units = LoadUnits(Path.Combine(dataDir, "units.json"), "units", weapons, null);
-            // Structures share the blueprint model and land in the same registry.
-            LoadUnits(Path.Combine(dataDir, "structures.json"), "structures", weapons, units);
+            "units.json", "structures.json", "weapons.json", "warheads.json",
+            "terrain.json", "economy.json", "superweapons.json", "special.json",
+            "locale/en.json", "locale/he.json",
+        };
+
+        public static GameData LoadFromDirectory(string dataDir) =>
+            LoadFromContent(ReadDirectory(dataDir));
+
+        /// <summary>Reads the manifest off disk (editor/desktop/server).</summary>
+        public static Dictionary<string, string> ReadDirectory(string dataDir)
+        {
+            var files = new Dictionary<string, string>();
+            foreach (var name in DataFiles)
+            {
+                var path = Path.Combine(dataDir, name.Replace('/', Path.DirectorySeparatorChar));
+                if (!File.Exists(path))
+                    throw new FileNotFoundException($"Game data file missing: {path}");
+                files[name] = File.ReadAllText(path);
+            }
+            return files;
+        }
+
+        /// <summary>Content-based load: works from memory (WebGL fetch) or disk dumps.</summary>
+        public static GameData LoadFromContent(IReadOnlyDictionary<string, string> files)
+        {
+            var warheads = LoadWarheads(files["warheads.json"], "warheads.json");
+            var weapons = LoadWeapons(files["weapons.json"], "weapons.json", warheads);
+            var landTypes = LoadTerrain(files["terrain.json"], "terrain.json");
+            var units = LoadUnits(files["units.json"], "units.json", "units", weapons, null);
+            LoadUnits(files["structures.json"], "structures.json", "structures", weapons, units);
             return new GameData(units, weapons, warheads, landTypes);
         }
 
-        private static JObject ParseFile(string path)
-        {
-            if (!File.Exists(path))
-                throw new FileNotFoundException($"Game data file missing: {path}");
-            return JObject.Parse(File.ReadAllText(path));
-        }
-
-        private static Dictionary<string, WarheadBlueprint> LoadWarheads(string path)
+        private static Dictionary<string, WarheadBlueprint> LoadWarheads(string json, string path)
         {
             var result = new Dictionary<string, WarheadBlueprint>();
-            foreach (var token in (JArray)ParseFile(path)["warheads"])
+            foreach (var token in (JArray)JObject.Parse(json)["warheads"])
             {
                 var wh = new WarheadBlueprint
                 {
@@ -55,10 +73,10 @@ namespace TiberiumDusk.Balance
         }
 
         private static Dictionary<string, WeaponBlueprint> LoadWeapons(
-            string path, IReadOnlyDictionary<string, WarheadBlueprint> warheads)
+            string json, string path, IReadOnlyDictionary<string, WarheadBlueprint> warheads)
         {
             var result = new Dictionary<string, WeaponBlueprint>();
-            foreach (var token in (JArray)ParseFile(path)["weapons"])
+            foreach (var token in (JArray)JObject.Parse(json)["weapons"])
             {
                 var weapon = new WeaponBlueprint
                 {
@@ -87,10 +105,10 @@ namespace TiberiumDusk.Balance
             return result;
         }
 
-        private static Dictionary<string, LandType> LoadTerrain(string path)
+        private static Dictionary<string, LandType> LoadTerrain(string json, string path)
         {
             var result = new Dictionary<string, LandType>();
-            foreach (var prop in ((JObject)ParseFile(path)["landTypes"]).Properties())
+            foreach (var prop in ((JObject)JObject.Parse(json)["landTypes"]).Properties())
             {
                 var land = new LandType
                 {
@@ -110,11 +128,11 @@ namespace TiberiumDusk.Balance
         }
 
         private static Dictionary<string, UnitBlueprint> LoadUnits(
-            string path, string arrayKey, IReadOnlyDictionary<string, WeaponBlueprint> weapons,
+            string json, string path, string arrayKey, IReadOnlyDictionary<string, WeaponBlueprint> weapons,
             Dictionary<string, UnitBlueprint> existing)
         {
             var result = existing ?? new Dictionary<string, UnitBlueprint>();
-            foreach (var token in (JArray)ParseFile(path)[arrayKey])
+            foreach (var token in (JArray)JObject.Parse(json)[arrayKey])
             {
                 var unit = new UnitBlueprint
                 {

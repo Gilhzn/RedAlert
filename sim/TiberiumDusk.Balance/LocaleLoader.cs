@@ -10,7 +10,12 @@ namespace TiberiumDusk.Balance
         public static Dictionary<string, string> Load(string dataDir, string language)
         {
             var path = Path.Combine(dataDir, "locale", language + ".json");
-            var json = JObject.Parse(File.ReadAllText(path));
+            return LoadFromJson(File.ReadAllText(path));
+        }
+
+        public static Dictionary<string, string> LoadFromJson(string jsonText)
+        {
+            var json = JObject.Parse(jsonText);
             var result = new Dictionary<string, string>();
             foreach (var property in json.Properties())
             {

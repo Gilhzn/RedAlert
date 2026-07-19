@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Collections.Generic;
 using TiberiumDusk.Balance;
 using TiberiumDusk.Sim;
 using TiberiumDusk.Sim.Math;
 using TiberiumDusk.Sim.Orders;
 using TiberiumDusk.Net;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace TiberiumDusk.Client
 {
@@ -25,6 +27,9 @@ namespace TiberiumDusk.Client
         public float Alpha { get; private set; }
         /// <summary>False until the player presses START in the menu.</summary>
         public bool MatchStarted { get; private set; }
+        /// <summary>Data loaded + world constructed (WebGL loads over HTTP, so this is async).</summary>
+        public bool Ready { get; private set; }
+        private readonly List<System.Action> _readyCallbacks = new List<System.Action>();
         /// <summary>Multiplayer state.</summary>
         public bool NetMode { get; private set; }
         public string NetStatus { get; private set; } = "";
@@ -47,8 +52,45 @@ namespace TiberiumDusk.Client
 
         private void Awake()
         {
-            Loc.Init(ResolveDataDirectory());
-            var rules = RulesCompiler.CompileFromDirectory(ResolveDataDirectory());
+#if UNITY_WEBGL && !UNITY_EDITOR
+            StartCoroutine(BootstrapWebGL());
+#else
+            InitializeWithContent(GameDataLoader.ReadDirectory(ResolveDataDirectory()));
+#endif
+        }
+
+        /// <summary>Run a callback once data + world exist (immediately if they already do).</summary>
+        public void WhenReady(System.Action callback)
+        {
+            if (Ready) callback();
+            else _readyCallbacks.Add(callback);
+        }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        /// <summary>WebGL: StreamingAssets is a URL — fetch every data file over HTTP.</summary>
+        private System.Collections.IEnumerator BootstrapWebGL()
+        {
+            var files = new Dictionary<string, string>();
+            foreach (var name in GameDataLoader.DataFiles)
+            {
+                using var request = UnityWebRequest.Get(
+                    Application.streamingAssetsPath + "/data/" + name);
+                yield return request.SendWebRequest();
+                if (request.result != UnityWebRequest.Result.Success)
+                {
+                    Debug.LogError($"data fetch failed: {name}: {request.error}");
+                    yield break;
+                }
+                files[name] = request.downloadHandler.text;
+            }
+            InitializeWithContent(files);
+        }
+#endif
+
+        private void InitializeWithContent(Dictionary<string, string> content)
+        {
+            Loc.InitFromContent(content);
+            var rules = RulesCompiler.CompileFromContent(content);
             var map = DemoMap.Build(rules);
             var settings = new TiberiumDusk.Sim.Data.GameSettings
             {
@@ -60,6 +102,10 @@ namespace TiberiumDusk.Client
             DemoMap.SpawnUnits(Game);
 
             Terrain = TerrainView.Build(map, rules, transform);
+
+            Ready = true;
+            foreach (var callback in _readyCallbacks) callback();
+            _readyCallbacks.Clear();
         }
 
         /// <summary>Called by the main menu; the sim only ticks after this.</summary>
@@ -79,10 +125,17 @@ namespace TiberiumDusk.Client
             NetStatus = "connecting...";
             try
             {
+#if UNITY_WEBGL && !UNITY_EDITOR
+                var webglTransport = new WebGLNetTransport();
+                webglTransport.Connect(url);
+                _netClient = new LockstepClient(webglTransport);
+                await System.Threading.Tasks.Task.CompletedTask;
+#else
                 _netTransport = new WebSocketTransport();
                 await _netTransport.ConnectAsync(url);
                 _netClient = new LockstepClient(_netTransport);
-                _netClient.SendJoin(System.Environment.UserName ?? "player", faction);
+#endif
+                _netClient.SendJoin("player", faction);
                 NetStatus = "waiting for players...";
             }
             catch (System.Exception e)

@@ -24,6 +24,11 @@ namespace TiberiumDusk.Client
         private void Start()
         {
             _runner = FindFirstObjectByType<GameRunner>();
+            _runner.WhenReady(InitAfterGame);
+        }
+
+        private void InitAfterGame()
+        {
             _camera = FindFirstObjectByType<CameraRig>();
             var map = _runner.Game.World.Map;
             _texture = new Texture2D(map.Width, map.Height, TextureFormat.RGBA32, false);
@@ -167,6 +172,7 @@ namespace TiberiumDusk.Client
 
         private void OnGUI()
         {
+            if (_runner == null || !_runner.Ready || _texture == null) return;
             var rect = new Rect(12, Screen.height - SizePixels - 12, SizePixels, SizePixels);
 
             GUI.color = new Color(0.07f, 0.09f, 0.08f, 0.95f);
