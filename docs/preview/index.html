@@ -22,7 +22,7 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; overflow: hidden; background: var(--ground); }
   body { font-family: var(--mono); color: var(--phosphor); }
-  #game { position: fixed; inset: 0; display: block; cursor: crosshair; }
+  #game { position: fixed; inset: 0; display: block; cursor: crosshair; touch-action: none; }
 
   /* CRT overlay */
   #crt { position: fixed; inset: 0; pointer-events: none; z-index: 40;
@@ -57,7 +57,25 @@
   /* Sidebar */
   #sidebar { top: 42px; bottom: 34px; right: 0; width: 216px; overflow-y: auto;
     background: rgba(10,18,13,0.93); border-inline-start: 1px solid var(--phos-faint);
-    padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+    padding: 10px; display: flex; flex-direction: column; gap: 10px;
+    transition: transform .25s ease; }
+  body.sb-collapsed #sidebar { transform: translateX(105%); }
+  #sbtab { position: fixed; top: 50%; right: 216px; transform: translateY(-50%);
+    z-index: 26; width: 28px; height: 72px; padding: 0;
+    background: var(--panel2); border: 1px solid var(--phos-faint); border-right: none;
+    color: var(--phosphor); font-size: 15px; cursor: pointer; transition: right .25s ease; }
+  body.sb-collapsed #sbtab { right: 0; }
+  @media (max-width: 760px) {
+    #sidebar { width: 178px; padding: 8px; gap: 8px; }
+    #sbtab { right: 178px; }
+    body.sb-collapsed #sbtab { right: 0; }
+    #topbar { font-size: 11px; }
+    #topbar .seg { padding: 0 7px; gap: 5px; }
+    #topbar .title { letter-spacing: 1px; }
+    #powerwrap { width: 56px; }
+    .build-btn { padding: 5px 7px; }
+    #botbar { font-size: 11px; padding: 0 8px; gap: 8px; }
+  }
   #minimap { width: 100%; aspect-ratio: 1; background: #000; border: 1px solid var(--phos-faint);
     cursor: pointer; display: block; }
   .sb-head { font-size: 10px; letter-spacing: 2px; color: var(--phos-dim); }
@@ -83,7 +101,9 @@
     justify-content: center; background: rgba(3,6,4,0.88); }
   .card { max-width: 560px; width: calc(100% - 40px); background: var(--panel);
     border: 1px solid var(--phos-dim); padding: 30px 34px;
-    box-shadow: 0 0 60px rgba(55,232,110,0.12); }
+    box-shadow: 0 0 60px rgba(55,232,110,0.12);
+    max-height: 88vh; overflow-y: auto; }
+  @media (max-width: 760px) { .card { padding: 18px 20px; } .card h1 { font-size: 24px; } }
   .card h1 { font-size: 30px; letter-spacing: 1px; color: var(--phosphor);
     text-shadow: 0 0 14px rgba(55,232,110,0.55); text-wrap: balance; }
   .card .en-title { font-size: 12px; letter-spacing: 6px; color: var(--phos-dim); margin-top: 4px; }
@@ -124,6 +144,8 @@
   <div class="build-grid" id="grid-units"></div>
 </div>
 
+<button id="sbtab" aria-label="toggle sidebar">▶</button>
+
 <div id="botbar" class="hud" dir="rtl">
   <span id="selinfo"></span>
   <span id="evalog"></span>
@@ -139,7 +161,7 @@
       <li><b>קליק שמאלי / גרירה</b> — בחירת יחידות</li>
       <li><b>קליק ימני</b> — תנועה / תקיפה</li>
       <li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום</li>
-      <li><b>סרגל צד</b> — בנייה (מבנים ממוקמים בקליק על המפה)</li>
+      <li><b>סרגל צד</b> — בנייה (מבנים ממוקמים בקליק על המפה); ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, גרירה: מצלמה, צביטה: זום</li>
     </ul>
     <button class="go" id="startbtn">התחל קרב</button>
   </div>
@@ -1027,24 +1049,16 @@ canvas.addEventListener("mousemove", ev => {
                             x2: Math.max(dragStart[0], mouseX), y2: Math.max(dragStart[1], mouseY) };
 });
 canvas.addEventListener("mousedown", ev => {
-  if (!running) return;
+  if (!running || touchGuard()) return;
   if (ev.button === 1) { panning = true; panLast = [ev.clientX, ev.clientY]; ev.preventDefault(); return; }
   if (ev.button === 0) {
-    if (placing && placingSpot) {
-      const [gx, gy, ok] = placingSpot;
-      if (ok) {
-        spawnStruct(placing, gx, gy, 0);
-        queues.structure = null; placing = null;
-        eva(T("ready")); sfx("done");
-      } else { eva(T("badspot")); sfx("warn"); }
-      return;
-    }
+    if (tryPlace()) return;
     dragStart = [ev.clientX, ev.clientY];
   }
 });
 window.addEventListener("mouseup", ev => {
   if (ev.button === 1) { panning = false; return; }
-  if (ev.button !== 0 || !running) return;
+  if (ev.button !== 0 || !running || touchGuard()) return;
   if (!dragStart) return;
   const wasBox = selBox && (selBox.x2 - selBox.x1 > 6 || selBox.y2 - selBox.y1 > 6);
   if (wasBox) {
@@ -1065,14 +1079,11 @@ window.addEventListener("mouseup", ev => {
   }
   dragStart = null; selBox = null;
 });
-canvas.addEventListener("contextmenu", ev => {
-  ev.preventDefault();
-  if (!running || over) return;
-  if (placing) { placing = null; return; }
-  const pick = pickEntity(ev.clientX, ev.clientY);
-  const [wx, wy] = toWorld(ev.clientX, ev.clientY);
+function commandAt(cx, cy) {
+  const pick = pickEntity(cx, cy);
+  const [wx, wy] = toWorld(cx, cy);
   const sel = ents.filter(e => e.sel && e.kind === "unit");
-  if (!sel.length) return;
+  if (!sel.length) return false;
   sfx("click");
   let k = 0;
   for (const u of sel) {
@@ -1088,18 +1099,110 @@ canvas.addEventListener("contextmenu", ev => {
       k++;
     }
   }
+  return true;
+}
+function tryPlace() {
+  if (!placing || !placingSpot) return false;
+  const [gx, gy, ok] = placingSpot;
+  if (ok) {
+    spawnStruct(placing, gx, gy, 0);
+    queues.structure = null; placing = null;
+    eva(T("ready")); sfx("done");
+  } else { eva(T("badspot")); sfx("warn"); }
+  return true;
+}
+canvas.addEventListener("contextmenu", ev => {
+  ev.preventDefault();
+  if (!running || over || touchGuard()) return;
+  if (placing) { placing = null; return; }
+  commandAt(ev.clientX, ev.clientY);
 });
-function pickEntity(sx, sy) {
-  let best = null, bd = 1e9;
-  for (const e of ents) {
-    if (e.dead) continue;
-    if (e.owner === 1 && !visible[idx(Math.min(MAP-1, e.x|0), Math.min(MAP-1, e.y|0))]) continue;
-    const [ex, ey] = toScreen(e.x, e.y);
-    const rad = e.kind === "struct" ? (e.fw * TW / 3) * zoom : 16 * zoom;
-    const d = Math.hypot(ex - sx, (ey - 8 * zoom) - sy);
-    if (d < rad && d < bd) { bd = d; best = e; }
+
+// ---- Sidebar collapse (mobile ergonomics) ----
+const sbtab = document.getElementById("sbtab");
+function setSidebar(collapsed) {
+  document.body.classList.toggle("sb-collapsed", collapsed);
+  sbtab.textContent = collapsed ? "◀" : "▶";
+}
+sbtab.addEventListener("click", () => {
+  setSidebar(!document.body.classList.contains("sb-collapsed"));
+  sfx("click");
+});
+if (Math.min(window.innerWidth, screen.width) < 760) setSidebar(true);
+
+// ---- Touch controls: tap = select / order, drag = pan, pinch = zoom ----
+let touch1 = null, pinchState = null, lastTouchAt = -9999;
+const touchGuard = () => performance.now() - lastTouchAt < 700;
+canvas.addEventListener("touchstart", ev => {
+  ev.preventDefault();
+  lastTouchAt = performance.now();
+  if (!running) return;
+  if (ev.touches.length === 1) {
+    const t = ev.touches[0];
+    touch1 = { x: t.clientX, y: t.clientY, moved: false };
+    mouseX = t.clientX; mouseY = t.clientY;
+  } else if (ev.touches.length === 2) {
+    touch1 = null;
+    const dx = ev.touches[0].clientX - ev.touches[1].clientX;
+    const dy = ev.touches[0].clientY - ev.touches[1].clientY;
+    pinchState = { d: Math.hypot(dx, dy) || 1, z: zoom };
   }
-  return best;
+}, { passive: false });
+canvas.addEventListener("touchmove", ev => {
+  ev.preventDefault();
+  lastTouchAt = performance.now();
+  if (!running) return;
+  if (ev.touches.length === 1 && touch1) {
+    const t = ev.touches[0];
+    const dx = t.clientX - touch1.x, dy = t.clientY - touch1.y;
+    if (Math.abs(dx) + Math.abs(dy) > 8) touch1.moved = true;
+    if (touch1.moved) {
+      camX -= ((dx / zoom) / (TW / 2) + (dy / zoom) / (TH / 2)) / 2;
+      camY -= ((dy / zoom) / (TH / 2) - (dx / zoom) / (TW / 2)) / 2;
+    }
+    touch1.x = t.clientX; touch1.y = t.clientY;
+    mouseX = t.clientX; mouseY = t.clientY;
+  } else if (ev.touches.length === 2 && pinchState) {
+    const dx = ev.touches[0].clientX - ev.touches[1].clientX;
+    const dy = ev.touches[0].clientY - ev.touches[1].clientY;
+    zoom = Math.max(0.5, Math.min(2.2, pinchState.z * (Math.hypot(dx, dy) / pinchState.d)));
+  }
+}, { passive: false });
+canvas.addEventListener("touchend", ev => {
+  ev.preventDefault();
+  lastTouchAt = performance.now();
+  if (ev.touches.length < 2) pinchState = null;
+  if (!running || !touch1) return;
+  if (!touch1.moved) {
+    const cx = touch1.x, cy = touch1.y;
+    if (!tryPlace()) {
+      const pick = pickEntity(cx, cy);
+      const sel = ents.filter(e => e.sel && e.kind === "unit");
+      if (sel.length && (!pick || pick.owner === 1)) commandAt(cx, cy);
+      else {
+        for (const e of ents) e.sel = false;
+        if (pick && pick.owner === 0) { pick.sel = true; sfx("click"); }
+        updateSelInfo();
+      }
+    }
+  }
+  if (ev.touches.length === 0) touch1 = null;
+}, { passive: false });
+function pickEntity(sx, sy) {
+  // Units first: when a unit stands on a building, the unit wins the pick.
+  for (const kind of ["unit", "struct"]) {
+    let best = null, bd = 1e9;
+    for (const e of ents) {
+      if (e.dead || e.kind !== kind) continue;
+      if (e.owner === 1 && !visible[idx(Math.min(MAP-1, e.x|0), Math.min(MAP-1, e.y|0))]) continue;
+      const [ex, ey] = toScreen(e.x, e.y);
+      const rad = e.kind === "struct" ? (e.fw * TW / 3) * zoom : 16 * zoom;
+      const d = Math.hypot(ex - sx, (ey - 8 * zoom) - sy);
+      if (d < rad && d < bd) { bd = d; best = e; }
+    }
+    if (best) return best;
+  }
+  return null;
 }
 function updateSelInfo() {
   const sel = ents.filter(e => e.sel);
@@ -1140,7 +1243,7 @@ function applyLang() {
     document.getElementById("i-desc").textContent = "An interactive browser preview: a compact skirmish against the Serpent Order, using the real unit stats from the game's data files. Harvest veridium, build your base, repel the waves — and destroy the enemy base.";
     document.getElementById("i-note").textContent = "This is a JavaScript demo — not the full Unity WebGL build. The full game is built in the Unity Editor via Tiberium Dusk → Build → WebGL.";
     document.getElementById("i-controls").innerHTML =
-      "<li><b>Left click / drag</b> — select units</li><li><b>Right click</b> — move / attack</li><li><b>WASD / arrows / middle-drag</b> — pan camera, <b>wheel</b> — zoom</li><li><b>Sidebar</b> — build (structures are placed by clicking the map)</li>";
+      "<li><b>Left click / drag</b> — select units</li><li><b>Right click</b> — move / attack</li><li><b>WASD / arrows / middle-drag</b> — pan camera, <b>wheel</b> — zoom</li><li><b>Sidebar</b> — build (structures are placed by clicking the map); ▶ collapses it</li><li><b>Mobile</b> — tap: select/order, drag: pan, pinch: zoom</li>";
     document.getElementById("startbtn").textContent = "START BATTLE";
   } else {
     document.querySelector("#introcard h1").textContent = "דמדומי טיבריום";
@@ -1148,7 +1251,7 @@ function applyLang() {
     document.getElementById("i-desc").textContent = "תצוגה מקדימה אינטראקטיבית בדפדפן: סקירמיש מוקטן נגד מסדר הנחש, עם נתוני היחידות האמיתיים מקובצי המשחק. קצרו ורידיום, בנו בסיס, הדפו גלים — והשמידו את בסיס האויב.";
     document.getElementById("i-note").textContent = "זו הדגמת JavaScript — לא בניית ה־Unity WebGL המלאה. את המשחק המלא בונים ב־Unity Editor דרך התפריט Tiberium Dusk ← Build ← WebGL.";
     document.getElementById("i-controls").innerHTML =
-      "<li><b>קליק שמאלי / גרירה</b> — בחירת יחידות</li><li><b>קליק ימני</b> — תנועה / תקיפה</li><li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום</li><li><b>סרגל צד</b> — בנייה (מבנים ממוקמים בקליק על המפה)</li>";
+      "<li><b>קליק שמאלי / גרירה</b> — בחירת יחידות</li><li><b>קליק ימני</b> — תנועה / תקיפה</li><li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום</li><li><b>סרגל צד</b> — בנייה (מבנים ממוקמים בקליק על המפה); ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, גרירה: מצלמה, צביטה: זום</li>";
     document.getElementById("startbtn").textContent = "התחל קרב";
   }
   buildButtons();
