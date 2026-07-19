@@ -1,0 +1,2944 @@
+{
+ "atlas": {
+  "cell": 128,
+  "grid": 8,
+  "regions": {
+   "concrete": [
+    0,
+    0
+   ],
+   "concrete_dark": [
+    1,
+    0
+   ],
+   "metal": [
+    2,
+    0
+   ],
+   "metal_dark": [
+    3,
+    0
+   ],
+   "brick": [
+    4,
+    0
+   ],
+   "brick_dark": [
+    5,
+    0
+   ],
+   "rust": [
+    6,
+    0
+   ],
+   "grate": [
+    7,
+    0
+   ],
+   "gold": [
+    0,
+    1
+   ],
+   "gold_dark": [
+    1,
+    1
+   ],
+   "red": [
+    2,
+    1
+   ],
+   "red_dark": [
+    3,
+    1
+   ],
+   "black": [
+    4,
+    1
+   ],
+   "hazard": [
+    5,
+    1
+   ],
+   "hazard_red": [
+    6,
+    1
+   ],
+   "roof": [
+    7,
+    1
+   ],
+   "door": [
+    0,
+    2
+   ],
+   "door_red": [
+    1,
+    2
+   ],
+   "vent": [
+    2,
+    2
+   ],
+   "roof_gold": [
+    3,
+    2
+   ],
+   "roof_dark": [
+    4,
+    2
+   ],
+   "glow_green": [
+    5,
+    2
+   ],
+   "glow_red": [
+    6,
+    2
+   ],
+   "glow_blue": [
+    7,
+    2
+   ]
+  }
+ },
+ "structures": {
+  "nx_conyard": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     2.9,
+     0.12,
+     2.9
+    ],
+    "tex": "concrete",
+    "top": "concrete"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.35,
+     0.12,
+     0.15
+    ],
+    "size": [
+     2.0,
+     1.1,
+     2.1
+    ],
+    "tex": "metal",
+    "top": "roof"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.35,
+     1.22,
+     0.15
+    ],
+    "size": [
+     2.06,
+     0.14,
+     2.16
+    ],
+    "tex": "hazard",
+    "top": "roof"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.35,
+     0.17,
+     -0.93
+    ],
+    "size": [
+     1.2,
+     0.85,
+     0.1
+    ],
+    "tex": "door"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.85,
+     1.36,
+     0.6
+    ],
+    "size": [
+     0.55,
+     0.16,
+     0.55
+    ],
+    "tex": "vent",
+    "top": "vent"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     1.05,
+     0.12,
+     0.8
+    ],
+    "size": [
+     0.7,
+     1.85,
+     0.7
+    ],
+    "tex": "owner",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     1.05,
+     1.75,
+     -0.25
+    ],
+    "size": [
+     0.28,
+     0.24,
+     1.9
+    ],
+    "tex": "gold_dark",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     1.02,
+     0.12,
+     -0.85
+    ],
+    "r": 0.26,
+    "h": 0.6,
+    "tex": "rust",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.45,
+     0.12,
+     -0.98
+    ],
+    "r": 0.2,
+    "h": 0.45,
+    "tex": "metal_dark",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "wedge",
+    "pos": [
+     -0.35,
+     0.02,
+     -1.22
+    ],
+    "size": [
+     1.3,
+     0.32,
+     0.45
+    ],
+    "tex": "hazard"
+   }
+  ],
+  "nx_refinery": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     2.9,
+     0.12,
+     2.9
+    ],
+    "tex": "concrete",
+    "top": "concrete"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.55,
+     0.12,
+     0.35
+    ],
+    "size": [
+     1.7,
+     1.15,
+     2.0
+    ],
+    "tex": "metal",
+    "top": "roof"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.55,
+     1.27,
+     0.35
+    ],
+    "size": [
+     1.76,
+     0.12,
+     2.06
+    ],
+    "tex": "owner",
+    "top": "roof"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     -1.0,
+     1.39,
+     0.9
+    ],
+    "r": 0.15,
+    "h": 0.95,
+    "tex": "metal_dark",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.95,
+     0.12,
+     0.55
+    ],
+    "r": 0.55,
+    "h": 1.05,
+    "tex": "metal_dark",
+    "top": "glow_green"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.95,
+     0.84,
+     0.55
+    ],
+    "r": 0.57,
+    "h": 0.16,
+    "tex": "metal",
+    "emissive": "#49ff7a"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.2,
+     0.72,
+     0.5
+    ],
+    "size": [
+     0.9,
+     0.18,
+     0.22
+    ],
+    "tex": "rust"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.5,
+     0.17,
+     -0.7
+    ],
+    "size": [
+     1.0,
+     0.8,
+     0.1
+    ],
+    "tex": "door"
+   },
+   {
+    "shape": "wedge",
+    "pos": [
+     0.35,
+     0.02,
+     -1.1
+    ],
+    "size": [
+     1.5,
+     0.4,
+     0.65
+    ],
+    "tex": "hazard"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.35,
+     0.12,
+     -0.35
+    ],
+    "size": [
+     1.5,
+     0.06,
+     0.9
+    ],
+    "tex": "grate",
+    "top": "grate"
+   }
+  ],
+  "nx_silo": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     0.9,
+     0.14,
+     0.9
+    ],
+    "tex": "concrete",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     0.14,
+     0
+    ],
+    "r": 0.34,
+    "h": 0.85,
+    "tex": "metal",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     0.55,
+     0
+    ],
+    "r": 0.36,
+    "h": 0.14,
+    "tex": "metal",
+    "emissive": "#49ff7a"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     0.99,
+     0
+    ],
+    "r": 0.25,
+    "h": 0.14,
+    "tex": "metal_dark",
+    "top": "metal_dark"
+   }
+  ],
+  "nx_emp_cannon": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.12,
+     0
+    ],
+    "size": [
+     1.25,
+     0.5,
+     1.25
+    ],
+    "tex": "metal",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     0.62,
+     0
+    ],
+    "r": 0.42,
+    "h": 0.24,
+    "tex": "grate",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     0.86,
+     0
+    ],
+    "r": 0.34,
+    "h": 0.24,
+    "tex": "metal_dark",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     1.1,
+     0
+    ],
+    "r": 0.27,
+    "h": 0.24,
+    "tex": "grate",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     1.36,
+     0
+    ],
+    "r": 0.2,
+    "h": 0.3,
+    "tex": "metal",
+    "emissive": "#41b9ff"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.75,
+     0.12,
+     0.75
+    ],
+    "size": [
+     0.35,
+     0.7,
+     0.35
+    ],
+    "tex": "hazard",
+    "top": "metal_dark"
+   }
+  ],
+  "dm_power_plant": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete",
+    "top": "concrete"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.35,
+     0.12,
+     0
+    ],
+    "size": [
+     1.15,
+     0.85,
+     1.7
+    ],
+    "tex": "gold",
+    "top": "roof_gold"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.35,
+     0.35,
+     -0.86
+    ],
+    "size": [
+     0.8,
+     0.4,
+     0.06
+    ],
+    "tex": "vent"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.55,
+     0.12,
+     -0.45
+    ],
+    "r": 0.3,
+    "h": 1.3,
+    "tex": "metal",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.55,
+     0.12,
+     0.45
+    ],
+    "r": 0.3,
+    "h": 1.3,
+    "tex": "metal",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.2,
+     0.72,
+     0
+    ],
+    "size": [
+     0.7,
+     0.16,
+     0.16
+    ],
+    "tex": "rust"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.35,
+     0.97,
+     0
+    ],
+    "size": [
+     1.2,
+     0.1,
+     1.75
+    ],
+    "tex": "hazard",
+    "top": "roof"
+   }
+  ],
+  "dm_barracks": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete",
+    "top": "concrete"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.15,
+     0.12,
+     0.1
+    ],
+    "size": [
+     1.5,
+     0.75,
+     1.25
+    ],
+    "tex": "brick",
+    "top": "roof_gold"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.15,
+     0.17,
+     -0.55
+    ],
+    "size": [
+     0.55,
+     0.6,
+     0.08
+    ],
+    "tex": "door"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.45,
+     0.12,
+     0.72
+    ],
+    "size": [
+     0.75,
+     0.5,
+     0.45
+    ],
+    "tex": "metal",
+    "top": "roof"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     -0.78,
+     0.12,
+     0.72
+    ],
+    "r": 0.035,
+    "h": 1.35,
+    "tex": "metal_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.66,
+     1.3,
+     0.72
+    ],
+    "size": [
+     0.26,
+     0.16,
+     0.03
+    ],
+    "tex": "owner"
+   }
+  ],
+  "dm_factory": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     2.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete",
+    "top": "concrete"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.3,
+     0.12,
+     0.1
+    ],
+    "size": [
+     2.2,
+     1.25,
+     1.6
+    ],
+    "tex": "brick",
+    "top": "roof"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.3,
+     0.17,
+     -0.72
+    ],
+    "size": [
+     1.5,
+     0.95,
+     0.1
+    ],
+    "tex": "door"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.3,
+     1.14,
+     -0.73
+    ],
+    "size": [
+     1.62,
+     0.24,
+     0.1
+    ],
+    "tex": "hazard"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.3,
+     1.37,
+     0.1
+    ],
+    "size": [
+     1.4,
+     0.14,
+     1.0
+    ],
+    "tex": "vent",
+    "top": "vent"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     1.15,
+     0.12,
+     0.55
+    ],
+    "r": 0.17,
+    "h": 1.65,
+    "tex": "metal_dark",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     1.15,
+     0.12,
+     0.0
+    ],
+    "r": 0.17,
+    "h": 1.45,
+    "tex": "metal_dark",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     1.15,
+     0.12,
+     -0.6
+    ],
+    "size": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "tex": "owner",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "wedge",
+    "pos": [
+     -0.3,
+     0.02,
+     -1.08
+    ],
+    "size": [
+     1.6,
+     0.35,
+     0.55
+    ],
+    "tex": "hazard"
+   }
+  ],
+  "dm_radar": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete",
+    "top": "concrete"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.12,
+     0.25
+    ],
+    "size": [
+     1.5,
+     0.7,
+     1.2
+    ],
+    "tex": "gold",
+    "top": "roof_gold"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.17,
+     -0.4
+    ],
+    "size": [
+     0.5,
+     0.5,
+     0.08
+    ],
+    "tex": "door"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     0.82,
+     0.25
+    ],
+    "r": 0.13,
+    "h": 0.5,
+    "tex": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     1.35,
+     0.25
+    ],
+    "r": 0.6,
+    "h": 0.1,
+    "tex": "metal",
+    "top": "metal_dark",
+    "rot": [
+     35,
+     0,
+     0
+    ]
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.55,
+     0.82,
+     -0.3
+    ],
+    "r": 0.04,
+    "h": 0.6,
+    "tex": "metal_dark"
+   }
+  ],
+  "dm_helipad": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.16,
+     1.9
+    ],
+    "tex": "concrete",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.16,
+     0
+    ],
+    "size": [
+     1.1,
+     0.03,
+     1.1
+    ],
+    "tex": "grate",
+    "top": "grate"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.7,
+     0.16,
+     0.7
+    ],
+    "size": [
+     0.45,
+     0.5,
+     0.45
+    ],
+    "tex": "owner",
+    "top": "roof_gold"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.8,
+     0.16,
+     -0.8
+    ],
+    "size": [
+     0.12,
+     0.12,
+     0.12
+    ],
+    "tex": "metal",
+    "emissive": "#49ff7a"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.8,
+     0.16,
+     -0.8
+    ],
+    "size": [
+     0.12,
+     0.12,
+     0.12
+    ],
+    "tex": "metal",
+    "emissive": "#49ff7a"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.8,
+     0.16,
+     0.8
+    ],
+    "size": [
+     0.12,
+     0.12,
+     0.12
+    ],
+    "tex": "metal",
+    "emissive": "#49ff7a"
+   }
+  ],
+  "dm_service_depot": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     2.8,
+     0.12,
+     1.8
+    ],
+    "tex": "grate",
+    "top": "grate"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -1.15,
+     0.12,
+     0
+    ],
+    "size": [
+     0.28,
+     1.3,
+     0.9
+    ],
+    "tex": "metal",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     1.15,
+     0.12,
+     0
+    ],
+    "size": [
+     0.28,
+     1.3,
+     0.9
+    ],
+    "tex": "metal",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.42,
+     0
+    ],
+    "size": [
+     2.6,
+     0.26,
+     0.7
+    ],
+    "tex": "hazard",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     1.0,
+     0
+    ],
+    "r": 0.05,
+    "h": 0.42,
+    "tex": "metal_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.9,
+     0
+    ],
+    "size": [
+     0.2,
+     0.12,
+     0.2
+    ],
+    "tex": "rust"
+   }
+  ],
+  "dm_tech_center": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete",
+    "top": "concrete"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.12,
+     0.05
+    ],
+    "size": [
+     1.6,
+     1.0,
+     1.45
+    ],
+    "tex": "gold",
+    "top": "roof_gold"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.68,
+     -0.68
+    ],
+    "size": [
+     1.35,
+     0.24,
+     0.06
+    ],
+    "tex": "metal",
+    "emissive": "#41b9ff"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.12,
+     0.05
+    ],
+    "size": [
+     1.0,
+     0.14,
+     0.9
+    ],
+    "tex": "vent",
+    "top": "vent"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.55,
+     1.26,
+     0.4
+    ],
+    "r": 0.04,
+    "h": 0.75,
+    "tex": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.55,
+     1.95,
+     0.4
+    ],
+    "r": 0.16,
+    "h": 0.06,
+    "tex": "metal",
+    "top": "metal_dark",
+    "rot": [
+     30,
+     0,
+     0
+    ]
+   }
+  ],
+  "dm_guard_tower": [
+   {
+    "shape": "box",
+    "pos": [
+     -0.3,
+     0,
+     -0.3
+    ],
+    "size": [
+     0.11,
+     0.95,
+     0.11
+    ],
+    "tex": "metal_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.3,
+     0,
+     -0.3
+    ],
+    "size": [
+     0.11,
+     0.95,
+     0.11
+    ],
+    "tex": "metal_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.3,
+     0,
+     0.3
+    ],
+    "size": [
+     0.11,
+     0.95,
+     0.11
+    ],
+    "tex": "metal_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.3,
+     0,
+     0.3
+    ],
+    "size": [
+     0.11,
+     0.95,
+     0.11
+    ],
+    "tex": "metal_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.5,
+     0
+    ],
+    "size": [
+     0.5,
+     0.06,
+     0.5
+    ],
+    "tex": "grate",
+    "top": "grate"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.95,
+     0
+    ],
+    "size": [
+     0.82,
+     0.14,
+     0.82
+    ],
+    "tex": "metal",
+    "top": "grate"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.09,
+     0
+    ],
+    "size": [
+     0.68,
+     0.42,
+     0.68
+    ],
+    "tex": "owner",
+    "top": "roof"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.2,
+     -0.42
+    ],
+    "size": [
+     0.22,
+     0.16,
+     0.32
+    ],
+    "tex": "metal_dark"
+   }
+  ],
+  "dm_rocket_tower": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     0.62,
+     1.25,
+     0.62
+    ],
+    "tex": "concrete",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.42,
+     0
+    ],
+    "size": [
+     0.68,
+     0.14,
+     0.68
+    ],
+    "tex": "hazard"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.25,
+     0
+    ],
+    "size": [
+     0.75,
+     0.42,
+     0.55
+    ],
+    "tex": "owner",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     -0.15,
+     1.4,
+     -0.3
+    ],
+    "r": 0.08,
+    "h": 0.35,
+    "tex": "metal_dark",
+    "rot": [
+     75,
+     0,
+     0
+    ]
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.15,
+     1.4,
+     -0.3
+    ],
+    "r": 0.08,
+    "h": 0.35,
+    "tex": "metal_dark",
+    "rot": [
+     75,
+     0,
+     0
+    ]
+   }
+  ],
+  "dm_aa_tower": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     0.7,
+     0.55,
+     0.7
+    ],
+    "tex": "metal",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.55,
+     0
+    ],
+    "size": [
+     0.5,
+     0.3,
+     0.5
+    ],
+    "tex": "owner",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     -0.12,
+     0.85,
+     0.05
+    ],
+    "r": 0.05,
+    "h": 0.55,
+    "tex": "metal_dark",
+    "rot": [
+     35,
+     0,
+     0
+    ]
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.12,
+     0.85,
+     0.05
+    ],
+    "r": 0.05,
+    "h": 0.55,
+    "tex": "metal_dark",
+    "rot": [
+     35,
+     0,
+     0
+    ]
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     -0.12,
+     0.78,
+     -0.14
+    ],
+    "r": 0.05,
+    "h": 0.55,
+    "tex": "metal_dark",
+    "rot": [
+     35,
+     0,
+     0
+    ]
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.12,
+     0.78,
+     -0.14
+    ],
+    "r": 0.05,
+    "h": 0.55,
+    "tex": "metal_dark",
+    "rot": [
+     35,
+     0,
+     0
+    ]
+   }
+  ],
+  "dm_ion_uplink": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     0.12,
+     0
+    ],
+    "r": 0.72,
+    "h": 0.5,
+    "tex": "metal",
+    "top": "metal_dark"
+   },
+   {
+    "shape": "wedge",
+    "pos": [
+     0,
+     0.62,
+     0.5
+    ],
+    "size": [
+     0.55,
+     0.55,
+     0.4
+    ],
+    "tex": "gold",
+    "rot": [
+     0,
+     0,
+     0
+    ]
+   },
+   {
+    "shape": "wedge",
+    "pos": [
+     0.5,
+     0.62,
+     0
+    ],
+    "size": [
+     0.55,
+     0.55,
+     0.4
+    ],
+    "tex": "gold",
+    "rot": [
+     0,
+     90,
+     0
+    ]
+   },
+   {
+    "shape": "wedge",
+    "pos": [
+     0,
+     0.62,
+     -0.5
+    ],
+    "size": [
+     0.55,
+     0.55,
+     0.4
+    ],
+    "tex": "gold",
+    "rot": [
+     0,
+     180,
+     0
+    ]
+   },
+   {
+    "shape": "wedge",
+    "pos": [
+     -0.5,
+     0.62,
+     0
+    ],
+    "size": [
+     0.55,
+     0.55,
+     0.4
+    ],
+    "tex": "gold",
+    "rot": [
+     0,
+     270,
+     0
+    ]
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     0.62,
+     0
+    ],
+    "r": 0.26,
+    "h": 0.55,
+    "tex": "metal",
+    "emissive": "#41b9ff"
+   }
+  ],
+  "so_power_plant": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete_dark",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.35,
+     0.12,
+     0
+    ],
+    "size": [
+     1.15,
+     0.85,
+     1.7
+    ],
+    "tex": "red",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.35,
+     0.35,
+     -0.86
+    ],
+    "size": [
+     0.8,
+     0.4,
+     0.06
+    ],
+    "tex": "vent"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.55,
+     0.12,
+     -0.45
+    ],
+    "r": 0.3,
+    "h": 1.3,
+    "tex": "metal_dark",
+    "top": "black"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.55,
+     0.12,
+     0.45
+    ],
+    "r": 0.3,
+    "h": 1.3,
+    "tex": "metal_dark",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.35,
+     0.97,
+     0
+    ],
+    "size": [
+     1.2,
+     0.1,
+     1.75
+    ],
+    "tex": "black",
+    "top": "roof_dark"
+   }
+  ],
+  "so_adv_power": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete_dark",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.4,
+     0.12,
+     0
+    ],
+    "size": [
+     1.05,
+     1.0,
+     1.7
+    ],
+    "tex": "black",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.4,
+     1.12,
+     0
+    ],
+    "size": [
+     1.1,
+     0.12,
+     1.75
+    ],
+    "tex": "red_dark",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.5,
+     0.12,
+     -0.55
+    ],
+    "r": 0.27,
+    "h": 1.6,
+    "tex": "metal_dark",
+    "top": "black"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.5,
+     0.12,
+     0.0
+    ],
+    "r": 0.27,
+    "h": 1.75,
+    "tex": "metal_dark",
+    "top": "black"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.5,
+     0.12,
+     0.55
+    ],
+    "r": 0.27,
+    "h": 1.6,
+    "tex": "metal_dark",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.5,
+     0.6,
+     0
+    ],
+    "size": [
+     0.2,
+     0.14,
+     1.1
+    ],
+    "tex": "rust"
+   }
+  ],
+  "so_hand": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete_dark",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.12,
+     0.05
+    ],
+    "size": [
+     1.75,
+     0.55,
+     1.6
+    ],
+    "tex": "black",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.67,
+     0.05
+    ],
+    "size": [
+     1.35,
+     0.5,
+     1.25
+    ],
+    "tex": "red_dark",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.17,
+     0.05
+    ],
+    "size": [
+     0.95,
+     0.45,
+     0.9
+    ],
+    "tex": "black",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.17,
+     -0.74
+    ],
+    "size": [
+     0.6,
+     0.5,
+     0.08
+    ],
+    "tex": "door_red"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.3,
+     -0.41
+    ],
+    "size": [
+     0.5,
+     0.16,
+     0.06
+    ],
+    "tex": "metal",
+    "emissive": "#ff4b55"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     1.62,
+     0.05
+    ],
+    "r": 0.05,
+    "h": 0.6,
+    "tex": "metal_dark"
+   }
+  ],
+  "so_factory": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     2.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete_dark",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.3,
+     0.12,
+     0.1
+    ],
+    "size": [
+     2.2,
+     1.25,
+     1.6
+    ],
+    "tex": "black",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.3,
+     0.17,
+     -0.72
+    ],
+    "size": [
+     1.5,
+     0.95,
+     0.1
+    ],
+    "tex": "door_red"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.3,
+     1.14,
+     -0.73
+    ],
+    "size": [
+     1.62,
+     0.24,
+     0.1
+    ],
+    "tex": "hazard_red"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.3,
+     1.37,
+     0.1
+    ],
+    "size": [
+     1.4,
+     0.14,
+     1.0
+    ],
+    "tex": "vent",
+    "top": "vent"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     1.15,
+     0.12,
+     0.55
+    ],
+    "r": 0.17,
+    "h": 1.65,
+    "tex": "metal_dark",
+    "top": "black"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     1.15,
+     0.12,
+     0.0
+    ],
+    "r": 0.17,
+    "h": 1.45,
+    "tex": "metal_dark",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     1.15,
+     0.12,
+     -0.6
+    ],
+    "size": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "tex": "red_dark",
+    "top": "black"
+   },
+   {
+    "shape": "wedge",
+    "pos": [
+     -0.3,
+     0.02,
+     -1.08
+    ],
+    "size": [
+     1.6,
+     0.35,
+     0.55
+    ],
+    "tex": "hazard_red"
+   }
+  ],
+  "so_radar": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete_dark",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.12,
+     0.3
+    ],
+    "size": [
+     1.3,
+     0.6,
+     1.1
+    ],
+    "tex": "red_dark",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.72,
+     0.3
+    ],
+    "size": [
+     0.35,
+     0.85,
+     0.35
+    ],
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     1.62,
+     0.3
+    ],
+    "r": 0.5,
+    "h": 0.09,
+    "tex": "metal_dark",
+    "top": "black",
+    "rot": [
+     40,
+     0,
+     0
+    ]
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.17,
+     -0.35
+    ],
+    "size": [
+     0.45,
+     0.45,
+     0.08
+    ],
+    "tex": "door_red"
+   }
+  ],
+  "so_helipad": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.16,
+     1.9
+    ],
+    "tex": "concrete_dark",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.16,
+     0
+    ],
+    "size": [
+     1.1,
+     0.03,
+     1.1
+    ],
+    "tex": "grate",
+    "top": "grate"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.7,
+     0.16,
+     0.7
+    ],
+    "size": [
+     0.45,
+     0.5,
+     0.45
+    ],
+    "tex": "red_dark",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.8,
+     0.16,
+     -0.8
+    ],
+    "size": [
+     0.12,
+     0.12,
+     0.12
+    ],
+    "tex": "metal",
+    "emissive": "#ff4b55"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.8,
+     0.16,
+     -0.8
+    ],
+    "size": [
+     0.12,
+     0.12,
+     0.12
+    ],
+    "tex": "metal",
+    "emissive": "#ff4b55"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.8,
+     0.16,
+     0.8
+    ],
+    "size": [
+     0.12,
+     0.12,
+     0.12
+    ],
+    "tex": "metal",
+    "emissive": "#ff4b55"
+   }
+  ],
+  "so_tech_center": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete_dark",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.12,
+     0.05
+    ],
+    "size": [
+     1.55,
+     1.05,
+     1.4
+    ],
+    "tex": "black",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.7,
+     -0.66
+    ],
+    "size": [
+     1.3,
+     0.22,
+     0.06
+    ],
+    "tex": "metal",
+    "emissive": "#ff4b55"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.17,
+     0.05
+    ],
+    "size": [
+     1.0,
+     0.35,
+     0.9
+    ],
+    "tex": "red_dark",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     1.52,
+     0.05
+    ],
+    "r": 0.05,
+    "h": 0.85,
+    "tex": "metal_dark"
+   }
+  ],
+  "so_laser_turret": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     0.62,
+     0.25,
+     0.62
+    ],
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.25,
+     0
+    ],
+    "size": [
+     0.34,
+     0.65,
+     0.34
+    ],
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.9,
+     0
+    ],
+    "size": [
+     0.26,
+     0.45,
+     0.26
+    ],
+    "tex": "red_dark",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.35,
+     0
+    ],
+    "size": [
+     0.18,
+     0.3,
+     0.18
+    ],
+    "tex": "metal",
+    "emissive": "#ff4b55"
+   }
+  ],
+  "so_sam": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     0.88,
+     0.4,
+     0.88
+    ],
+    "tex": "black",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.4,
+     0.15
+    ],
+    "size": [
+     0.5,
+     0.25,
+     0.5
+    ],
+    "tex": "red_dark",
+    "top": "black"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     -0.12,
+     0.62,
+     0.0
+    ],
+    "r": 0.07,
+    "h": 0.6,
+    "tex": "metal_dark",
+    "rot": [
+     55,
+     0,
+     0
+    ]
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0.12,
+     0.62,
+     0.0
+    ],
+    "r": 0.07,
+    "h": 0.6,
+    "tex": "metal_dark",
+    "rot": [
+     55,
+     0,
+     0
+    ]
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.14,
+     -0.45
+    ],
+    "size": [
+     0.6,
+     0.2,
+     0.04
+    ],
+    "tex": "hazard_red"
+   }
+  ],
+  "so_obelisk": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     0.72,
+     0.3,
+     0.72
+    ],
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.3,
+     0.05
+    ],
+    "size": [
+     0.46,
+     0.9,
+     0.46
+    ],
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.2,
+     0.08
+    ],
+    "size": [
+     0.32,
+     0.7,
+     0.32
+    ],
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.9,
+     0.1
+    ],
+    "size": [
+     0.2,
+     0.45,
+     0.2
+    ],
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.65,
+     -0.13
+    ],
+    "size": [
+     0.11,
+     0.6,
+     0.11
+    ],
+    "tex": "metal",
+    "emissive": "#ff4b55"
+   }
+  ],
+  "so_stealth_generator": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.9,
+     0.12,
+     1.9
+    ],
+    "tex": "concrete_dark",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     0.12,
+     0
+    ],
+    "r": 0.55,
+    "h": 0.55,
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.7,
+     0.12,
+     -0.7
+    ],
+    "size": [
+     0.16,
+     1.15,
+     0.16
+    ],
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.7,
+     0.12,
+     -0.7
+    ],
+    "size": [
+     0.16,
+     1.15,
+     0.16
+    ],
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.7,
+     0.12,
+     0.7
+    ],
+    "size": [
+     0.16,
+     1.15,
+     0.16
+    ],
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.7,
+     0.12,
+     0.7
+    ],
+    "size": [
+     0.16,
+     1.15,
+     0.16
+    ],
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.7,
+     1.27,
+     -0.7
+    ],
+    "size": [
+     0.12,
+     0.12,
+     0.12
+    ],
+    "tex": "metal",
+    "emissive": "#41b9ff"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.7,
+     1.27,
+     -0.7
+    ],
+    "size": [
+     0.12,
+     0.12,
+     0.12
+    ],
+    "tex": "metal",
+    "emissive": "#41b9ff"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.7,
+     1.27,
+     0.7
+    ],
+    "size": [
+     0.12,
+     0.12,
+     0.12
+    ],
+    "tex": "metal",
+    "emissive": "#41b9ff"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.7,
+     1.27,
+     0.7
+    ],
+    "size": [
+     0.12,
+     0.12,
+     0.12
+    ],
+    "tex": "metal",
+    "emissive": "#41b9ff"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     0.67,
+     0
+    ],
+    "r": 0.3,
+    "h": 0.3,
+    "tex": "metal",
+    "emissive": "#41b9ff"
+   }
+  ],
+  "so_temple": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     2.9,
+     0.12,
+     2.9
+    ],
+    "tex": "concrete_dark",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.12,
+     0.1
+    ],
+    "size": [
+     2.6,
+     0.6,
+     2.4
+    ],
+    "tex": "red_dark",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.72,
+     0.1
+    ],
+    "size": [
+     2.0,
+     0.55,
+     1.85
+    ],
+    "tex": "red",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.27,
+     0.1
+    ],
+    "size": [
+     1.4,
+     0.5,
+     1.3
+    ],
+    "tex": "red_dark",
+    "top": "roof_dark"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     1.77,
+     0.1
+    ],
+    "r": 0.45,
+    "h": 0.35,
+    "tex": "black",
+    "top": "black"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.17,
+     -1.12
+    ],
+    "size": [
+     0.85,
+     0.5,
+     0.08
+    ],
+    "tex": "door_red"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     1.45,
+     -0.58
+    ],
+    "size": [
+     0.55,
+     0.14,
+     0.05
+    ],
+    "tex": "metal",
+    "emissive": "#ff4b55"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     -1.05,
+     0.72,
+     -0.85
+    ],
+    "r": 0.06,
+    "h": 0.95,
+    "tex": "black"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     1.05,
+     0.72,
+     -0.85
+    ],
+    "r": 0.06,
+    "h": 0.95,
+    "tex": "black"
+   }
+  ],
+  "so_missile_silo": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     1.85,
+     0.5,
+     1.85
+    ],
+    "tex": "concrete_dark",
+    "top": "concrete"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.45,
+     0.5,
+     0
+    ],
+    "size": [
+     0.8,
+     0.07,
+     1.45
+    ],
+    "tex": "hazard_red",
+    "top": "hazard_red"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.45,
+     0.5,
+     0
+    ],
+    "size": [
+     0.8,
+     0.07,
+     1.45
+    ],
+    "tex": "hazard_red",
+    "top": "hazard_red"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0.85,
+     0.5,
+     -0.85
+    ],
+    "size": [
+     0.14,
+     0.35,
+     0.14
+    ],
+    "tex": "metal",
+    "emissive": "#ff4b55"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     -0.85,
+     0.5,
+     -0.85
+    ],
+    "size": [
+     0.14,
+     0.35,
+     0.14
+    ],
+    "tex": "black",
+    "top": "black"
+   }
+  ],
+  "so_tick_deployed": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     0.9,
+     0.28,
+     0.9
+    ],
+    "tex": "rust",
+    "top": "concrete_dark"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.28,
+     0.05
+    ],
+    "size": [
+     0.55,
+     0.3,
+     0.6
+    ],
+    "tex": "red_dark",
+    "top": "black"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     0.47,
+     -0.35
+    ],
+    "r": 0.06,
+    "h": 0.5,
+    "tex": "metal_dark",
+    "rot": [
+     90,
+     0,
+     0
+    ]
+   }
+  ],
+  "so_artillery_deployed": [
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0,
+     0
+    ],
+    "size": [
+     0.9,
+     0.2,
+     0.9
+    ],
+    "tex": "metal_dark",
+    "top": "grate"
+   },
+   {
+    "shape": "box",
+    "pos": [
+     0,
+     0.2,
+     0.15
+    ],
+    "size": [
+     0.5,
+     0.35,
+     0.5
+    ],
+    "tex": "red_dark",
+    "top": "black"
+   },
+   {
+    "shape": "cyl",
+    "pos": [
+     0,
+     0.4,
+     -0.05
+    ],
+    "r": 0.08,
+    "h": 1.1,
+    "tex": "metal_dark",
+    "rot": [
+     55,
+     0,
+     0
+    ]
+   }
+  ]
+ }
+}

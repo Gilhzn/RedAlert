@@ -45,6 +45,15 @@ namespace TiberiumDusk.Client
             return material;
         }
 
+        /// <summary>Matte lit material sampling a texture (structure atlas).</summary>
+        public static Material Textured(Texture2D texture)
+        {
+            var material = Solid(Color.white);
+            if (material.HasProperty("_BaseMap")) material.SetTexture("_BaseMap", texture);
+            if (material.HasProperty("_MainTex")) material.SetTexture("_MainTex", texture);
+            return material;
+        }
+
         /// <summary>Flat unlit color (placement ghosts, UI-ish world markers).</summary>
         public static Material Unlit(Color color)
         {
