@@ -68,3 +68,26 @@
   או פתחו ב־Blender וייצאו כ־GLB יחיד (הכי נקי).
 - אם המודל נטען ורוד — חסרה חבילת glTFast: ב־Package Manager ודאו ש־
   `com.unity.cloud.gltfast` מותקנת (כבר הוספתי אותה ל־manifest).
+
+## מיפוי ההורדות שבחרת (Sketchfab battlefield + Free3D)
+
+**חשוב:** את הקבצים מורידים אצלך במחשב (האתרים חסומים לסביבת הפיתוח). בכל
+עמוד Free3D בדקו את שורת הרישיון: **Personal Use** מותר לפיתוח/בדיקות בלבד —
+לפני פרסום/מכירה מחליפים למודל CC0 או רוכשים רישיון.
+
+| מה הורדתם | שמרו בשם | איפה | תפקיד במשחק |
+|---|---|---|---|
+| Battlefield Pack (Sketchfab) | שמות חופשיים, קובץ לכל אביזר | `Assets/Resources/MapProps/` | פיזור אוטומטי על המפה — הריסות, שקי חול, מכשולים (ויזואלי בלבד) |
+| Mech Robot F-432 | `dm_mammoth.fbx` | `Assets/Resources/Models/` | ההולך הכבד — רמה 3 (קולוסוס מק-2) |
+| Leopard 2A5DK | `dm_mbt_walker.fbx` | `Assets/Resources/Models/` | הטנק המתקדם — רמה 2 (וורדן מק-1) |
+| Tiger I | `dm_wolverine.fbx` | `Assets/Resources/Models/` | הטנק הפשוט יותר — רמה 1 (לינקס) |
+| SdKfz 251 (חצי־זחל) | `dm_apc.fbx` | `Assets/Resources/Models/` | הנגמ"ש |
+| Jeep מלחמת העולם | `so_scout_buggy.fbx` | `Assets/Resources/Models/` | רכב הפשיטה של האויב (או בחרו id אחר) |
+
+- חבילת Sketchfab מגיעה כ־glTF: חלצו את כל ה־ZIP לתיקייה (השאירו טקסטורות ליד
+  ה־gltf), או פתחו בבלנדר וייצאו כל אביזר כ־GLB נפרד — נקי יותר.
+- מודל שנטען לבן/ורוד: הוסיפו לו ב־`ModelOverrides.json` שדה
+  `"texture": "Models/<שם קובץ הטקסטורה בלי סיומת>"` (העתיקו את ה־PNG לאותה
+  תיקייה), או ייצאו מבלנדר כ־GLB עם טקסטורות מוטמעות.
+- מודל הפוך/קבור/ענק: כוונון `rotY` / `y` / `scale` באותו קובץ — ואפשר פשוט
+  לכתוב לי מה נראה לא נכון ואתקן ערכים.

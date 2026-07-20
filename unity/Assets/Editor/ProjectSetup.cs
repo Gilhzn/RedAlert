@@ -45,6 +45,7 @@ namespace TiberiumDusk.Editor
             game.AddComponent<GameOverUI>();
             game.AddComponent<AudioManager>();
             game.AddComponent<MainMenuUI>();
+            game.AddComponent<PropScatter>();
 
             var cameraGo = new GameObject("Main Camera");
             cameraGo.tag = "MainCamera";
