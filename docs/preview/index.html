@@ -29,7 +29,7 @@
     background: repeating-linear-gradient(0deg, rgba(0,0,0,0.13) 0 1px, transparent 1px 3px);
   }
   #crt::after { content: ""; position: absolute; inset: 0;
-    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.5) 100%);
+    background: radial-gradient(ellipse at center, transparent 62%, rgba(0,0,0,0.28) 100%);
   }
 
   .hud { position: fixed; z-index: 20; }
@@ -432,6 +432,10 @@ function makeWorld() {
     if (!inMap(dx2, dy2) || blocked[idx(dx2, dy2)] || crystal[idx(dx2, dy2)]) continue;
     if ((dx2 < 14 && dy2 > MAP - 15) || (dx2 > MAP - 15 && dy2 < 14)) continue;  // keep bases clear
     decor.push({ x: dx2 + 0.5, y: dy2 + 0.5, v: (rnd() * 4) | 0 });
+  }
+  // opening reveal: the whole home region is visible from the start
+  for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
+    if (Math.hypot(x - 7, y - (MAP - 7)) < 14) explored[idx(x, y)] = 1;
   }
   camX = 7; camY = MAP - 8; zoom = 1;
   updatePower();
@@ -970,7 +974,7 @@ function tilePath(sx, sy) {
 
 function draw() {
   ctx.fillStyle = "#03050[4]".includes("[") ? "#030504" : "#030504";
-  ctx.fillStyle = "#0a0805";
+  ctx.fillStyle = "#171310";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const pad = 2;
@@ -983,16 +987,16 @@ function draw() {
     const t = terrain[i];
     tilePath(sx, sy);
     if (t === 3) {
-      ctx.fillStyle = "#123540";
+      ctx.fillStyle = "#1d5a72";
       ctx.fill();
       // animated shoreline shimmer
       if (((x * 3 + y * 5 + ((tSec * 2) | 0)) % 7) === 0) {
         tilePath(sx, sy);
-        ctx.fillStyle = "rgba(120,210,230,0.13)";
+        ctx.fillStyle = "rgba(150,225,240,0.22)";
         ctx.fill();
       }
     } else {
-      ctx.fillStyle = t === 1 ? "#2b241a" : t === 2 ? "#211b12" : "#292216";
+      ctx.fillStyle = t === 1 ? "#4a3d27" : t === 2 ? "#4e4129" : "#5a4c31";
       ctx.fill();
     }
 
@@ -1016,10 +1020,10 @@ function draw() {
       }
       ctx.restore();
     }
-    if (!visible[i]) { tilePath(sx, sy); ctx.fillStyle = "rgba(2,4,3,0.62)"; ctx.fill(); }
+    if (!visible[i]) { tilePath(sx, sy); ctx.fillStyle = "rgba(8,6,4,0.42)"; ctx.fill(); }
   }
   // unexplored cells drawn as solid void diamonds (over map edge continuity)
-  ctx.fillStyle = "#020403";
+  ctx.fillStyle = "#0d0a07";
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     if (explored[idx(x, y)]) continue;
     const [sx, sy] = toScreen(x + 0.5, y + 0.5);
@@ -1368,10 +1372,10 @@ function drawMinimap() {
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const i = idx(x, y);
     if (!explored[i]) continue;
-    mmctx.fillStyle = terrain[i] === 3 ? "#1c5568" : terrain[i] === 1 ? "#3a2f1e" : "#241d12";
+    mmctx.fillStyle = terrain[i] === 3 ? "#2f81a3" : terrain[i] === 1 ? "#6b5738" : "#57492c";
     if (crystal[i]) mmctx.fillStyle = crystal[i] === 9 ? "#2b7fb3" : "#2f9e52";
     mmctx.fillRect(x * s, y * s, s + 0.5, s + 0.5);
-    if (!visible[i]) { mmctx.fillStyle = "rgba(0,0,0,0.45)"; mmctx.fillRect(x * s, y * s, s + 0.5, s + 0.5); }
+    if (!visible[i]) { mmctx.fillStyle = "rgba(0,0,0,0.32)"; mmctx.fillRect(x * s, y * s, s + 0.5, s + 0.5); }
   }
   const radarOn = hasRadar();
   for (const e of ents) {
