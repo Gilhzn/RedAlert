@@ -49,6 +49,7 @@ namespace TiberiumDusk.Client
         }
 
         public int SelectedCount => _selected.Count;
+        public IEnumerable<int> SelectedIds => _selected;
 
         private void HandleSelection()
         {

@@ -35,10 +35,31 @@ namespace TiberiumDusk.Client
         private static readonly Color Phosphor = new Color(0.2f, 1f, 0.33f);
         private static readonly Color PanelDark = new Color(0.07f, 0.09f, 0.08f, 0.93f);
 
+        private SelectionController _selection;
+
         private void Start()
         {
             _runner = FindFirstObjectByType<GameRunner>();
+            _selection = FindFirstObjectByType<SelectionController>();
             _runner.WhenReady(InitAfterGame);
+        }
+
+        /// <summary>
+        /// The production building the sidebar is focused on: when the player
+        /// has selected exactly one of their own production structures, the
+        /// panel shows that building's queues only (deselect to get all tabs).
+        /// </summary>
+        private TiberiumDusk.Sim.Data.UnitSpec FocusedProducer()
+        {
+            if (_selection == null || _selection.SelectedCount != 1) return null;
+            foreach (var id in _selection.SelectedIds)
+            {
+                var entity = _runner.Game.World.GetEntity(id);
+                if (entity != null && entity.Alive && entity.Owner == GameRunner.LocalPlayerId
+                    && entity.Spec.ProductionQueues != null && entity.Spec.ProductionQueues.Length > 0)
+                    return entity.Spec;
+            }
+            return null;
         }
 
         private void InitAfterGame()
@@ -159,6 +180,26 @@ namespace TiberiumDusk.Client
             GUI.DrawTexture(new Rect(barRect.x, barRect.y, barRect.width * Mathf.Max(usage, 0.02f), barRect.height),
                 Texture2D.whiteTexture);
             y += 18;
+
+            // Focus mode: a single selected production building shows only
+            // its own queues, titled with the building's name.
+            var focus = FocusedProducer();
+            if (focus != null)
+            {
+                string title = Loc.Raw($"structure.{focus.Id}");
+                if (title.StartsWith("structure.")) title = focus.Id;
+                if (Loc.IsRtl) title = Loc.Bidi(title);
+                GUI.color = new Color(0.85f, 0.64f, 0.25f);
+                GUI.Label(new Rect(panel.x + 12, y, Width - 24, 22), $"▸ {title}");
+                y += 26;
+                GUI.color = Color.white;
+                foreach (var q in focus.ProductionQueues)
+                {
+                    DrawBuildList(panel, ref y, q);
+                    y += 8;
+                }
+                return;
+            }
 
             // Tabs.
             GUI.color = Color.white;
