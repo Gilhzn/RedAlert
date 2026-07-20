@@ -98,6 +98,9 @@
     padding: 4px 8px; }
   .sb-back { text-align: center; color: var(--phosphor); border-color: var(--phos-dim); }
   .sb-title { font-size: 13px; color: var(--gold); letter-spacing: 1px; }
+  .sb-sell { color: var(--crimson); border-color: rgba(216,64,74,0.55); text-align: center; }
+  .sb-sell:hover { color: #ff8d94; border-color: var(--crimson); }
+  #mutebtn { font-size: 14px; padding: 4px 8px; }
 
   /* Superweapon bar */
   #superbar { top: 48px; left: 10px; display: flex; gap: 6px; z-index: 22; }
@@ -152,7 +155,7 @@
   <div class="seg"><span id="t-power">חשמל</span> <div id="powerwrap"><div id="powerbar"></div></div> <span class="num" id="powernum"></span></div>
   <div class="spacer"></div>
   <div class="seg" style="border-inline-start:1px solid var(--phos-faint); border-inline-end:none;">
-    <button id="lang-he" class="on">עברית</button><button id="lang-en">English</button>
+    <button id="lang-he" class="on">עברית</button><button id="lang-en">English</button><button id="mutebtn" aria-label="sound on/off">🔊</button>
   </div>
 </div>
 
@@ -240,6 +243,7 @@ const L = {
     windesc: "בסיס מסדר הנחש הושמד. הדומיניון שולט באזור.",
     losedesc: "המתחם נפל. מסדר הנחש השתלט על שדות הוורידיום.",
     again: "קרב חוזר", start: "התחל קרב", nsel: n => n + " יחידות נבחרו",
+    sell: "מכור מבנה", sold: n => "המבנה נמכר — התקבלו $" + n + " ‏(85% מהעלות)",
   },
   en: {
     title: "TIBERIUM DUSK", preview: "PREVIEW", credits: "CREDITS", power: "POWER",
@@ -283,6 +287,7 @@ const L = {
     windesc: "The Serpent Order base is destroyed. The Dominion holds the region.",
     losedesc: "Your compound has fallen. The Serpent Order controls the veridium fields.",
     again: "PLAY AGAIN", start: "START BATTLE", nsel: n => n + " units selected",
+    sell: "SELL STRUCTURE", sold: n => "Structure sold — received $" + n + " (85% of cost)",
   }
 };
 let lang = "he";
@@ -545,6 +550,23 @@ function killEnt(e) {
         t: 0, life: 1.6 + rnd() * 1.2, c: rnd() < 0.6 ? "#3a3833" : "#6a6152", s: 3 + rnd() * 3 });
     updatePower();
   } else boom(e.x, e.y, UNITS[e.type].infantry ? 0.5 : 1, e.owner);
+}
+function sellStruct(e) {
+  if (e.dead || e.owner !== 0 || e.kind !== "struct") return;
+  e.dead = true; e.sel = false;
+  for (let y = e.gy; y < e.gy + e.fh; y++) for (let x = e.gx; x < e.gx + e.fw; x++)
+    if (inMap(x, y)) blocked[idx(x, y)] = 0;
+  updatePower();
+  // 15% loss on the sale: refund 85% of the build cost
+  const refund = Math.round(STRUCTS[e.type].cost * 0.85);
+  credits = Math.min(creditCap(), credits + refund);
+  for (let i = 0; i < 14; i++)     // green "cash-out" sparkle
+    particles.push({ x: e.x + (rnd() - 0.5) * e.fw, y: e.y + (rnd() - 0.5) * e.fh,
+      vx: (rnd() - 0.5) * 0.6, vy: (rnd() - 0.5) * 0.6, g: -0.8,
+      t: 0, life: 0.9 + rnd() * 0.5, c: "#49ff7a", s: 2.5 });
+  sbView = { mode: "general", id: 0 };
+  buildButtons(); updateSelInfo();
+  eva(L[lang].sold(refund)); sfx("done");
 }
 function updatePower() {
   powerOut = 0; powerUse = 0;
@@ -1073,8 +1095,10 @@ function spark(x, y) {
   }
 }
 let AC = null;
+let muted = false;
+try { muted = localStorage.getItem("td_muted") === "1"; } catch (e) {}
 function sfx(kind) {
-  if (!AC) return;
+  if (!AC || muted) return;
   const t = AC.currentTime, g = AC.createGain(); g.connect(AC.destination);
   const o = AC.createOscillator(); o.connect(g);
   if (kind === "click") { o.type = "square"; o.frequency.value = 880; g.gain.setValueAtTime(0.04, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05); o.start(t); o.stop(t + 0.05); }
@@ -1771,6 +1795,11 @@ function buildButtons() {
         note.textContent = T("noProduction");
         host.appendChild(note);
       }
+      const sellBtn = document.createElement("button");
+      sellBtn.className = "sb-sell";
+      sellBtn.textContent = T("sell") + " ▸ +$" + Math.round(STRUCTS[ent.type].cost * 0.85);
+      sellBtn.addEventListener("click", () => sellStruct(ent));
+      host.appendChild(sellBtn);
       refreshButtons();
       return;
     }
@@ -2143,6 +2172,17 @@ function applyLang() {
 }
 document.getElementById("lang-he").addEventListener("click", () => { lang = "he"; applyLang(); });
 document.getElementById("lang-en").addEventListener("click", () => { lang = "en"; applyLang(); });
+
+// ---- Sound on/off ----
+const mutebtn = document.getElementById("mutebtn");
+function applyMute() { mutebtn.textContent = muted ? "🔇" : "🔊"; mutebtn.classList.toggle("on", !muted); }
+mutebtn.addEventListener("click", () => {
+  muted = !muted;
+  try { localStorage.setItem("td_muted", muted ? "1" : "0"); } catch (e) {}
+  applyMute();
+  sfx("click");   // audible confirmation only when unmuting
+});
+applyMute();
 
 /* ============================== Game over ============================== */
 function endGame(win) {
