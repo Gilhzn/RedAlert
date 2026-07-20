@@ -401,6 +401,11 @@ function killEnt(e) {
     for (let y = e.gy; y < e.gy + e.fh; y++) for (let x = e.gx; x < e.gx + e.fw; x++)
       if (inMap(x, y)) blocked[idx(x, y)] = 0;
     boom(e.x, e.y, 1.6, e.owner);
+    corpses.push({ type: "ruin", x: e.x, y: e.y, fw: e.fw, fh: e.fh, t: 0, life: 30 });
+    for (let i = 0; i < 16; i++)
+      particles.push({ x: e.x + (rnd() - 0.5) * e.fw, y: e.y + (rnd() - 0.5) * e.fh,
+        vx: (rnd() - 0.5) * 0.4, vy: (rnd() - 0.5) * 0.4, g: -0.35,
+        t: 0, life: 1.6 + rnd() * 1.2, c: rnd() < 0.6 ? "#3a3833" : "#6a6152", s: 3 + rnd() * 3 });
     updatePower();
   } else boom(e.x, e.y, UNITS[e.type].infantry ? 0.5 : 1, e.owner);
 }
@@ -502,6 +507,7 @@ function step(dt) {
   for (const e of ents) {
     if (e.dead) continue;
     if (e.cd > 0) e.cd -= dt;
+    if (e.recoil > 0) e.recoil -= dt;
     if (e.kind === "struct") { structAI(e, dt); continue; }
     const b = UNITS[e.type];
     e.anim += dt * (b.speed || 1);
@@ -510,6 +516,14 @@ function step(dt) {
     else if (b.capture) engineerAI(e, dt);
     else if (b.heal) medicAI(e, b, dt);
     else combatAI(e, b, dt);
+
+    // track dust while armor is on the move
+    if ((TANKS[e.type] || b.harvester) && e.path && rnd() < 0.35) {
+      const bx = e.x - Math.cos(e.face) * 0.38, by = e.y - Math.sin(e.face) * 0.38;
+      particles.push({ x: bx + (rnd() - 0.5) * 0.2, y: by + (rnd() - 0.5) * 0.2,
+        vx: (rnd() - 0.5) * 0.25, vy: (rnd() - 0.5) * 0.25, g: -0.08,
+        t: 0, life: 0.7 + rnd() * 0.5, c: "#5f584a", s: 1.8 + rnd() * 2 });
+    }
 
     // follow path
     if (e.path && e.path.length) {
@@ -706,8 +720,11 @@ function structAI(e, dt) {
 }
 function fire(e, t, w, wid) {
   sfx(w.beam ? "laser" : "shot");
-  const ox = e.x + Math.cos(e.face || 0) * 0.3, oy = e.y + Math.sin(e.face || 0) * 0.3;
-  flashes.push({ x: ox, y: oy, face: e.face || 0, t: 0, big: wid.includes("cannon") });
+  const fa = Math.atan2(t.y - e.y, t.x - e.x);
+  const barrel = TANKS[e.type] ? 0.6 : 0.3;
+  const ox = e.x + Math.cos(fa) * barrel, oy = e.y + Math.sin(fa) * barrel;
+  flashes.push({ x: ox, y: oy, face: fa, t: 0, big: wid.includes("cannon") });
+  if (TANKS[e.type]) e.recoil = 0.14;
   if (wid.includes("cannon")) {
     for (let i = 0; i < 3; i++) {
       const a2 = (e.face || 0) + (rnd() - 0.5) * 0.7;
@@ -929,7 +946,20 @@ function draw() {
     const [sx, sy] = toScreen(c.x, c.y);
     const a = Math.min(1, (c.life - c.t) / 1.5);
     ctx.globalAlpha = a;
-    if (c.type === null) {
+    if (c.type === "ruin") {
+      // collapsed rubble mound across the old footprint
+      const spots = [[-0.3, -0.25, 0.5], [0.3, 0.15, 0.42], [-0.1, 0.3, 0.38], [0.15, -0.2, 0.3], [0, 0, 0.62]];
+      for (const [ox2, oy2, r2] of spots) {
+        const [px2, py2] = toScreen(c.x + ox2 * c.fw, c.y + oy2 * c.fh);
+        ctx.fillStyle = "#191a14";
+        ctx.beginPath(); ctx.ellipse(px2, py2, r2 * c.fw * 22 * zoom, r2 * c.fh * 11 * zoom, 0, 0, 6.29); ctx.fill();
+        ctx.fillStyle = "#22231c";
+        ctx.fillRect(px2 - 4 * zoom, py2 - 6 * zoom, 8 * zoom * r2 * c.fw, 4 * zoom);
+      }
+      if (c.t < 5 && Math.random() < 0.15)
+        particles.push({ x: c.x + (Math.random() - 0.5) * c.fw * 0.6, y: c.y + (Math.random() - 0.5) * c.fh * 0.6,
+          vx: 0, vy: 0, g: -0.3, t: 0, life: 1.4, c: "#3a3833", s: 2.5 });
+    } else if (c.type === null) {
       ctx.fillStyle = "#0c0d0b";
       ctx.beginPath(); ctx.ellipse(sx, sy, 14 * zoom, 7 * zoom, 0, 0, 6.29); ctx.fill();
     } else {
@@ -1042,9 +1072,17 @@ function drawUnitShape(e, b, sx, sy, z) {
       const tface = e.target && !e.target.dead
         ? Math.atan2(e.target.y - e.y, e.target.x - e.x) : (e.face || 0);
       const td = tk.tur[(((6 - Math.round(tface / (Math.PI / 4))) % 8) + 8) % 8];
-      if (td.img.complete && td.img.naturalWidth)
-        ctx.drawImage(td.img, sx - td.ax * z * td.s, sy - td.ay * z * td.s - tk.mount * 21 * z,
+      if (td.img.complete && td.img.naturalWidth) {
+        let rox = 0, roy = 0;
+        if (e.recoil > 0) {
+          const k = (e.recoil / 0.14) * 0.09;
+          const rxw = -Math.cos(tface) * k, ryw = -Math.sin(tface) * k;
+          rox = (rxw - ryw) * 26 * z; roy = (rxw + ryw) * 13 * z;
+        }
+        ctx.drawImage(td.img, sx - td.ax * z * td.s + rox,
+          sy - td.ay * z * td.s - tk.mount * 21 * z + roy,
           td.w * z * td.s, td.h * z * td.s);
+      }
       return;
     }
   }
