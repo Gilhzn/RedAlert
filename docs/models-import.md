@@ -59,6 +59,12 @@
 מבנים: אותה שיטה בדיוק (`dm_factory.glb` יחליף את מפעל הנשק וכו'), אבל
 המבנים הפרוצדורליים כבר טובים — התחילו מהרכבים.
 
+**עדכון:** ל־ids הבאים כבר יש מודלים מקוריים שמודלו ב־Blender ויושבים
+ב־`Models/` (אפשר עדיין להחליף בקובץ משלכם — הקובץ שלכם גובר):
+`dm_apc`, `dm_disruptor`, `dm_sensor`, `dm_jumptrooper`, `dm_railhero`,
+`dm_grenadier`, `dm_orca`, `dm_orca_bomber`, `so_harpy`, `dm_helipad`,
+`dm_aa_tower`, `dm_service_depot`, `nx_emp_cannon`, `dm_ion_uplink`.
+
 ## טיפים ל־Sketchfab
 
 - חפשו עם המילים `low poly` + סינון **Downloadable**; מודלים "בסגנון בלנדר"

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Pack cycles_out/ renders into the demo's JS sprite blobs and build a
 contact sheet for review. Everything is packed at full 3x supersample
-resolution (s=1/3 metadata) so the DPR-aware canvas can draw crisp FullHD
-sprites; payload is kept small via palette quantization + dithering."""
+resolution (s=1/3 metadata) with a tight alpha-threshold crop; payload is
+kept small via palette quantization + dithering."""
 import json, base64, io, os, sys
 from PIL import Image
 
@@ -18,11 +18,21 @@ def b64(img):
 
 def pack(meta, downscale=False):
     img = Image.open(f"{OUT}/{meta['file']}")
+    # tight crop with an alpha threshold: denoiser noise leaves near-zero
+    # alpha across the frame, which defeats a plain getbbox()
+    ax, ay = meta["ax"], meta["ay"]
+    bbox = img.getchannel("A").point(lambda v: 255 if v > 10 else 0).getbbox()
+    if bbox:
+        pad = 2
+        bbox = (max(0, bbox[0] - pad), max(0, bbox[1] - pad),
+                min(img.width, bbox[2] + pad), min(img.height, bbox[3] + pad))
+        img = img.crop(bbox)
+        ax -= bbox[0]; ay -= bbox[1]
     if downscale:
         img = img.resize((max(1, img.width // 3), max(1, img.height // 3)), Image.LANCZOS)
-        return {"src": b64(img), "ax": meta["ax"] / 3, "ay": meta["ay"] / 3,
+        return {"src": b64(img), "ax": ax / 3, "ay": ay / 3,
                 "w": img.width, "h": img.height}
-    d = {"src": b64(img), "ax": meta["ax"], "ay": meta["ay"],
+    d = {"src": b64(img), "ax": ax, "ay": ay,
          "w": img.width, "h": img.height, "s": 1/3}
     if "mount" in meta: d["mount"] = meta["mount"]
     return d
@@ -46,7 +56,7 @@ kk["harvester"] = reorder(truck, "truck")
 open(f"{SP}/kaykit_sprites.js", "w").write(sz("const KAYKIT_RAW = " + json.dumps(kk) + ";\n"))
 
 # soldiers
-S_IDS = ["dm_rifle","dm_rocket","dm_heavy","dm_engineer","dm_medic","so_rifle","so_rocket","dm_jumptrooper","dm_railhero"]
+S_IDS = ["dm_rifle","dm_rocket","dm_heavy","dm_engineer","dm_medic","so_rifle","so_rocket","dm_jumptrooper","dm_railhero","dm_grenadier"]
 sold, dead = {}, {}
 for uid in S_IDS:
     entry = {}
@@ -59,7 +69,8 @@ open(f"{SP}/dead_sprites.js", "w").write(sz("const DEAD_RAW = " + json.dumps(dea
 
 # vehicles
 V_IDS = ["dm_wolverine","dm_mbt_walker","dm_mammoth","so_tick_tank","so_scout_buggy",
-         "so_stealth_tank","dm_hover_mlrs","dm_apc","dm_disruptor","dm_sensor"]
+         "so_stealth_tank","dm_hover_mlrs","dm_apc","dm_disruptor","dm_sensor",
+         "dm_orca","dm_orca_bomber","so_harpy"]
 tanks = {}
 for uid in V_IDS:
     hull = reorder([pack(META["veh"][f"{uid}_hull_{k}"]) for k in range(8)], "veh")
