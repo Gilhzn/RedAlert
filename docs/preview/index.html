@@ -92,6 +92,8 @@
   .build-btn .prog { position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
     background: rgba(55,232,110,0.18); pointer-events: none; }
   .build-btn.q .nm { color: var(--amber); }
+  .build-btn.q::after { content: "✕"; position: absolute; top: 2px; inset-inline-end: 5px;
+    color: var(--crimson); font-size: 12px; }
   #buildpanel { display: flex; flex-direction: column; gap: 10px; }
   .sb-note { font-size: 10.5px; color: #7a6a45; border: 1px dashed rgba(255,201,77,0.35);
     padding: 4px 8px; }
@@ -207,6 +209,7 @@ const L = {
     needs_nx_refinery: "דרוש: בית זיקוק", needs_nx_conyard: "דרוש: מתחם בנייה",
     noProduction: "המבנה הזה לא מייצר יחידות",
     captured: "מבנה אויב נכבש — עכשיו הוא שלכם!",
+    cancelled: "הייצור בוטל — האשראי הוחזר",
     placement: "בחרו מיקום למבנה (קליק ימני לביטול)",
     badspot: "אי אפשר לבנות כאן — צריך שטח פנוי ליד הבסיס",
     lowfunds: "אין מספיק אשראי", building: "בבנייה...", ready: "המבנה מוכן",
@@ -238,6 +241,7 @@ const L = {
     needs_nx_refinery: "Requires: Refinery", needs_nx_conyard: "Requires: Construction Yard",
     noProduction: "This structure produces nothing",
     captured: "Enemy structure captured — it is yours now!",
+    cancelled: "Production cancelled — credits refunded",
     placement: "Choose a build location (right-click to cancel)",
     badspot: "Cannot build here — needs clear ground near your base",
     lowfunds: "Insufficient credits", building: "Building...", ready: "Structure ready",
@@ -1383,6 +1387,14 @@ function makeBuildButton(type, q) {
   btn.addEventListener("click", () => {
     if (!running || over) return;
     const job = queues[q];
+    if (job && job.type === type) {
+      // second click on the item being built (or already ready) cancels + refunds
+      credits += spec.cost;
+      queues[q] = null;
+      if (placing === type) placing = null;
+      eva(T("cancelled")); sfx("warn");
+      return;
+    }
     if (job && job.done && q === "structure") { placing = job.type; eva(T("placement")); return; }
     if (job) return;
     if (q !== "structure" && !hasProducer(q)) { sfx("warn"); return; }

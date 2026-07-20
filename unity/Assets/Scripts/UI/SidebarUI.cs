@@ -278,9 +278,25 @@ namespace TiberiumDusk.Client
 
         private void OnItemClicked(UnitSpec spec, ProductionSystem.QueueState queue)
         {
-            if (queue.ActiveSpecIndex == spec.Index && queue.ReadyForPlacement && spec.IsStructure)
+            bool isActive = queue.ActiveSpecIndex == spec.Index;
+            if (isActive && queue.ReadyForPlacement && spec.IsStructure)
             {
-                _placingSpecIndex = spec.Index;   // enter placement mode
+                if (_placingSpecIndex == spec.Index)
+                {
+                    // Second click while the ghost is armed: cancel outright.
+                    _runner.IssueBuildCancel(spec.Index);
+                    ExitPlacement();
+                }
+                else
+                {
+                    _placingSpecIndex = spec.Index;   // enter placement mode
+                }
+            }
+            else if (isActive)
+            {
+                // Clicking the item that is currently building cancels it
+                // (the sim refunds the progressive payments).
+                _runner.IssueBuildCancel(spec.Index);
             }
             else
             {
