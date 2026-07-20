@@ -86,7 +86,9 @@ src = src.replace("""    const pan = 12 * dt / Math.max(zoom, 0.7);
     if (keys["a"] || keys["arrowleft"]) { camX -= sy * pan; camY += cy * pan; }
     if (keys["d"] || keys["arrowright"]) { camX += sy * pan; camY -= cy * pan; }
     if (keys["q"]) camYaw += dt * 1.5;
-    if (keys["e"]) camYaw -= dt * 1.5;""")
+    if (keys["e"]) camYaw -= dt * 1.5;
+    if (keys["r"]) camPitch = Math.min(1.28, camPitch + dt * 0.9);
+    if (keys["f"]) camPitch = Math.max(0.52, camPitch - dt * 0.9);""")
 
 # 10) pickEntity: pick against 3D-projected positions
 src = src.replace("""      const [ex, ey] = toScreen(e.x, e.y);

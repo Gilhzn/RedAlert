@@ -10,12 +10,12 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x100d09);
-scene.fog = new THREE.Fog(0x100d09, 55, 130);
+scene.fog = new THREE.Fog(0x100d09, 60, 195);
 
 const camera = new THREE.PerspectiveCamera(38, 1, 0.5, 400);
 camera.up.set(0, 0, 1);
 let camYaw = Math.PI / 4;             // Q/E orbit
-const CAM_PITCH = 0.86;               // radians above horizon
+let camPitch = 0.86;                  // R/F tilt (radians above horizon)
 
 const hud = document.getElementById("hud");
 const hudctx = hud.getContext("2d");
@@ -31,7 +31,7 @@ const amb = new THREE.AmbientLight(0x4a4136, 0.42); scene.add(amb);
 
 function updateCamera() {
   const dist = 30 / zoom;
-  const cp = Math.cos(CAM_PITCH), sp = Math.sin(CAM_PITCH);
+  const cp = Math.cos(camPitch), sp = Math.sin(camPitch);
   const dx = Math.cos(camYaw) * cp, dy = Math.sin(camYaw) * cp;
   camera.position.set(camX + dx * dist, camY + dy * dist, sp * dist);
   camera.lookAt(camX, camY, 0);
@@ -39,7 +39,7 @@ function updateCamera() {
   // sun follows the camera target so the shadow frustum stays tight
   sun.position.set(camX - 18, camY - 26, 34);
   sun.target.position.set(camX, camY, 0);
-  const S = 34 / Math.max(zoom, 0.7);
+  const S = Math.min(58, 36 / Math.max(zoom, 0.62));
   sun.shadow.camera.left = -S; sun.shadow.camera.right = S;
   sun.shadow.camera.top = S; sun.shadow.camera.bottom = -S;
   sun.shadow.camera.updateProjectionMatrix();
@@ -62,6 +62,7 @@ function toWorld(sx, sy) {
 
 /* ---------- static world: terrain, water, rocks, props, crystals ---------- */
 let worldGroup = null, waterMat = null, crystalGroup = null, crystalTimer = 0;
+const cellObjs = [];                  // [object3d, cellIdx] — hidden while unexplored
 let builtWorldVersion = -1;
 const fogCanvas = document.createElement("canvas");
 fogCanvas.width = fogCanvas.height = MAP;
@@ -122,15 +123,18 @@ function buildWorld() {
     worldGroup.add(wm);
   }
 
-  // rock-ridge cells: mesa block + rock prop
+  // rock-ridge cells: mesa block + rock prop (fog hides them until explored)
+  cellObjs.length = 0;
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     if (terrain[idx(x, y)] !== 1) continue;
     const h = 0.22 + ((x * 7 + y * 13) % 5) * 0.05;
-    H.box(worldGroup, x + 0.5, y + 0.5, h / 2, 0.96, 0.96, h, 0x3d3322);
+    const mesa = H.box(worldGroup, x + 0.5, y + 0.5, h / 2, 0.96, 0.96, h, 0x3d3322);
+    cellObjs.push([mesa, idx(x, y)]);
     const pr = PROP_BUILDERS.rock(H, (x * 3 + y) % 8);
     H.fitTo(pr.root, pr.fit * (0.8 + ((x + y) % 3) * 0.15));
     pr.root.position.x += x + 0.5; pr.root.position.y += y + 0.5; pr.root.position.z += h;
     worldGroup.add(pr.root);
+    cellObjs.push([pr.root, idx(x, y)]);
   }
   // decor props (cacti / bushes / rocks from the map's decor list)
   for (const pr of decor) {
@@ -139,6 +143,7 @@ function buildWorld() {
     H.fitTo(b.root, b.fit);
     b.root.position.x += pr.x; b.root.position.y += pr.y;
     worldGroup.add(b.root);
+    cellObjs.push([b.root, idx(Math.min(MAP - 1, pr.x | 0), Math.min(MAP - 1, pr.y | 0))]);
   }
 
   // map rim: dark cliff skirt so the world doesn't float in space
@@ -167,7 +172,7 @@ function rebuildCrystals() {
   const g = [], b = [];
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const c = crystal[idx(x, y)];
-    if (!c) continue;
+    if (!c || !explored[idx(x, y)]) continue;   // hidden until scouted
     (c === 9 ? b : g).push([x, y, c === 9 ? 3 : Math.min(c, 4)]);
   }
   const mk = (list, color) => {
@@ -205,6 +210,7 @@ function updateFog() {
   }
   fctx.putImageData(img, 0, 0);
   fogTex.needsUpdate = true;
+  for (const [o, cell] of cellObjs) o.visible = !!explored[cell];
 }
 
 /* ---------- entity view objects ---------- */
