@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Pack cycles_out/ renders into the demo's JS sprite blobs and build a
-contact sheet for review. Buildings + truck are downscaled to SS=1 (matching
-the existing draw path); soldiers/tanks keep s=1/3 supersample metadata."""
+contact sheet for review. Everything is packed at full 3x supersample
+resolution (s=1/3 metadata) so the DPR-aware canvas can draw crisp FullHD
+sprites; payload is kept small via palette quantization + dithering."""
 import json, base64, io, os, sys
 from PIL import Image
 
@@ -11,7 +12,7 @@ META = json.load(open(f"{OUT}/meta.json"))
 REMAP = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}   # optional dir remaps
 
 def b64(img):
-    q = img.quantize(colors=80, method=Image.FASTOCTREE, dither=Image.NONE)
+    q = img.quantize(colors=144, method=Image.FASTOCTREE, dither=Image.FLOYDSTEINBERG)
     b = io.BytesIO(); q.save(b, "PNG", optimize=True)
     return "data:image/png;base64," + base64.b64encode(b.getvalue()).decode()
 
@@ -39,13 +40,13 @@ def sz(js):
 # KayKit buildings + truck
 kk = {"structures": {}, "harvester": []}
 for sid, m in META["kaykit"].items():
-    kk["structures"][sid] = pack(m, downscale=True)
-truck = [pack(META["truck"][str(k)], downscale=True) for k in range(8)]
+    kk["structures"][sid] = pack(m)
+truck = [pack(META["truck"][str(k)]) for k in range(8)]
 kk["harvester"] = reorder(truck, "truck")
 open(f"{SP}/kaykit_sprites.js", "w").write(sz("const KAYKIT_RAW = " + json.dumps(kk) + ";\n"))
 
 # soldiers
-S_IDS = ["dm_rifle","dm_rocket","dm_heavy","dm_engineer","dm_medic","so_rifle","so_rocket"]
+S_IDS = ["dm_rifle","dm_rocket","dm_heavy","dm_engineer","dm_medic","so_rifle","so_rocket","dm_jumptrooper","dm_railhero"]
 sold, dead = {}, {}
 for uid in S_IDS:
     entry = {}
@@ -58,12 +59,15 @@ open(f"{SP}/dead_sprites.js", "w").write(sz("const DEAD_RAW = " + json.dumps(dea
 
 # vehicles
 V_IDS = ["dm_wolverine","dm_mbt_walker","dm_mammoth","so_tick_tank","so_scout_buggy",
-         "so_stealth_tank","dm_hover_mlrs"]
+         "so_stealth_tank","dm_hover_mlrs","dm_apc","dm_disruptor","dm_sensor"]
 tanks = {}
 for uid in V_IDS:
     hull = reorder([pack(META["veh"][f"{uid}_hull_{k}"]) for k in range(8)], "veh")
-    tur = reorder([pack(META["veh"][f"{uid}_tur_{k}"]) for k in range(8)], "veh")
-    tanks[uid] = {"hull": hull, "tur": tur, "mount": META["veh"][f"{uid}_tur_0"]["mount"]}
+    if f"{uid}_tur_0" in META["veh"]:
+        tur = reorder([pack(META["veh"][f"{uid}_tur_{k}"]) for k in range(8)], "veh")
+        tanks[uid] = {"hull": hull, "tur": tur, "mount": META["veh"][f"{uid}_tur_0"]["mount"]}
+    else:
+        tanks[uid] = {"hull": hull, "tur": [], "mount": 0}
 open(f"{SP}/tank_sprites.js", "w").write(sz("const TANK_RAW = " + json.dumps(tanks) + ";\n"))
 
 print("packed; total KB ~", total * 3 // 4 // 1024)
