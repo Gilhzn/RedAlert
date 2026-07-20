@@ -87,6 +87,11 @@
   .build-btn .prog { position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
     background: rgba(55,232,110,0.18); pointer-events: none; }
   .build-btn.q .nm { color: var(--amber); }
+  #buildpanel { display: flex; flex-direction: column; gap: 10px; }
+  .sb-note { font-size: 10.5px; color: #7a6a45; border: 1px dashed rgba(255,201,77,0.35);
+    padding: 4px 8px; }
+  .sb-back { text-align: center; color: var(--phosphor); border-color: var(--phos-dim); }
+  .sb-title { font-size: 13px; color: var(--gold); letter-spacing: 1px; }
 
   /* Bottom log */
   #botbar { bottom: 0; left: 0; right: 0; height: 34px; display: flex; align-items: center;
@@ -138,10 +143,7 @@
 
 <div id="sidebar" class="hud" dir="rtl">
   <canvas id="minimap" width="194" height="194"></canvas>
-  <div class="sb-head" id="h-structures">מבנים</div>
-  <div class="build-grid" id="grid-structures"></div>
-  <div class="sb-head" id="h-units">יחידות</div>
-  <div class="build-grid" id="grid-units"></div>
+  <div id="buildpanel"></div>
 </div>
 
 <button id="sbtab" aria-label="toggle sidebar">▶</button>
@@ -161,7 +163,7 @@
       <li><b>קליק שמאלי / גרירה</b> — בחירת יחידות</li>
       <li><b>קליק ימני</b> — תנועה / תקיפה</li>
       <li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום</li>
-      <li><b>סרגל צד</b> — בנייה (מבנים ממוקמים בקליק על המפה); ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, גרירה: מצלמה, צביטה: זום</li>
+      <li><b>סרגל צד</b> — בנייה (מבנים ממוקמים בקליק על המפה); ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, לחיצה ארוכה+גרירה: בחירת קבוצה, גרירה: מצלמה, צביטה: זום</li>
     </ul>
     <button class="go" id="startbtn">התחל קרב</button>
   </div>
@@ -187,6 +189,14 @@ const L = {
     "so_tick_tank": "טנק מתחפר", "nx_conyard": "מתחם בנייה", "nx_refinery": "בית זיקוק",
     "dm_power_plant": "תחנת כוח", "dm_factory": "מפעל נשק", "dm_guard_tower": "מגדל שמירה",
     "so_laser_turret": "צריח לייזר", "so_factory": "מפעל נשק", "so_power_plant": "תחנת כוח",
+    "dm_rocket": "לוחם נ״ט", "dm_engineer": "מהנדס קרבי", "dm_heavy": "לוחם מחץ",
+    "dm_medic": "חובש קרבי", "dm_mammoth": "קולוסוס מק-2", "dm_barracks": "מגורי חיילים",
+    "so_rocket": "נושא רקטות",
+    infantry: "חי״ר", vehicles: "רכבים", back: "◀ חזרה למבט כללי",
+    needs_dm_barracks: "דרוש: מגורי חיילים", "needs_dm_factory": "דרוש: מפעל נשק",
+    needs_nx_refinery: "דרוש: בית זיקוק", needs_nx_conyard: "דרוש: מתחם בנייה",
+    noProduction: "המבנה הזה לא מייצר יחידות",
+    captured: "מבנה אויב נכבש — עכשיו הוא שלכם!",
     placement: "בחרו מיקום למבנה (קליק ימני לביטול)",
     badspot: "אי אפשר לבנות כאן — צריך שטח פנוי ליד הבסיס",
     lowfunds: "אין מספיק אשראי", building: "בבנייה...", ready: "המבנה מוכן",
@@ -205,6 +215,14 @@ const L = {
     "so_tick_tank": "Burrow Tank", "nx_conyard": "Construction Yard", "nx_refinery": "Refinery",
     "dm_power_plant": "Power Plant", "dm_factory": "War Factory", "dm_guard_tower": "Guard Tower",
     "so_laser_turret": "Laser Turret", "so_factory": "War Factory", "so_power_plant": "Power Plant",
+    "dm_rocket": "Rocket Trooper", "dm_engineer": "Combat Engineer", "dm_heavy": "Heavy Gunner",
+    "dm_medic": "Combat Medic", "dm_mammoth": "Colossus Mk.II", "dm_barracks": "Barracks",
+    "so_rocket": "Rocket Militant",
+    infantry: "INFANTRY", vehicles: "VEHICLES", back: "◀ BACK TO OVERVIEW",
+    needs_dm_barracks: "Requires: Barracks", "needs_dm_factory": "Requires: War Factory",
+    needs_nx_refinery: "Requires: Refinery", needs_nx_conyard: "Requires: Construction Yard",
+    noProduction: "This structure produces nothing",
+    captured: "Enemy structure captured — it is yours now!",
     placement: "Choose a build location (right-click to cancel)",
     badspot: "Cannot build here — needs clear ground near your base",
     lowfunds: "Insufficient credits", building: "Building...", ready: "Structure ready",
@@ -223,20 +241,29 @@ const T = k => L[lang][k] ?? k;
 // Stats copied from the repo's data/units.json, structures.json, weapons.json.
 // Times/ranges rescaled for a compact demo map; costs, HP, damage are the real values.
 const WEAPONS = {
-  assault_cannon: { dmg: 40, rof: 0.85, range: 4.2, tracer: "#ffd27a", instant: true },
-  cannon_120:    { dmg: 70, rof: 1.35, range: 5.6, tracer: "#ffe9b0", speed: 14 },
-  cannon_90:     { dmg: 36, rof: 0.85, range: 5.6, tracer: "#ff9d8a", speed: 14 },
-  raider_gun:    { dmg: 40, rof: 0.9,  range: 3.6, tracer: "#ff8d7a", instant: true },
-  rifle:         { dmg: 14, rof: 0.9,  range: 3.4, tracer: "#e8e8c8", instant: true },
-  vulcan_tower:  { dmg: 30, rof: 0.5,  range: 5.2, tracer: "#ffd27a", instant: true },
-  laser_bolt:    { dmg: 60, rof: 1.6,  range: 5.6, tracer: "#ff4b55", beam: true },
+  assault_cannon: { dmg: 40, rof: 0.85, range: 4.2, tracer: "#ffd27a", instant: true, vs: { inf: 1.2, veh: 0.7, str: 0.6 } },
+  cannon_120:    { dmg: 70, rof: 1.35, range: 5.6, tracer: "#ffe9b0", speed: 14, vs: { inf: 0.5, veh: 1.2, str: 1.1 } },
+  heavy_cannon:  { dmg: 90, rof: 1.8,  range: 6.0, tracer: "#ffe9b0", speed: 13, vs: { inf: 0.6, veh: 1.2, str: 1.2 } },
+  cannon_90:     { dmg: 36, rof: 0.85, range: 5.6, tracer: "#ff9d8a", speed: 14, vs: { inf: 0.5, veh: 1.1, str: 1.0 } },
+  raider_gun:    { dmg: 40, rof: 0.9,  range: 3.6, tracer: "#ff8d7a", instant: true, vs: { inf: 1.2, veh: 0.7, str: 0.6 } },
+  rifle:         { dmg: 14, rof: 0.9,  range: 3.4, tracer: "#e8e8c8", instant: true, vs: { inf: 1.0, veh: 0.35, str: 0.3 } },
+  rocket:        { dmg: 50, rof: 1.6,  range: 4.4, tracer: "#ffb36a", speed: 9, vs: { inf: 0.45, veh: 1.5, str: 1.3 } },
+  heavy_gun:     { dmg: 28, rof: 0.45, range: 3.8, tracer: "#ffd27a", instant: true, vs: { inf: 1.0, veh: 0.7, str: 0.6 } },
+  vulcan_tower:  { dmg: 30, rof: 0.5,  range: 5.2, tracer: "#ffd27a", instant: true, vs: { inf: 1.1, veh: 0.8, str: 0.6 } },
+  laser_bolt:    { dmg: 60, rof: 1.6,  range: 5.6, tracer: "#ff4b55", beam: true, vs: { inf: 1.0, veh: 1.0, str: 1.0 } },
 };
 const UNITS = {
-  nx_harvester:  { hp: 1000, cost: 1400, speed: 2.1, sight: 4, r: 0.42, harvester: true },
-  dm_wolverine:  { hp: 175,  cost: 500,  speed: 2.9, sight: 5, r: 0.3,  weapon: "assault_cannon", walker: true },
-  dm_mbt_walker: { hp: 400,  cost: 800,  speed: 1.8, sight: 6, r: 0.36, weapon: "cannon_120", walker: true },
-  dm_rifle:      { hp: 125,  cost: 120,  speed: 2.0, sight: 5, r: 0.17, weapon: "rifle", infantry: true },
+  nx_harvester:  { hp: 1000, cost: 1400, speed: 2.1, sight: 4, r: 0.42, harvester: true, queue: "vehicle" },
+  dm_wolverine:  { hp: 175,  cost: 500,  speed: 2.9, sight: 5, r: 0.3,  weapon: "assault_cannon", walker: true, queue: "vehicle" },
+  dm_mbt_walker: { hp: 400,  cost: 800,  speed: 1.8, sight: 6, r: 0.36, weapon: "cannon_120", walker: true, queue: "vehicle" },
+  dm_mammoth:    { hp: 800,  cost: 3000, speed: 1.2, sight: 6, r: 0.44, weapon: "heavy_cannon", walker: true, big: true, queue: "vehicle" },
+  dm_rifle:      { hp: 125,  cost: 120,  speed: 2.0, sight: 5, r: 0.17, weapon: "rifle", infantry: true, queue: "infantry" },
+  dm_rocket:     { hp: 100,  cost: 250,  speed: 1.9, sight: 5, r: 0.17, weapon: "rocket", infantry: true, queue: "infantry" },
+  dm_heavy:      { hp: 300,  cost: 650,  speed: 1.7, sight: 5, r: 0.2,  weapon: "heavy_gun", infantry: true, queue: "infantry" },
+  dm_engineer:   { hp: 100,  cost: 500,  speed: 2.0, sight: 4, r: 0.17, infantry: true, capture: true, queue: "infantry" },
+  dm_medic:      { hp: 125,  cost: 600,  speed: 2.1, sight: 4, r: 0.17, infantry: true, heal: true, queue: "infantry" },
   so_rifle:      { hp: 125,  cost: 120,  speed: 2.0, sight: 5, r: 0.17, weapon: "rifle", infantry: true },
+  so_rocket:     { hp: 100,  cost: 250,  speed: 1.9, sight: 5, r: 0.17, weapon: "rocket", infantry: true },
   so_scout_buggy:{ hp: 220,  cost: 500,  speed: 3.8, sight: 8, r: 0.32, weapon: "raider_gun" },
   so_tick_tank:  { hp: 350,  cost: 800,  speed: 2.4, sight: 6, r: 0.36, weapon: "cannon_90" },
 };
@@ -244,14 +271,27 @@ const STRUCTS = {
   nx_conyard:     { hp: 1000, cost: 2500, fw: 3, fh: 3, power: 0,   sight: 5 },
   nx_refinery:    { hp: 900,  cost: 2000, fw: 3, fh: 2, power: -30, sight: 4 },
   dm_power_plant: { hp: 750,  cost: 300,  fw: 2, fh: 2, power: 100, sight: 3 },
+  dm_barracks:    { hp: 800,  cost: 300,  fw: 2, fh: 2, power: -20, sight: 3 },
   dm_factory:     { hp: 1000, cost: 2000, fw: 3, fh: 2, power: -30, sight: 4 },
   dm_guard_tower: { hp: 500,  cost: 350,  fw: 1, fh: 1, power: -10, sight: 6, weapon: "vulcan_tower" },
   so_power_plant: { hp: 750,  cost: 300,  fw: 2, fh: 2, power: 100, sight: 3 },
   so_factory:     { hp: 1000, cost: 2000, fw: 3, fh: 2, power: -30, sight: 4 },
   so_laser_turret:{ hp: 500,  cost: 300,  fw: 1, fh: 1, power: -40, sight: 6, weapon: "laser_bolt" },
 };
-const BUILD_STRUCTS = ["dm_power_plant", "nx_refinery", "dm_factory", "dm_guard_tower"];
-const BUILD_UNITS   = ["nx_harvester", "dm_rifle", "dm_wolverine", "dm_mbt_walker"];
+const BUILD_STRUCTS = ["dm_power_plant", "dm_barracks", "nx_refinery", "dm_factory", "dm_guard_tower"];
+const INFANTRY_UNITS = ["dm_rifle", "dm_rocket", "dm_heavy", "dm_engineer", "dm_medic"];
+const VEHICLE_UNITS  = ["nx_harvester", "dm_wolverine", "dm_mbt_walker", "dm_mammoth"];
+// which player structure produces which queue (captured enemy factories count!)
+const PRODUCER_OF = { structure: ["nx_conyard"], infantry: ["dm_barracks"],
+                      vehicle: ["dm_factory", "so_factory"] };
+const BUILDING_QUEUE = { nx_conyard: "structure", dm_barracks: "infantry",
+                         dm_factory: "vehicle", so_factory: "vehicle", nx_refinery: "refinery" };
+function hasProducer(q) {
+  return ents.some(e => !e.dead && e.owner === 0 && e.kind === "struct" && PRODUCER_OF[q].includes(e.type));
+}
+function hasStruct(type) {
+  return ents.some(e => !e.dead && e.owner === 0 && e.kind === "struct" && e.type === type);
+}
 
 /* ============================== World ============================== */
 const MAP = 46;
@@ -282,7 +322,8 @@ function makeWorld() {
   explored = new Uint8Array(MAP * MAP);
   visible = new Uint8Array(MAP * MAP);
   ents = []; projectiles = []; particles = []; beams = [];
-  credits = 3000; queues = { structure: null, vehicle: null }; placing = null;
+  credits = 3000; queues = { structure: null, infantry: null, vehicle: null }; placing = null;
+  sbView = { mode: "general", id: 0 };
   waveTimer = 35; waveNum = 0; over = false; tSec = 0;
 
   for (let i = 0; i < MAP * MAP; i++) terrain[i] = rnd() < 0.22 ? 2 : 0;
@@ -422,26 +463,26 @@ function orderMove(e, x, y, target) {
 function step(dt) {
   tSec += dt;
   // production queues
-  for (const q of ["structure", "vehicle"]) {
+  for (const q of ["structure", "infantry", "vehicle"]) {
     const job = queues[q];
     if (!job) continue;
     const slow = powerUse > powerOut ? 0.45 : 1;
     job.t += dt * slow;
     if (job.t >= job.dur) {
-      if (q === "vehicle") {
-        const fac = ents.find(e => !e.dead && e.owner === 0 && e.kind === "struct" &&
-          (job.type === "nx_harvester" || job.type === "dm_rifle" ? true : e.type === "dm_factory"));
-        const src = ents.find(e => !e.dead && e.owner === 0 && e.type === "dm_factory") ||
-                    ents.find(e => !e.dead && e.owner === 0 && e.type === "nx_conyard");
+      if (q === "structure") {
+        job.done = true; // structure waits for placement
+        if (!placing) { placing = job.type; eva(T("placement")); sfx("done"); }
+      } else {
+        // spawn at the building that queued it, else any matching producer
+        let src = job.srcId ? ents.find(e => !e.dead && e.id === job.srcId) : null;
+        if (!src) src = ents.find(e => !e.dead && e.owner === 0 && e.kind === "struct" &&
+                                       PRODUCER_OF[q].includes(e.type));
         if (src) {
-          const u = spawnUnit(job.type, src.x + src.fw / 2 + 0.6, src.y + 1.2, 0);
-          orderMove(u, src.x + 2.5 + rnd() * 2, src.y + 2.5 + rnd() * 2);
+          const u = spawnUnit(job.type, src.x + (rnd() - 0.5) * 0.8, src.y + src.fh / 2 + 0.7, 0);
+          orderMove(u, src.x + (rnd() - 0.5) * 3, src.y + src.fh / 2 + 2 + rnd() * 1.5);
           eva(T("unitready")); sfx("done");
         }
         queues[q] = null;
-      } else {
-        job.done = true; // structure waits for placement
-        if (!placing) { placing = job.type; eva(T("placement")); sfx("done"); }
       }
     }
   }
@@ -457,6 +498,8 @@ function step(dt) {
     e.anim += dt * (b.speed || 1);
 
     if (b.harvester) harvesterAI(e, dt);
+    else if (b.capture) engineerAI(e, dt);
+    else if (b.heal) medicAI(e, b, dt);
     else combatAI(e, b, dt);
 
     // follow path
@@ -488,7 +531,7 @@ function step(dt) {
     if (!t || t.dead) { p.dead = true; continue; }
     const dx = t.x - p.x, dy = t.y - p.y, d = Math.hypot(dx, dy);
     const sp = p.speed * dt;
-    if (d <= sp) { p.dead = true; hit(t, p.dmg, p.owner); }
+    if (d <= sp) { p.dead = true; hit(t, p.dmg, p.owner, p.vs); }
     else { p.x += dx / d * sp; p.y += dy / d * sp; }
   }
   projectiles = projectiles.filter(p => !p.dead);
@@ -567,6 +610,36 @@ function nearestCrystal(x, y) {
   return best;
 }
 
+function engineerAI(e, dt) {
+  const t = e.captureTarget;
+  if (!t || t.dead || t.owner === 0) { e.captureTarget = null; return; }
+  if (Math.hypot(t.x - e.x, t.y - e.y) < Math.max(t.fw, t.fh) / 2 + 0.8) {
+    t.owner = 0; t.sel = false;
+    updatePower();
+    eva(T("captured")); sfx("done");
+    spark(t.x, t.y);
+    e.dead = true;   // the engineer is consumed by the capture
+    buildButtons();  // captured factories unlock production
+  } else if (!e.path) e.path = findPath(e.x, e.y, t.x, t.y);
+}
+function medicAI(e, b, dt) {
+  if (e.cd > 0) return;
+  let best = null, bd = 1e9;
+  for (const o of ents) {
+    if (o.dead || o.owner !== e.owner || o.kind !== "unit" || o === e) continue;
+    if (!UNITS[o.type].infantry || o.hp >= o.maxhp) continue;
+    const d = Math.hypot(o.x - e.x, o.y - e.y);
+    if (d < bd) { bd = d; best = o; }
+  }
+  if (!best) return;
+  if (bd <= 2.2) {
+    best.hp = Math.min(best.maxhp, best.hp + 6);
+    e.cd = 0.35;
+    beams.push({ x1: e.x, y1: e.y - 0.4, x2: best.x, y2: best.y - 0.3, t: 0, c: "#49ff7a" });
+  } else if (bd <= 8 && !e.path) {
+    e.path = findPath(e.x, e.y, best.x, best.y);
+  }
+}
 function combatAI(e, b, dt) {
   if (!b.weapon) return;
   const w = WEAPONS[b.weapon];
@@ -614,14 +687,19 @@ function structAI(e, dt) {
 function fire(e, t, w, wid) {
   sfx(w.beam ? "laser" : "shot");
   const ox = e.x + Math.cos(e.face || 0) * 0.3, oy = e.y + Math.sin(e.face || 0) * 0.3;
-  if (w.beam) { beams.push({ x1: e.x, y1: e.y - 0.5, x2: t.x, y2: t.y, t: 0, c: w.tracer }); hit(t, w.dmg, e.owner); }
+  if (w.beam) { beams.push({ x1: e.x, y1: e.y - 0.5, x2: t.x, y2: t.y, t: 0, c: w.tracer }); hit(t, w.dmg, e.owner, w.vs); }
   else if (w.instant) {
     beams.push({ x1: ox, y1: oy - 0.2, x2: t.x + (rnd() - 0.5) * 0.3, y2: t.y + (rnd() - 0.5) * 0.3, t: 0.06, c: w.tracer });
-    hit(t, w.dmg, e.owner);
-  } else projectiles.push({ x: ox, y: oy, target: t, dmg: w.dmg, speed: w.speed, owner: e.owner, c: w.tracer });
+    hit(t, w.dmg, e.owner, w.vs);
+  } else projectiles.push({ x: ox, y: oy, target: t, dmg: w.dmg, speed: w.speed, owner: e.owner, c: w.tracer, vs: w.vs });
 }
-function hit(t, dmg, byOwner) {
-  t.hp -= dmg;
+function versus(t, vs) {
+  if (!vs) return 1;
+  if (t.kind === "struct") return vs.str;
+  return UNITS[t.type].infantry ? vs.inf : vs.veh;
+}
+function hit(t, dmg, byOwner, vs) {
+  t.hp -= dmg * versus(t, vs);
   spark(t.x, t.y);
   if (t.owner === 0 && byOwner === 1 && atkWarnCd <= 0) { eva(T("underattack")); sfx("warn"); atkWarnCd = 12; }
   if (t.hp <= 0) killEnt(t);
@@ -636,7 +714,8 @@ function spawnWave() {
   const n = Math.min(2 + waveNum, 8);
   for (let i = 0; i < n; i++) {
     const roll = rnd();
-    comp.push(roll < 0.4 ? "so_rifle" : roll < 0.75 ? "so_scout_buggy" : "so_tick_tank");
+    if (waveNum >= 3 && roll < 0.22) comp.push("so_rocket");
+    else comp.push(roll < 0.4 ? "so_rifle" : roll < 0.75 ? "so_scout_buggy" : "so_tick_tank");
   }
   // pick a player target
   const targets = ents.filter(e => !e.dead && e.owner === 0 && e.kind === "struct");
@@ -682,7 +761,7 @@ function eva(msg) {
 }
 
 /* ============================== Rendering ============================== */
-const SPRITES_RAW = {"nx_conyard": {"src": "data:image/png;base64,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", "ax": 79, "ay": 62, "w": 158, "h": 103}, "nx_refinery": {"src": "data:image/png;base64,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", "ax": 79, "ay": 60, "w": 158, "h": 101}, "dm_power_plant": {"src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGoAAABOCAYAAADIHIO3AAAFeUlEQVR42u3c70/bRhwG8OfWiAAJoSBwwOkSyAqboCudqBBsE6PVplbaiyHxdn/bXu3F3qCxTUirOpUObQJVoipl64oGSUDEJBEKCzRj1TJlL1yHxIkd27Edn33fV8byj9gfne/uiQPAihUrVqxorfmFu+X5hbtlt14fcQMQAAwP8wCA42MBALD++BFhUA4EkpfbwIjbgNwKRtwK5DYw4nYgt4ARrwDRDka8BkQrGPEqEG1gxOtAtIARBkQHGGFAdIARBmQM7KPZuZpcsZ8bwg/ff0uohaIdCACOkvt164a4cM3fmVy2stzRHcTao4eECig3AclRmpWEZiYYYUDmASmB/bq5QRwD5QYgCUkv0FnuZwBAiPtEEaxVLB8DMl4SUITzI517rbidP9DT8rl8DKg1ILvK5zag0sWpeGFdfYb2/6f0ny4gqSUpPfZsh6IFaHQkCgBIpg4Ng6UEASM8rwlonL+KTGlK9XjBYNB6KNqApGoFLBTqRSaXRTdeKgItfvg2AOBF6lzxOP+St6xvUbQCycsoWEd3ECXcRiy40xBIcRjt76osx97cu4ODpDVQMzd6yrQDGQHLJ1fR7wNKuA2ej4g3WRAfXZ2cuM2Pe4Df33m50xWAXKk6T/wd8TyJfXv6qOTOd+KJ3/+CCqCNzWdNjzE3e6shWD65WvOIO3h1uQ/PR3B2VkA0NlJZl81kKiCV+5XYr1tnCxTX3+EIMK1AWiap1Zhzs7ewvflN4z6o23lPkoZQT347JzM3esrtBNPyiNvYfKYrRajeVkR7D2NcsqYPypfGEAIlUAAQGwwizgewtp21tYVp7YP0Iimh/ZkDuvGyMkj4at2Zk+ymw/M7U+IFWQ2mZ5DQKpIcLJMDgKKj0xDNE16rwPSO4p7u7Jt+E4a4MJa3/8bSVIZ+KLPBjA6zC4W/alIDr5ThUNYomFEgtYiHQZkIZgaQlWVGHudoKK1g859+adqHHhzkkH8ldv79wUBLxzIzj6MCqhnY+k9fmw7G8xEIQrqmNXSg+Y8O1fK43osj4OIIeBMhuRbKSjAxSRirw6qOeA4PUgBkeZyslPK45QcniPQFkD4tur9FWQFWHfXkBfVtJTAjeVykLwCnls+uExkBa5TFebV8dp9QC5hiWGpDpU+LKIcnTT/u0uLnZQBYXlklVEBpAZuIB+qA7Mji0qdFFLquWRLKStMSo2C+djdpOZgSkB21dG/A8lDWKFjboRqBpXOvbQVqR+kF8zntAmKDQSx8MOiZQYJWMJ9Sp4fCUySEIuJ8wDM3TXyjqNORYDVQszPT5cudxB0T2ysA4Amwruh94HDLES3s3mcL5QcPHxPFFpUWMkgLGUT4IYyORBGbWvQcWDtr5/c/tPVRYW6AgbUR6FpkGABwlD5Wh8rmThDmBhhYm4AaIdVBbT7ZItV9lRfB7nw8ja3nexCEdOUlTKMlJfLjo2FdQNV9k+rw3Otg0zevAwC2nu8B0P+lopTKmwGkaR7FwESw3USm8vVJ9Ruz1SjVyyORq6YB6Zrweh3s3fhQZXk3kYLf36mKYiaQoWSC9WG1aHYAtRQhMTD7gFqCYmD2AZkCZSfY5S/7Oj0FZCqUlWASUFf0vriizVmc3UCWQJkBpgjksRZkC1QrYAfbK3iROmdAdkIpgUloamBqEc/aL1sIhXo9AWQrlBxM3soagWnJ48wopTzOKUBtgWr2WNQDNn3zuuEsTi2PcxqQVI75B7dysGzuBAA0tbDdRP0P0NReaW4U/TgVyHFQZoDR3AdRB2UXGC1AjoeyCow2IGqgzAKjFYg6KKNgtANRC6UVzC1A1EM1A5ucGHcFkGugGoFlcyeYnBh3BZDroORgvb09rgBixYoVKw/X/y0+LwLD4uTHAAAAAElFTkSuQmCC", "ax": 53, "ay": 50, "w": 106, "h": 78}, "dm_factory": {"src": "data:image/png;base64,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", "ax": 66, "ay": 60, "w": 132, "h": 95}, "dm_guard_tower": {"src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAA5CAYAAAB0+HhyAAADhElEQVR42u3Zy08TURQH4N8l9RGISISCHaCtLJpaXGhCAmqCQHThogksTPwTcaEsuiRWY4JCgpEEWh7G0jbtFEoHWkotD2FclFunA7fzbkXnrPqYzp2vp+fMmSlghx1XM0bHJsTRsQnR6nWIlQAAcLk4AEAmwwMAPn0MkysBkQPkYRWINAqgFvR05LEIAHPzX0hDIVoBLNDpYRkAcLe7BwCwld2GFhBpFoAFcra317yuFkSaDVADiifjAICvS0vM43X8LQAa8i5Xyu+iq7MLOSFX93OOvwXABAEon54pbt9S781X466mIOQgl4vDyEDBWEZ6yCrOtlaxLd5vCqjraE7VdoqQAa6t8oBvLIgCAt5bAIBovGgM0miQHKA2HFoXsgqkF6AbYjbIKMAwxCjILIDimT0YnBJvHsz/OVCVEeNLAMAE6QVE40UkTx4iFJohqiDB4JQIAG6PF9nItGYIC2Q0A9F4EeAmkUxUxhU5qObJ+MQLEQACgQcAgGxkuvbnYwA09sipex/V1stN1owv796+Icwa4bheRKMrlW9v8HXlYAyABri2KsYsgPfeAOKbMeVi57jeyo5MBJkFUN21eD5dhchB+3s951ttWwKigPcr1ypfILkcIM8Gs2vRWqEQKfKyGlJCxfhS3RpRmwEKkNaGYvv1+3yiq8+DeiC1jYEF0QpI/FhnXlzVPSGWi4XzA6+tHSlMTx1pBZTygjln9kwqAU+/u5oJKURLY9AK4JObyBfy8PS7zR1RrhPxwiUnqzHIQfSEpgYQXf6Gjtsd1s9aH8KzhE4B8izJQcdlLwBgOS0odqGT42OEQjPE7/NpvsWqCyIdY+S1QiGZVAKddzqr96losT57/vICQDqTBYNT4vf1iPXTL3HcQCbDY3jkSc3rtHtREAAIuwKEXQGD/gAOz2/AsQA03B4vSqUDAMDPYsHajDid3ViY/wwATFAmlaj+ziNrUXj63cgJOcQ3Y8wxf5VmtbcPfDplbUbEX0fY2ckqgpRu89QD8OmUpmzozsji4gIBgKGhYVEviAUIh2eJ3+cTG9K11ID0AJp6qcsCHezvMRFmAkyFsECsMBNgCUQKYp3UzAbQaME/EjbEhjQDki/ka54r/WtkZmhdm9m11jY2CL3kpTuq9x+emaFnbYfanTYjtKxtF7sNsSH/CcTSjiQdHNtaWxvWvhsCssOOKxa/AfagQYpWF3RiAAAAAElFTkSuQmCC", "ax": 25, "ay": 44, "w": 50, "h": 57}, "so_power_plant": {"src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGoAAABOCAYAAADIHIO3AAAFNklEQVR42u3cXW/aVhwG8MeJjU0SXhOC1LRpomhZpE1tNk3ZovVyH2F3+wT7TrvdXT9Gp2p9E0lWiYCyMKZE6goEQxNIgLILsAMGg7GPjc/xea4QWLaOfzpvfzsBeHh4eHhoze72Tnd3e6fLavsEFoAAIBaJAgDUeg0AkDs/EziUD4GMYQ1MYA2IVTCBVSDWwATWgVgBE4ICRDuYEDQgWsGEoALRBiYEHYgWMIED0QEmcCA6wAQOZA9s6/H2UF0xHo0gc3IsUAtFOxAAfFSrI99FDO2p9yEBQJElZHM5gQooloAiM7ZBQyMJJnAgckBmYIV/zgXfQLEApCHNClSplAEAyeSqKZhTLJED2Y8GtLy8guvrT6bHheWQ42uJHMgZkFcRWQMSw4sAgHajY+8E3c5MQFpPMhv2PIeiBSi9ngIAfPjvo22weu0KkWjCEtBPrTbepdMTzycrsvtQtAFpcQKmKArq9RparZYp0K9ib97Jt9qm51lc6Lrfo2gFMsYumCJLUGQJn7sLY4FMe4+0qH+OxWIAgHK/RxKHSq2lu7QD2QG7LPV+UwDEY3EAQFWtQpEVLClJAMBzAKI4eNvikIfu3VpvmV8qeTNHFS4vAQBbDx5QAZQ5zk49x/6TvbFgGtD9EPf5niEWR7PZxGoyqX+n1mo6iL7/KpVGvvMEKhwO+wLMKpCVTeog5v6TPbx+ezJ2DoqsLPlvJBm7Oy99EFJr6e48wawMcZnj7ExVhMFjM8dZSJKEUEgemoMkccGfQ77ZDwedNjZlBc8bDU97mNU5aFYkMzRtdactEn5Dmy4oLT/3J063wWZZJDhFMoLV6zXA52+tW97wugU26yru9PRv4jchEoni97smfmm26IciDWZ3md1oNoaqBkGJ7aKsXTC7QJNKPByKIBgJIDcjKzLA0tBnF+zHw2/JzSkrEbTueteRQmFH5yJZj6MCahrYHy/fEQeLx+J6iUdLpzv9Qapb9TiqoNwEe/32ZGRDaizxlCuVXsNE86a5VY+jEook2GCp5+72ZuKxGtg86nFUQzkBG1eLC2pEry9oBcysWAr4txY3LYfff9cFgJd/vhGogLIClkgkRoD8XoubFm1bYhdMnHcDjGBmQKzELpjolwboYO02rq8/MQfkFEz0WwMOOm0cisuBWSRYBRPNJj3kzlG8bWJzYDPJevKNGyAc8iXY0BJq94vem0fp9RSkZweQnh2geNtE8bYZCCj1h2980cPS6ynsP/26O7FHlStXKFeusJpM6GAAUHzxCgAC1cPmkULxX2tzVDwW5WBzBFpb7VVWSuXKZKiqWkM8FuVgcwIahzQClcv3/j5Vm6uCCLb/9CtkT89QVav6S5h2o1Xktx5vzASUOfpLsLQ8DzrY3pc7AIDs6RkADD1GsRKtKk8CyNI+ioP1wAqFC/3xyeAbs4Mog58fPkwTA5ppwxt0sK2t+55RKFxAFMWJKCSBbFUm+Bw2jOYFkKMSEgfzDsgRFAfzDogIlJdg+Ub/EXw4FCggolBugmlAeh3u6H2ggFyBIgFmChSwHuQJlBOw1otXyDduOJCXUGZgGpoZmDqlxJM5eg9FUQIB5CmUEczYy8aBWanHkYhZPc4vQFrm/z9lDWBVtdYv1UwHG6zFGUs7017ANKss+A3IN1AkwAqFi9GhQpw8WNAC5DsoEmA0z0HUQXkFRguQ76HcAqMNiBooUmC0AlEHZReMdiBqoayCsQJEPdQ0sM1HG0wAMQM1Dqyq1rD5aIMJIOagjGBLS2EmgHh4eHgCnP8BvnoN5fIBC10AAAAASUVORK5CYII=", "ax": 53, "ay": 50, "w": 106, "h": 78}, "so_factory": {"src": "data:image/png;base64,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", "ax": 66, "ay": 60, "w": 132, "h": 95}, "so_laser_turret": {"src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAA0CAYAAAD46nqNAAACRklEQVR42u3YPU/bQBgH8L+Rk3K+YCkpJu6L1IKYM1ZiYKdfCHZGvhDsDEh06tKpKqjqS4LbDFGck3Cl6xCeCDux43uJGxU/ky0n1k+Pff87H1DXf16OzZudvzuUdPz++tJZGyDBjoIQAHAR9WEL6tiEZYugJsgN0+4dBSEuon6qa3SeB1cp18Yjzj5aGzBrHVwEtVkb6x4zlQB7HpeVAnsel2/f7MpspOTVKNjBQcuXlQ4SP7rDSXQHubcPRPPvIMFPP33Ei6pzsOdx2XEbAIDhnwQAIPf2ceb5s98cT0Zo3d6g22gCAAbJPa7GI6dyINVjaOv2BgBmOBOga2sgzDr65TO6z1gdMzXw6QIpoHVK579KwGC7K+N4kooVlUqSBK9evlZCKscMYww/6WQyTkXMohok9/jq+wDbBOctxPF49TnI2DTniqBZ2D9ZsOZBP7BNY5jVmSQLbVuArSRmCFrnYA1cd2Cw3ZVWRzFNUTSLmBbnHjjflXE8QfRr4GgDCba1NV3K2wLS/abYYqhbBraqKgN1F70bq4blQWkx8f3HNye3g4wx9PvTT8YwTG9lhGE4u6YayrRI6HSez10bDn8/dHF+MeEWzQiLoHSsAo3j8VKY1iAxheZ1rQxMKWZUoLZgWquZslAbsFygEGLpe1UGagor3PqguCk7UoUQKZwOjF6LxxGzdG9GF9put41hSptHKlAhRCngMpjSIKHpR7WjJjCtUWwCVYUZfTSpQHVhVr7qiqCmMKVBorpSbjYbxrC6nkz9BTOYNO0C4fhZAAAAAElFTkSuQmCC", "ax": 20, "ay": 40, "w": 40, "h": 52}};
+const SPRITES_RAW = {"nx_conyard": {"src": "data:image/png;base64,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", "ax": 79, "ay": 62, "w": 158, "h": 103}, "nx_refinery": {"src": "data:image/png;base64,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", "ax": 79, "ay": 60, "w": 158, "h": 101}, "dm_power_plant": {"src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGoAAABOCAYAAADIHIO3AAAFeUlEQVR42u3c70/bRhwG8OfWiAAJoSBwwOkSyAqboCudqBBsE6PVplbaiyHxdn/bXu3F3qCxTUirOpUObQJVoipl64oGSUDEJBEKCzRj1TJlL1yHxIkd27Edn33fV8byj9gfne/uiQPAihUrVqxorfmFu+X5hbtlt14fcQMQAAwP8wCA42MBALD++BFhUA4EkpfbwIjbgNwKRtwK5DYw4nYgt4ARrwDRDka8BkQrGPEqEG1gxOtAtIARBkQHGGFAdIARBmQM7KPZuZpcsZ8bwg/ff0uohaIdCACOkvt164a4cM3fmVy2stzRHcTao4eECig3AclRmpWEZiYYYUDmASmB/bq5QRwD5QYgCUkv0FnuZwBAiPtEEaxVLB8DMl4SUITzI517rbidP9DT8rl8DKg1ILvK5zag0sWpeGFdfYb2/6f0ny4gqSUpPfZsh6IFaHQkCgBIpg4Ng6UEASM8rwlonL+KTGlK9XjBYNB6KNqApGoFLBTqRSaXRTdeKgItfvg2AOBF6lzxOP+St6xvUbQCycsoWEd3ECXcRiy40xBIcRjt76osx97cu4ODpDVQMzd6yrQDGQHLJ1fR7wNKuA2ej4g3WRAfXZ2cuM2Pe4Df33m50xWAXKk6T/wd8TyJfXv6qOTOd+KJ3/+CCqCNzWdNjzE3e6shWD65WvOIO3h1uQ/PR3B2VkA0NlJZl81kKiCV+5XYr1tnCxTX3+EIMK1AWiap1Zhzs7ewvflN4z6o23lPkoZQT347JzM3esrtBNPyiNvYfKYrRajeVkR7D2NcsqYPypfGEAIlUAAQGwwizgewtp21tYVp7YP0Iimh/ZkDuvGyMkj4at2Zk+ymw/M7U+IFWQ2mZ5DQKpIcLJMDgKKj0xDNE16rwPSO4p7u7Jt+E4a4MJa3/8bSVIZ+KLPBjA6zC4W/alIDr5ThUNYomFEgtYiHQZkIZgaQlWVGHudoKK1g859+adqHHhzkkH8ldv79wUBLxzIzj6MCqhnY+k9fmw7G8xEIQrqmNXSg+Y8O1fK43osj4OIIeBMhuRbKSjAxSRirw6qOeA4PUgBkeZyslPK45QcniPQFkD4tur9FWQFWHfXkBfVtJTAjeVykLwCnls+uExkBa5TFebV8dp9QC5hiWGpDpU+LKIcnTT/u0uLnZQBYXlklVEBpAZuIB+qA7Mji0qdFFLquWRLKStMSo2C+djdpOZgSkB21dG/A8lDWKFjboRqBpXOvbQVqR+kF8zntAmKDQSx8MOiZQYJWMJ9Sp4fCUySEIuJ8wDM3TXyjqNORYDVQszPT5cudxB0T2ysA4Amwruh94HDLES3s3mcL5QcPHxPFFpUWMkgLGUT4IYyORBGbWvQcWDtr5/c/tPVRYW6AgbUR6FpkGABwlD5Wh8rmThDmBhhYm4AaIdVBbT7ZItV9lRfB7nw8ja3nexCEdOUlTKMlJfLjo2FdQNV9k+rw3Otg0zevAwC2nu8B0P+lopTKmwGkaR7FwESw3USm8vVJ9Ruz1SjVyyORq6YB6Zrweh3s3fhQZXk3kYLf36mKYiaQoWSC9WG1aHYAtRQhMTD7gFqCYmD2AZkCZSfY5S/7Oj0FZCqUlWASUFf0vriizVmc3UCWQJkBpgjksRZkC1QrYAfbK3iROmdAdkIpgUloamBqEc/aL1sIhXo9AWQrlBxM3soagWnJ48wopTzOKUBtgWr2WNQDNn3zuuEsTi2PcxqQVI75B7dysGzuBAA0tbDdRP0P0NReaW4U/TgVyHFQZoDR3AdRB2UXGC1AjoeyCow2IGqgzAKjFYg6KKNgtANRC6UVzC1A1EM1A5ucGHcFkGugGoFlcyeYnBh3BZDroORgvb09rgBixYoVKw/X/y0+LwLD4uTHAAAAAElFTkSuQmCC", "ax": 53, "ay": 50, "w": 106, "h": 78}, "dm_barracks": {"src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGoAAABECAYAAABph6DRAAAEpklEQVR42u3Z309TZxgH8O9ZOjNmC7RbwLYKCAYcBrPEBVgWTJZdeKFbthivvPVf8s7/wPgjohfGmC0mi8yExICEsCgtxLa0VELstmZAc7zAt7anLec957y/e7430NIfp/n0ed7nfQHChAkTputi6XKhN34essnvt+Y3rRBKUaCJoVj9vrXNSteBWToBOdNNYJaOQN0I5uuD/TD7vQ0Afy48t2QCdROY5w90dnzcnkpX8M1wDKsbFdz+vWDJBuoGMN9QJH7BeACZDOYbajR1HACwnv/XE5gIIBPBAkORELCB+Be4eTdjqQBkEljEz5Myu0kABQCog5Gf/1RrUoEWciMAgNl0tuVv5BrINekEFvH7xMxuEge1AwDbTVCygU6PDB3e/uhkCpiv1hc9HgUAHNQO8HJpyQKAaz8mbdL6/t+vSQNq+UJlNzuC6dQSI6xeqC/6ecs3ViYQiSkVFriivhveFYbjBahjy9a0wgJDXZ+raQGkO1gEioc1kK4tkfqN586csAFg+7NeiKgoXkC6VpgnqGTvlyi8/w8AUI2luECJBtIFzDMUCQH75dJXRgCpDuYbihWYakB+wJ49OwSbX+YHFniYIHgPHr/zBKY6EM3QQYCGEzFs7FT0mPpowXQBOgps781yHUjb8bwTmK5ATWvS00fCgbjvo5xgM1cuhkAyhwnakKFj5spvRgJt7FRwbGwKd+4/srSG0gnMTwVt7FQw8dPl+pTIGkw4lMpgQVocgXKO9azApEGpBMZiDXJCsQaTDiUTjOWQ0AmKFZgyUCLBeExxblBBwZSD4gnGc8ymhfIL5vqgq79etgGg9GoRIqEawayTkwCA6W8nlN0HeYXyCma5AZGThL8e3mvayIrIVu/haUYymTpEK+Q9gYncqPqFogWz3ICcEQHmBGqpMhcwGScJQaHcwJpuzE5fsNOpE1TncTzA3IDcwGQe9bCCIlleWcXjJ3/UfVrO+nL5LeTyW3ADI4s8CzCvQCTk8S9ergEAzks6i2P5L47llVX3NWp2+oI9OPA1AKBYKgMAeFaYXyC3CjtvF4UCsagkAnQynQQAvM0VmiqqBQoACBZPsO3+MQDAwOAg+0mRMxhPIIIEoDOUSLDt/jGkUmnk8zltwGQAUe2jeIIRKBKVwWQCeTqZ4AHmhFIRTAUgz0dIrMEiQ1NtoXiD7e/tAwBS5VdaAPmCYgm2uPT6SCjWYARo5PQospn1tlAqAnXcR9Fk4cWi5QQjaLT7MNoQTD9gBIcA6VRBTKBUB2usHl3WIC6tj0VLpG19XloiLVA2s479v59rAcQFygtYUKhGsHg8QQXUCDV6KqEFEFcoGrCeaIIJFABUq1VqpKBQooGYrFFB1rBiqYx8vnn9UTmygIRAdQJrrDLVwWQDCYVygrVri6qBqQIkBcqtLaoAphqQkGEiyOBRLJXRE01QgdEOE9nMOgC0HSRUBVIOKgiYG5TOQMpC+QHrBGUCkPJQXsCcUCYBaQNFAxaPJ+qn4qYBaQd1FFjq1BljgbSFOgoM+HSWaAqQ9lBuYOcmx40AMgaqHVixVMa5yXEjgIyDcoL19cWMAAoTJkyYLs4H7GUb9++eoeAAAAAASUVORK5CYII=", "ax": 53, "ay": 40, "w": 106, "h": 68}, "dm_factory": {"src": "data:image/png;base64,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", "ax": 66, "ay": 60, "w": 132, "h": 95}, "dm_guard_tower": {"src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAA5CAYAAAB0+HhyAAADhElEQVR42u3Zy08TURQH4N8l9RGISISCHaCtLJpaXGhCAmqCQHThogksTPwTcaEsuiRWY4JCgpEEWh7G0jbtFEoHWkotD2FclFunA7fzbkXnrPqYzp2vp+fMmSlghx1XM0bHJsTRsQnR6nWIlQAAcLk4AEAmwwMAPn0MkysBkQPkYRWINAqgFvR05LEIAHPzX0hDIVoBLNDpYRkAcLe7BwCwld2GFhBpFoAFcra317yuFkSaDVADiifjAICvS0vM43X8LQAa8i5Xyu+iq7MLOSFX93OOvwXABAEon54pbt9S781X466mIOQgl4vDyEDBWEZ6yCrOtlaxLd5vCqjraE7VdoqQAa6t8oBvLIgCAt5bAIBovGgM0miQHKA2HFoXsgqkF6AbYjbIKMAwxCjILIDimT0YnBJvHsz/OVCVEeNLAMAE6QVE40UkTx4iFJohqiDB4JQIAG6PF9nItGYIC2Q0A9F4EeAmkUxUxhU5qObJ+MQLEQACgQcAgGxkuvbnYwA09sipex/V1stN1owv796+Icwa4bheRKMrlW9v8HXlYAyABri2KsYsgPfeAOKbMeVi57jeyo5MBJkFUN21eD5dhchB+3s951ttWwKigPcr1ypfILkcIM8Gs2vRWqEQKfKyGlJCxfhS3RpRmwEKkNaGYvv1+3yiq8+DeiC1jYEF0QpI/FhnXlzVPSGWi4XzA6+tHSlMTx1pBZTygjln9kwqAU+/u5oJKURLY9AK4JObyBfy8PS7zR1RrhPxwiUnqzHIQfSEpgYQXf6Gjtsd1s9aH8KzhE4B8izJQcdlLwBgOS0odqGT42OEQjPE7/NpvsWqCyIdY+S1QiGZVAKddzqr96losT57/vICQDqTBYNT4vf1iPXTL3HcQCbDY3jkSc3rtHtREAAIuwKEXQGD/gAOz2/AsQA03B4vSqUDAMDPYsHajDid3ViY/wwATFAmlaj+ziNrUXj63cgJOcQ3Y8wxf5VmtbcPfDplbUbEX0fY2ckqgpRu89QD8OmUpmzozsji4gIBgKGhYVEviAUIh2eJ3+cTG9K11ID0AJp6qcsCHezvMRFmAkyFsECsMBNgCUQKYp3UzAbQaME/EjbEhjQDki/ka54r/WtkZmhdm9m11jY2CL3kpTuq9x+emaFnbYfanTYjtKxtF7sNsSH/CcTSjiQdHNtaWxvWvhsCssOOKxa/AfagQYpWF3RiAAAAAElFTkSuQmCC", "ax": 25, "ay": 44, "w": 50, "h": 57}, "so_power_plant": {"src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGoAAABOCAYAAADIHIO3AAAFNklEQVR42u3cXW/aVhwG8MeJjU0SXhOC1LRpomhZpE1tNk3ZovVyH2F3+wT7TrvdXT9Gp2p9E0lWiYCyMKZE6goEQxNIgLILsAMGg7GPjc/xea4QWLaOfzpvfzsBeHh4eHhoze72Tnd3e6fLavsEFoAAIBaJAgDUeg0AkDs/EziUD4GMYQ1MYA2IVTCBVSDWwATWgVgBE4ICRDuYEDQgWsGEoALRBiYEHYgWMIED0QEmcCA6wAQOZA9s6/H2UF0xHo0gc3IsUAtFOxAAfFSrI99FDO2p9yEBQJElZHM5gQooloAiM7ZBQyMJJnAgckBmYIV/zgXfQLEApCHNClSplAEAyeSqKZhTLJED2Y8GtLy8guvrT6bHheWQ42uJHMgZkFcRWQMSw4sAgHajY+8E3c5MQFpPMhv2PIeiBSi9ngIAfPjvo22weu0KkWjCEtBPrTbepdMTzycrsvtQtAFpcQKmKArq9RparZYp0K9ib97Jt9qm51lc6Lrfo2gFMsYumCJLUGQJn7sLY4FMe4+0qH+OxWIAgHK/RxKHSq2lu7QD2QG7LPV+UwDEY3EAQFWtQpEVLClJAMBzAKI4eNvikIfu3VpvmV8qeTNHFS4vAQBbDx5QAZQ5zk49x/6TvbFgGtD9EPf5niEWR7PZxGoyqX+n1mo6iL7/KpVGvvMEKhwO+wLMKpCVTeog5v6TPbx+ezJ2DoqsLPlvJBm7Oy99EFJr6e48wawMcZnj7ExVhMFjM8dZSJKEUEgemoMkccGfQ77ZDwedNjZlBc8bDU97mNU5aFYkMzRtdactEn5Dmy4oLT/3J063wWZZJDhFMoLV6zXA52+tW97wugU26yru9PRv4jchEoni97smfmm26IciDWZ3md1oNoaqBkGJ7aKsXTC7QJNKPByKIBgJIDcjKzLA0tBnF+zHw2/JzSkrEbTueteRQmFH5yJZj6MCahrYHy/fEQeLx+J6iUdLpzv9Qapb9TiqoNwEe/32ZGRDaizxlCuVXsNE86a5VY+jEook2GCp5+72ZuKxGtg86nFUQzkBG1eLC2pEry9oBcysWAr4txY3LYfff9cFgJd/vhGogLIClkgkRoD8XoubFm1bYhdMnHcDjGBmQKzELpjolwboYO02rq8/MQfkFEz0WwMOOm0cisuBWSRYBRPNJj3kzlG8bWJzYDPJevKNGyAc8iXY0BJq94vem0fp9RSkZweQnh2geNtE8bYZCCj1h2980cPS6ynsP/26O7FHlStXKFeusJpM6GAAUHzxCgAC1cPmkULxX2tzVDwW5WBzBFpb7VVWSuXKZKiqWkM8FuVgcwIahzQClcv3/j5Vm6uCCLb/9CtkT89QVav6S5h2o1Xktx5vzASUOfpLsLQ8DzrY3pc7AIDs6RkADD1GsRKtKk8CyNI+ioP1wAqFC/3xyeAbs4Mog58fPkwTA5ppwxt0sK2t+55RKFxAFMWJKCSBbFUm+Bw2jOYFkKMSEgfzDsgRFAfzDogIlJdg+Ub/EXw4FCggolBugmlAeh3u6H2ggFyBIgFmChSwHuQJlBOw1otXyDduOJCXUGZgGpoZmDqlxJM5eg9FUQIB5CmUEczYy8aBWanHkYhZPc4vQFrm/z9lDWBVtdYv1UwHG6zFGUs7017ANKss+A3IN1AkwAqFi9GhQpw8WNAC5DsoEmA0z0HUQXkFRguQ76HcAqMNiBooUmC0AlEHZReMdiBqoayCsQJEPdQ0sM1HG0wAMQM1Dqyq1rD5aIMJIOagjGBLS2EmgHh4eHgCnP8BvnoN5fIBC10AAAAASUVORK5CYII=", "ax": 53, "ay": 50, "w": 106, "h": 78}, "so_factory": {"src": "data:image/png;base64,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", "ax": 66, "ay": 60, "w": 132, "h": 95}, "so_laser_turret": {"src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAA0CAYAAAD46nqNAAACRklEQVR42u3YPU/bQBgH8L+Rk3K+YCkpJu6L1IKYM1ZiYKdfCHZGvhDsDEh06tKpKqjqS4LbDFGck3Cl6xCeCDux43uJGxU/ky0n1k+Pff87H1DXf16OzZudvzuUdPz++tJZGyDBjoIQAHAR9WEL6tiEZYugJsgN0+4dBSEuon6qa3SeB1cp18Yjzj5aGzBrHVwEtVkb6x4zlQB7HpeVAnsel2/f7MpspOTVKNjBQcuXlQ4SP7rDSXQHubcPRPPvIMFPP33Ei6pzsOdx2XEbAIDhnwQAIPf2ceb5s98cT0Zo3d6g22gCAAbJPa7GI6dyINVjaOv2BgBmOBOga2sgzDr65TO6z1gdMzXw6QIpoHVK579KwGC7K+N4kooVlUqSBK9evlZCKscMYww/6WQyTkXMohok9/jq+wDbBOctxPF49TnI2DTniqBZ2D9ZsOZBP7BNY5jVmSQLbVuArSRmCFrnYA1cd2Cw3ZVWRzFNUTSLmBbnHjjflXE8QfRr4GgDCba1NV3K2wLS/abYYqhbBraqKgN1F70bq4blQWkx8f3HNye3g4wx9PvTT8YwTG9lhGE4u6YayrRI6HSez10bDn8/dHF+MeEWzQiLoHSsAo3j8VKY1iAxheZ1rQxMKWZUoLZgWquZslAbsFygEGLpe1UGagor3PqguCk7UoUQKZwOjF6LxxGzdG9GF9put41hSptHKlAhRCngMpjSIKHpR7WjJjCtUWwCVYUZfTSpQHVhVr7qiqCmMKVBorpSbjYbxrC6nkz9BTOYNO0C4fhZAAAAAElFTkSuQmCC", "ax": 20, "ay": 40, "w": 40, "h": 52}};
 
 const SPRITES = {};
 for (const k in SPRITES_RAW) {
@@ -836,10 +915,12 @@ function drawUnit(e) {
   }
   const bob = b.walker ? Math.sin(e.anim * 4) * 1.4 * z : 0;
   if (b.infantry) {
+    const w = b.weapon === "heavy_gun" ? 3 : 2;
     ctx.fillStyle = c.body;
-    ctx.fillRect(sx - 2 * z, sy - 9 * z, 4 * z, 8 * z);
-    ctx.fillStyle = c.hi;
-    ctx.fillRect(sx - 2 * z, sy - 11 * z, 4 * z, 3 * z);
+    ctx.fillRect(sx - w * z, sy - 9 * z, 2 * w * z, 8 * z);
+    ctx.fillStyle = b.heal ? "#e8f5ea" : b.capture ? "#ffc94d" : b.weapon === "rocket" ? "#8898b8" : c.hi;
+    ctx.fillRect(sx - w * z, sy - 11 * z, 2 * w * z, 3 * z);
+    if (b.heal) { ctx.fillStyle = "#d8404a"; ctx.fillRect(sx - 0.8 * z, sy - 10.6 * z, 1.6 * z, 2.2 * z); }
   } else if (b.harvester) {
     ctx.fillStyle = c.body;
     ctx.fillRect(sx - 9 * z, sy - 12 * z, 18 * z, 11 * z);
@@ -857,7 +938,7 @@ function drawUnit(e) {
     const lp = Math.sin(e.anim * 4) * 3 * z;
     ctx.beginPath(); ctx.moveTo(sx - 3 * z, sy - 7 * z + bob); ctx.lineTo(sx - 4 * z + lp, sy + 1 * z); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(sx + 3 * z, sy - 7 * z + bob); ctx.lineTo(sx + 4 * z - lp, sy + 1 * z); ctx.stroke();
-    const big = e.type === "dm_mbt_walker";
+    const big = e.type === "dm_mbt_walker" || e.type === "dm_mammoth";
     ctx.fillStyle = c.body;
     ctx.fillRect(sx - (big ? 8 : 6) * z, sy - (big ? 17 : 14) * z + bob, (big ? 16 : 12) * z, (big ? 10 : 8) * z);
     ctx.fillStyle = c.edge;
@@ -997,30 +1078,95 @@ function canPlace(type, gx, gy) {
   }
   return false;
 }
+let sbView = { mode: "general", id: 0 };
+
+function makeBuildButton(type, q) {
+  const spec = q === "structure" ? STRUCTS[type] : UNITS[type];
+  const btn = document.createElement("button");
+  btn.className = "build-btn"; btn.dataset.type = type; btn.dataset.q = q;
+  btn.innerHTML = `<span class="prog"></span><span class="nm">${T(type)}</span><span class="cost num">$${spec.cost}</span>`;
+  btn.addEventListener("click", () => {
+    if (!running || over) return;
+    const job = queues[q];
+    if (job && job.done && q === "structure") { placing = job.type; eva(T("placement")); return; }
+    if (job) return;
+    if (q !== "structure" && !hasProducer(q)) { sfx("warn"); return; }
+    if (type === "nx_harvester" && !hasStruct("nx_refinery")) { eva(T("needs_nx_refinery")); sfx("warn"); return; }
+    if (credits < spec.cost) { eva(T("lowfunds")); sfx("warn"); return; }
+    credits -= spec.cost;
+    const srcId = (sbView.mode === "building" && BUILDING_QUEUE[sbView.type] === q) ? sbView.id : 0;
+    queues[q] = { type, t: 0, dur: Math.max(1.5, spec.cost / 400), done: false, srcId };
+    sfx("click");
+  });
+  return btn;
+}
+
+function sectionFor(host, q, list, producerType) {
+  const head = document.createElement("div");
+  head.className = "sb-head";
+  head.textContent = q === "structure" ? T("structures") : q === "infantry" ? T("infantry") : T("vehicles");
+  host.appendChild(head);
+  if (q !== "structure" && !hasProducer(q)) {
+    const note = document.createElement("div");
+    note.className = "sb-note";
+    note.textContent = T("needs_" + producerType);
+    host.appendChild(note);
+    return;
+  }
+  const grid = document.createElement("div");
+  grid.className = "build-grid";
+  for (const type of list) grid.appendChild(makeBuildButton(type, q));
+  host.appendChild(grid);
+}
+
 function buildButtons() {
-  const gs = document.getElementById("grid-structures");
-  const gu = document.getElementById("grid-units");
-  gs.innerHTML = ""; gu.innerHTML = "";
-  for (const [list, host, q] of [[BUILD_STRUCTS, gs, "structure"], [BUILD_UNITS, gu, "vehicle"]]) {
-    for (const type of list) {
-      const b = q === "structure" ? STRUCTS[type] : UNITS[type];
-      const btn = document.createElement("button");
-      btn.className = "build-btn"; btn.dataset.type = type; btn.dataset.q = q;
-      btn.innerHTML = `<span class="prog"></span><span class="nm">${T(type)}</span><span class="cost num">$${b.cost}</span>`;
-      btn.addEventListener("click", () => {
-        if (!running || over) return;
-        const job = queues[q];
-        if (job && job.done && q === "structure") { placing = job.type; eva(T("placement")); return; }
-        if (job) return;
-        if (credits < b.cost) { eva(T("lowfunds")); sfx("warn"); return; }
-        credits -= b.cost;
-        queues[q] = { type, t: 0, dur: Math.max(1.5, b.cost / 400), done: false };
-        sfx("click");
-      });
-      host.appendChild(btn);
+  const host = document.getElementById("buildpanel");
+  host.innerHTML = "";
+  if (sbView.mode === "building") {
+    const ent = ents.find(e => !e.dead && e.id === sbView.id);
+    if (!ent) { sbView = { mode: "general", id: 0 }; }
+    else {
+      const back = document.createElement("button");
+      back.className = "sb-back";
+      back.textContent = T("back");
+      back.addEventListener("click", () => { sbView = { mode: "general", id: 0 }; buildButtons(); sfx("click"); });
+      host.appendChild(back);
+      const title = document.createElement("div");
+      title.className = "sb-title";
+      title.textContent = T(ent.type);
+      host.appendChild(title);
+      const q = BUILDING_QUEUE[ent.type];
+      if (q === "structure") sectionFor(host, "structure", BUILD_STRUCTS, "nx_conyard");
+      else if (q === "infantry") sectionFor(host, "infantry", INFANTRY_UNITS, "dm_barracks");
+      else if (q === "vehicle") sectionFor(host, "vehicle", VEHICLE_UNITS, "dm_factory");
+      else if (q === "refinery") sectionFor(host, "vehicle", ["nx_harvester"], "dm_factory");
+      else {
+        const note = document.createElement("div");
+        note.className = "sb-note";
+        note.textContent = T("noProduction");
+        host.appendChild(note);
+      }
+      refreshButtons();
+      return;
     }
   }
+  sectionFor(host, "structure", BUILD_STRUCTS, "nx_conyard");
+  sectionFor(host, "infantry", INFANTRY_UNITS, "dm_barracks");
+  sectionFor(host, "vehicle", VEHICLE_UNITS, "dm_factory");
+  refreshButtons();
 }
+
+function syncSidebar(pick) {
+  const prev = JSON.stringify(sbView);
+  if (pick && pick.kind === "struct" && pick.owner === 0) {
+    sbView = { mode: "building", id: pick.id, type: pick.type };
+    setSidebar(false);   // opening a building always reveals the panel
+  } else if (!pick) {
+    sbView = { mode: "general", id: 0 };
+  }
+  if (JSON.stringify(sbView) !== prev) buildButtons();
+}
+
 function refreshButtons() {
   document.querySelectorAll(".build-btn").forEach(btn => {
     const q = btn.dataset.q, type = btn.dataset.type;
@@ -1030,7 +1176,9 @@ function refreshButtons() {
     btn.classList.toggle("q", !!mine);
     prog.style.width = mine ? Math.min(100, job.t / job.dur * 100) + "%" : "0%";
     const cost = (q === "structure" ? STRUCTS[type] : UNITS[type]).cost;
-    btn.disabled = (!mine && !!job) || (!job && credits < cost);
+    const gateMissing = (q !== "structure" && !hasProducer(q)) ||
+                        (type === "nx_harvester" && !hasStruct("nx_refinery"));
+    btn.disabled = (!mine && !!job) || (!job && credits < cost) || gateMissing;
   });
 }
 
@@ -1076,6 +1224,7 @@ window.addEventListener("mouseup", ev => {
     for (const e of ents) e.sel = false;
     if (pick && pick.owner === 0) { pick.sel = true; sfx("click"); }
     updateSelInfo();
+    syncSidebar(pick);
   }
   dragStart = null; selBox = null;
 });
@@ -1087,7 +1236,11 @@ function commandAt(cx, cy) {
   sfx("click");
   let k = 0;
   for (const u of sel) {
-    if (pick && pick.owner === 1) { u.target = pick; orderMove(u, pick.x, pick.y, pick); }
+    if (pick && pick.owner === 1 && UNITS[u.type].capture && pick.kind === "struct") {
+      u.captureTarget = pick; u.target = null;
+      u.path = findPath(u.x, u.y, pick.x, pick.y);
+    }
+    else if (pick && pick.owner === 1) { u.target = pick; orderMove(u, pick.x, pick.y, pick); }
     else {
       u.target = null;
       if (UNITS[u.type].harvester) {
@@ -1139,8 +1292,18 @@ canvas.addEventListener("touchstart", ev => {
   if (!running) return;
   if (ev.touches.length === 1) {
     const t = ev.touches[0];
-    touch1 = { x: t.clientX, y: t.clientY, moved: false };
+    touch1 = { x: t.clientX, y: t.clientY, sx: t.clientX, sy: t.clientY, moved: false, box: false };
     mouseX = t.clientX; mouseY = t.clientY;
+    const armed = touch1;
+    setTimeout(() => {
+      // long-press without movement → box-select mode
+      if (touch1 === armed && !touch1.moved && !touch1.box) {
+        touch1.box = true;
+        selBox = { x1: touch1.sx, y1: touch1.sy, x2: touch1.sx, y2: touch1.sy };
+        if (navigator.vibrate) navigator.vibrate(25);
+        sfx("click");
+      }
+    }, 380);
   } else if (ev.touches.length === 2) {
     touch1 = null;
     const dx = ev.touches[0].clientX - ev.touches[1].clientX;
@@ -1154,6 +1317,13 @@ canvas.addEventListener("touchmove", ev => {
   if (!running) return;
   if (ev.touches.length === 1 && touch1) {
     const t = ev.touches[0];
+    if (touch1.box) {
+      selBox = { x1: Math.min(touch1.sx, t.clientX), y1: Math.min(touch1.sy, t.clientY),
+                 x2: Math.max(touch1.sx, t.clientX), y2: Math.max(touch1.sy, t.clientY) };
+      touch1.x = t.clientX; touch1.y = t.clientY;
+      mouseX = t.clientX; mouseY = t.clientY;
+      return;
+    }
     const dx = t.clientX - touch1.x, dy = t.clientY - touch1.y;
     if (Math.abs(dx) + Math.abs(dy) > 8) touch1.moved = true;
     if (touch1.moved) {
@@ -1173,6 +1343,22 @@ canvas.addEventListener("touchend", ev => {
   lastTouchAt = performance.now();
   if (ev.touches.length < 2) pinchState = null;
   if (!running || !touch1) return;
+  if (touch1.box) {
+    let n = 0;
+    if (selBox) {
+      for (const e of ents) e.sel = false;
+      for (const e of ents) {
+        if (e.owner !== 0 || e.kind !== "unit") continue;
+        const [ex, ey] = toScreen(e.x, e.y);
+        if (ex >= selBox.x1 && ex <= selBox.x2 && ey >= selBox.y1 && ey <= selBox.y2) { e.sel = true; n++; }
+      }
+      updateSelInfo();
+      if (n) sfx("click");
+    }
+    selBox = null;
+    if (ev.touches.length === 0) touch1 = null;
+    return;
+  }
   if (!touch1.moved) {
     const cx = touch1.x, cy = touch1.y;
     if (!tryPlace()) {
@@ -1183,6 +1369,7 @@ canvas.addEventListener("touchend", ev => {
         for (const e of ents) e.sel = false;
         if (pick && pick.owner === 0) { pick.sel = true; sfx("click"); }
         updateSelInfo();
+        syncSidebar(pick);
       }
     }
   }
@@ -1230,8 +1417,7 @@ function applyLang() {
   document.getElementById("t-preview").textContent = L[lang].preview;
   document.getElementById("t-credits").textContent = L[lang].credits;
   document.getElementById("t-power").textContent = L[lang].power;
-  document.getElementById("h-structures").textContent = L[lang].structures;
-  document.getElementById("h-units").textContent = L[lang].units;
+
   document.getElementById("sidebar").dir = rtl ? "rtl" : "ltr";
   document.getElementById("botbar").dir = rtl ? "rtl" : "ltr";
   document.getElementById("lang-he").classList.toggle("on", rtl);
@@ -1243,7 +1429,7 @@ function applyLang() {
     document.getElementById("i-desc").textContent = "An interactive browser preview: a compact skirmish against the Serpent Order, using the real unit stats from the game's data files. Harvest veridium, build your base, repel the waves — and destroy the enemy base.";
     document.getElementById("i-note").textContent = "This is a JavaScript demo — not the full Unity WebGL build. The full game is built in the Unity Editor via Tiberium Dusk → Build → WebGL.";
     document.getElementById("i-controls").innerHTML =
-      "<li><b>Left click / drag</b> — select units</li><li><b>Right click</b> — move / attack</li><li><b>WASD / arrows / middle-drag</b> — pan camera, <b>wheel</b> — zoom</li><li><b>Sidebar</b> — build (structures are placed by clicking the map); ▶ collapses it</li><li><b>Mobile</b> — tap: select/order, drag: pan, pinch: zoom</li>";
+      "<li><b>Left click / drag</b> — select units</li><li><b>Right click</b> — move / attack</li><li><b>WASD / arrows / middle-drag</b> — pan camera, <b>wheel</b> — zoom</li><li><b>Sidebar</b> — build (structures are placed by clicking the map); ▶ collapses it</li><li><b>Mobile</b> — tap: select/order, long-press+drag: group select, drag: pan, pinch: zoom</li>";
     document.getElementById("startbtn").textContent = "START BATTLE";
   } else {
     document.querySelector("#introcard h1").textContent = "דמדומי טיבריום";
@@ -1251,7 +1437,7 @@ function applyLang() {
     document.getElementById("i-desc").textContent = "תצוגה מקדימה אינטראקטיבית בדפדפן: סקירמיש מוקטן נגד מסדר הנחש, עם נתוני היחידות האמיתיים מקובצי המשחק. קצרו ורידיום, בנו בסיס, הדפו גלים — והשמידו את בסיס האויב.";
     document.getElementById("i-note").textContent = "זו הדגמת JavaScript — לא בניית ה־Unity WebGL המלאה. את המשחק המלא בונים ב־Unity Editor דרך התפריט Tiberium Dusk ← Build ← WebGL.";
     document.getElementById("i-controls").innerHTML =
-      "<li><b>קליק שמאלי / גרירה</b> — בחירת יחידות</li><li><b>קליק ימני</b> — תנועה / תקיפה</li><li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום</li><li><b>סרגל צד</b> — בנייה (מבנים ממוקמים בקליק על המפה); ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, גרירה: מצלמה, צביטה: זום</li>";
+      "<li><b>קליק שמאלי / גרירה</b> — בחירת יחידות</li><li><b>קליק ימני</b> — תנועה / תקיפה</li><li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום</li><li><b>סרגל צד</b> — בנייה (מבנים ממוקמים בקליק על המפה); ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, לחיצה ארוכה+גרירה: בחירת קבוצה, גרירה: מצלמה, צביטה: זום</li>";
     document.getElementById("startbtn").textContent = "התחל קרב";
   }
   buildButtons();
