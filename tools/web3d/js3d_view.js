@@ -8,9 +8,80 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;   // filmic response curve
+renderer.toneMappingExposure = 1.05;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x100d09);
 scene.fog = new THREE.Fog(0x100d09, 60, 195);
+
+/* dusk sky dome + image-based lighting: every metal surface picks up the
+   horizon glow via a PMREM environment map generated from the same sky */
+const skyCanvas = document.createElement("canvas");
+skyCanvas.width = 16; skyCanvas.height = 256;
+{
+  const g = skyCanvas.getContext("2d");
+  const gr = g.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, "#04060c");
+  gr.addColorStop(0.45, "#0c1120");
+  gr.addColorStop(0.60, "#221c17");
+  gr.addColorStop(0.68, "#54371f");
+  gr.addColorStop(0.74, "#1a1510");
+  gr.addColorStop(1, "#0d0b08");
+  g.fillStyle = gr; g.fillRect(0, 0, 16, 256);
+}
+const skyTex = new THREE.CanvasTexture(skyCanvas);
+skyTex.mapping = THREE.EquirectangularReflectionMapping;
+skyTex.encoding = THREE.sRGBEncoding;   // canvas pixels are sRGB — avoid double-brighten
+const skyDome = new THREE.Mesh(
+  new THREE.SphereGeometry(230, 24, 18),
+  new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false }));
+skyDome.position.set(MAP / 2, MAP / 2, -4);
+scene.add(skyDome);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromEquirectangular(skyTex).texture;
+
+/* multi-octave value-noise detail texture: ground grain + water ripples */
+const noiseCanvas = document.createElement("canvas");
+noiseCanvas.width = noiseCanvas.height = 256;
+{
+  const g = noiseCanvas.getContext("2d");
+  g.fillStyle = "#b4b0a6"; g.fillRect(0, 0, 256, 256);
+  for (const [n, a] of [[13, 0.42], [29, 0.3], [61, 0.2], [137, 0.13]]) {
+    g.globalAlpha = a;
+    const cell = 256 / n;
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const v = 140 + (Math.random() * 90 | 0);
+      g.fillStyle = `rgb(${v},${v - 5},${v - 12})`;
+      g.fillRect(x * cell - 0.5, y * cell - 0.5, cell + 1, cell + 1);
+    }
+  }
+  g.globalAlpha = 1;
+}
+const groundTex = new THREE.CanvasTexture(noiseCanvas);
+groundTex.wrapS = groundTex.wrapT = THREE.RepeatWrapping;
+groundTex.encoding = THREE.sRGBEncoding;
+const waterBump = groundTex.clone();
+waterBump.needsUpdate = true;
+
+/* soft radial blob for grounding shadows under objects */
+const blobTex = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 128;
+  const g = c.getContext("2d");
+  const rg = g.createRadialGradient(64, 64, 6, 64, 64, 62);
+  rg.addColorStop(0, "rgba(0,0,0,0.55)");
+  rg.addColorStop(0.7, "rgba(0,0,0,0.28)");
+  rg.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = rg; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+})();
+const blobGeo = new THREE.PlaneGeometry(1, 1);
+function blobMesh(size, opacity) {
+  const m = new THREE.Mesh(blobGeo, new THREE.MeshBasicMaterial({
+    map: blobTex, transparent: true, opacity, depthWrite: false }));
+  m.scale.set(size, size, 1);
+  m.renderOrder = 4;
+  return m;
+}
 
 const camera = new THREE.PerspectiveCamera(38, 1, 0.5, 400);
 camera.up.set(0, 0, 1);
@@ -76,20 +147,21 @@ function buildWorld() {
   if (crystalGroup) scene.remove(crystalGroup);
   worldGroup = new THREE.Group(); scene.add(worldGroup);
 
-  // terrain: one quad per cell with per-cell color + micro height jitter
-  const pos = [], col = [], nrm = [], idxA = [];
+  // terrain: one quad per cell, per-cell color × tiling detail noise
+  const pos = [], col = [], nrm = [], uvs = [], idxA = [];
   const c3 = new THREE.Color();
   let vi = 0;
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const t = terrain[idx(x, y)];
     const water = t === 3;
     c3.setHex(T_COLORS[t]);
-    const shade = 0.78 + ((x * 31 + y * 17) % 7) * 0.02;    // deterministic patchwork
+    const shade = 0.9 + ((x * 31 + y * 17) % 7) * 0.022;    // deterministic patchwork
     const zb = water ? -0.28 : 0;
     for (const [ox, oy] of [[0, 0], [1, 0], [1, 1], [0, 1]]) {
       pos.push(x + ox, y + oy, zb);
       col.push(c3.r * shade, c3.g * shade, c3.b * shade);
       nrm.push(0, 0, 1);
+      uvs.push((x + ox) * 0.34, (y + oy) * 0.34);
     }
     idxA.push(vi, vi + 1, vi + 2, vi, vi + 2, vi + 3);
     vi += 4;
@@ -98,9 +170,10 @@ function buildWorld() {
   tg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   tg.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
   tg.setAttribute("normal", new THREE.Float32BufferAttribute(nrm, 3));
+  tg.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   tg.setIndex(idxA);
   const terr = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({
-    vertexColors: true, roughness: 1, metalness: 0 }));
+    vertexColors: true, map: groundTex, roughness: 1, metalness: 0 }));
   terr.receiveShadow = true;
   worldGroup.add(terr);
 
@@ -117,8 +190,9 @@ function buildWorld() {
     const wg = new THREE.BufferGeometry();
     wg.setAttribute("position", new THREE.Float32BufferAttribute(wpos, 3));
     wg.computeVertexNormals(); wg.setIndex(widx);
-    waterMat = new THREE.MeshStandardMaterial({ color: 0x2779a3, roughness: 0.15,
-      metalness: 0.4, transparent: true, opacity: 0.9, emissive: 0x0d3a52, emissiveIntensity: 0.5 });
+    waterMat = new THREE.MeshStandardMaterial({ color: 0x2779a3, roughness: 0.12,
+      metalness: 0.55, transparent: true, opacity: 0.9, emissive: 0x0d3a52, emissiveIntensity: 0.5,
+      bumpMap: waterBump, bumpScale: 0.05 });
     const wm = new THREE.Mesh(wg, waterMat);
     worldGroup.add(wm);
   }
@@ -165,7 +239,7 @@ function buildWorld() {
 
 const crysGeo = new THREE.ConeGeometry(1, 1, 5);
 crysGeo.translate(0, 0.5, 0); crysGeo.rotateX(Math.PI / 2);
-let crysMeshG = null, crysMeshB = null;
+let crysMeshG = null, crysMeshB = null, crysGlow = null;
 function rebuildCrystals() {
   if (crysMeshG) crystalGroup.remove(crysMeshG);
   if (crysMeshB) crystalGroup.remove(crysMeshB);
@@ -180,7 +254,7 @@ function rebuildCrystals() {
     for (const [, , n] of list) count += n;
     if (!count) return null;
     const im = new THREE.InstancedMesh(crysGeo,
-      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.85, roughness: 0.3 }), count);
+      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5, roughness: 0.3 }), count);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
     let i = 0;
     for (const [x, y, n] of list) for (let k = 0; k < n; k++) {
@@ -198,6 +272,17 @@ function rebuildCrystals() {
   };
   crysMeshG = mk(g, 0x2fae57);
   crysMeshB = mk(b, 0x2b7fb3);
+  // fake-bloom halos over each crystal cluster
+  if (crysGlow) crystalGroup.remove(crysGlow);
+  crysGlow = new THREE.Group();
+  for (const [list, color] of [[g, 0x2fae57], [b, 0x2b7fb3]]) {
+    for (const [x, y] of list) {
+      const s = glowSprite(color, 1.25, 0.13);
+      s.position.set(x + 0.5, y + 0.5, 0.4);
+      crysGlow.add(s);
+    }
+  }
+  crystalGroup.add(crysGlow);
 }
 
 function updateFog() {
@@ -222,6 +307,14 @@ function makeSelRing(color) {
   m.renderOrder = 6;
   return m;
 }
+function glowSprite(color, scale, opacity) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: flashTex, color, transparent: true, opacity,
+    blending: THREE.AdditiveBlending, depthWrite: false }));
+  s.scale.set(scale, scale, 1);
+  s.renderOrder = 7;
+  return s;
+}
 function makeUnitView(e) {
   const spec = UNITS[e.type];
   const wrap = new THREE.Group();
@@ -241,6 +334,9 @@ function makeUnitView(e) {
   const ring = makeSelRing(0x37e86e);
   ring.visible = false; wrap.add(ring);
   rec.ring = ring;
+  const blob = blobMesh(spec.infantry ? 0.5 : 1.15, 0.4);   // grounding contact shadow
+  wrap.add(blob);
+  rec.blob = blob;
   rec.kind = "unit"; rec.type = e.type;
   scene.add(wrap);
   return rec;
@@ -253,6 +349,20 @@ function makeStructView(e) {
   wrap.add(b.root);
   const ring = makeSelRing(0x37e86e); ring.visible = false;
   ring.scale.setScalar(Math.max(e.fw, e.fh) * 0.8); wrap.add(ring);
+  const blob = blobMesh(Math.max(e.fw, e.fh) * 1.5, 0.42);
+  blob.position.z = 0.035; wrap.add(blob);
+  // fake-bloom halos on strongly emissive structures
+  const bb = new THREE.Box3().setFromObject(b.root);
+  const topZ = bb.max.z;
+  const glows = { so_obelisk: [0xff3540, 1.1, 0.55], so_laser_turret: [0xff3540, 0.6, 0.4],
+    dm_ion_uplink: [0x59f2ff, 0.9, 0.45], nx_refinery: [0x49ff7a, 0.9, 0.3],
+    nx_emp_cannon: [0x59f2ff, 0.55, 0.35] };
+  if (glows[e.type]) {
+    const [gc, gs, go] = glows[e.type];
+    const gl = glowSprite(gc, gs, go);
+    gl.position.set(0, 0, topZ * 0.92);
+    wrap.add(gl);
+  }
   scene.add(wrap);
   return { wrap, spin: b.spin || null, ring, kind: "struct", type: e.type };
 }
@@ -278,6 +388,11 @@ function syncEnts(dt) {
     const hidden = entHidden(e);
     v.wrap.visible = !hidden;
     if (hidden) continue;
+    // battle damage: heavily wounded things smolder
+    if (e.hp < e.maxhp * 0.45 && Math.random() < 0.08)
+      particles.push({ x: e.x + (Math.random() - 0.5) * 0.5, y: e.y + (Math.random() - 0.5) * 0.5,
+        vx: 0, vy: 0, g: -0.5, t: 0, life: 1.4,
+        c: Math.random() < 0.3 ? "#6a6152" : "#2b2b28", s: 3 });
     if (e.kind === "struct") {
       v.wrap.position.set(e.x, e.y, 0);
       if (v.spin) v.spin.rotation.z += dt * 0.7;
@@ -308,6 +423,7 @@ function syncEnts(dt) {
     }
     v.ring.visible = !!e.sel;
     v.ring.position.z = -alt - bob + 0.03;
+    if (v.blob) v.blob.position.z = -alt - bob + 0.025;   // shadow stays on the ground
   }
   for (const [id, v] of views) {
     if (!seen.has(id)) { scene.remove(v.wrap); views.delete(id); }
@@ -616,7 +732,10 @@ function draw() {
   if (crystalTimer <= 0) { crystalTimer = 2; rebuildCrystals(); }
   fogTimer -= dt;
   if (fogTimer <= 0) { fogTimer = 0.15; updateFog(); }
-  if (waterMat) waterMat.emissiveIntensity = 0.4 + Math.sin(tSec * 1.4) * 0.18;
+  if (waterMat) {
+    waterMat.emissiveIntensity = 0.4 + Math.sin(tSec * 1.4) * 0.18;
+    waterBump.offset.set(tSec * 0.014, tSec * 0.009);   // drifting ripples
+  }
   updateCamera();
   syncEnts(dt);
   syncCorpses();
