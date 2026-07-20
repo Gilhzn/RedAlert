@@ -100,6 +100,10 @@
   .sb-title { font-size: 13px; color: var(--gold); letter-spacing: 1px; }
   .sb-sell { color: var(--crimson); border-color: rgba(216,64,74,0.55); text-align: center; }
   .sb-sell:hover { color: #ff8d94; border-color: var(--crimson); }
+  .sb-repair { color: var(--amber); border-color: rgba(255,201,77,0.5); text-align: center; }
+  .sb-repair:hover { color: #ffe9b0; border-color: var(--amber); }
+  .sb-repair.on { color: #0a120d; background: var(--amber); border-color: var(--amber); }
+  .sb-repair:disabled { opacity: 0.4; }
   #mutebtn { font-size: 14px; padding: 4px 8px; }
 
   /* Superweapon bar */
@@ -244,6 +248,7 @@ const L = {
     losedesc: "המתחם נפל. מסדר הנחש השתלט על שדות הוורידיום.",
     again: "קרב חוזר", start: "התחל קרב", nsel: n => n + " יחידות נבחרו",
     sell: "מכור מבנה", sold: n => "המבנה נמכר — התקבלו $" + n + " ‏(85% מהעלות)",
+    repair: "🔧 תקן מבנה", repair_stop: "🔧 עצור תיקון",
   },
   en: {
     title: "TIBERIUM DUSK", preview: "PREVIEW", credits: "CREDITS", power: "POWER",
@@ -288,6 +293,7 @@ const L = {
     losedesc: "Your compound has fallen. The Serpent Order controls the veridium fields.",
     again: "PLAY AGAIN", start: "START BATTLE", nsel: n => n + " units selected",
     sell: "SELL STRUCTURE", sold: n => "Structure sold — received $" + n + " (85% of cost)",
+    repair: "🔧 REPAIR", repair_stop: "🔧 STOP REPAIR",
   }
 };
 let lang = "he";
@@ -697,7 +703,7 @@ function step(dt) {
     if (e.recoil > 0) e.recoil -= dt;
     if (e.decloak > 0) e.decloak -= dt;
     if (e.emp > 0) e.emp -= dt;
-    if (e.kind === "struct") { structAI(e, dt); continue; }
+    if (e.kind === "struct") { repairTick(e, dt); structAI(e, dt); continue; }
     const b = UNITS[e.type];
     e.anim += dt * (b.speed || 1);
     // EMP: vehicles are dead in the water (infantry electronics survive)
@@ -926,6 +932,20 @@ function combatAI(e, b, dt) {
       if (!e.path) e.path = findPath(e.x, e.y, e.target.x, e.target.y);
     }
   }
+}
+function repairTick(e, dt) {
+  // Paid repair: full heal over ~18s costs 25% of the structure's price.
+  if (!e.repairing || e.owner !== 0) return;
+  if (e.hp >= e.maxhp) { e.hp = e.maxhp; e.repairing = false; return; }
+  const b = STRUCTS[e.type];
+  e.repAcc = (e.repAcc || 0) + (b.cost * 0.25 / 18) * dt;
+  const due = Math.floor(e.repAcc);
+  if (due >= 1) {
+    const pay = Math.min(due, credits);
+    credits -= pay; e.repAcc -= pay;
+  }
+  if (e.repAcc < 2)   // stalls when the treasury runs dry
+    e.hp = Math.min(e.maxhp, e.hp + e.maxhp * dt / 18);
 }
 function structAI(e, dt) {
   const b = STRUCTS[e.type];
@@ -1573,6 +1593,10 @@ function drawStruct(e) {
       ctx.strokeStyle = "#37e86e"; ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.moveTo(c1x, c1y); ctx.lineTo(c2x, c2y); ctx.lineTo(c3x, c3y); ctx.lineTo(c4x, c4y); ctx.closePath(); ctx.stroke();
     }
+    if (e.repairing && ((tSec * 2) | 0) % 2 === 0) {
+      ctx.font = `${14 * zoom}px sans-serif`;
+      ctx.fillText("🔧", sx - 7 * zoom, sy - sp.ay * zoom * (sp.s || 1) + 2 * zoom);
+    }
     drawHpBar(e, sx, sy - sp.ay * zoom * (sp.s || 1) - 9 * zoom, 30);
     return;
   }
@@ -1795,6 +1819,11 @@ function buildButtons() {
         note.textContent = T("noProduction");
         host.appendChild(note);
       }
+      const repBtn = document.createElement("button");
+      repBtn.className = "sb-repair";
+      repBtn.dataset.id = ent.id;
+      repBtn.addEventListener("click", () => { ent.repairing = !ent.repairing; sfx("click"); });
+      host.appendChild(repBtn);
       const sellBtn = document.createElement("button");
       sellBtn.className = "sb-sell";
       sellBtn.textContent = T("sell") + " ▸ +$" + Math.round(STRUCTS[ent.type].cost * 0.85);
@@ -1868,6 +1897,17 @@ function refreshButtons() {
                         (REQUIRES[type] && !hasStruct(REQUIRES[type])) || heroBlocked(type);
     btn.disabled = (!mine && !!job) || (!job && credits < cost) || gateMissing;
   });
+  // live state for the focused building's repair button
+  const rb = document.querySelector(".sb-repair");
+  if (rb) {
+    const ent = ents.find(e => !e.dead && e.id == rb.dataset.id);
+    if (ent) {
+      const est = Math.ceil((ent.maxhp - ent.hp) / ent.maxhp * STRUCTS[ent.type].cost * 0.25);
+      rb.textContent = ent.repairing ? T("repair_stop") : T("repair") + " ▸ $" + est;
+      rb.classList.toggle("on", !!ent.repairing);
+      rb.disabled = !ent.repairing && ent.hp >= ent.maxhp;
+    }
+  }
 }
 
 /* ============================== Input ============================== */
