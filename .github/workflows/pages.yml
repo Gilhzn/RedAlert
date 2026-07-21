@@ -1,5 +1,5 @@
 name: Deploy to GitHub Pages
-# retriggered to probe Pages enablement
+# probe 2: checking Pages enablement state
 
 on:
   push:
