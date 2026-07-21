@@ -395,7 +395,12 @@ function syncEnts(dt) {
         c: Math.random() < 0.3 ? "#6a6152" : "#2b2b28", s: 3 });
     if (e.kind === "struct") {
       v.wrap.position.set(e.x, e.y, 0);
-      if (v.spin) v.spin.rotation.z += dt * 0.7;
+      if (v.spin) {
+        if (v.type === "dm_gate") {   // barrier slides down into the ground when open
+          const tz = e.gateOpen ? -0.62 : 0;
+          v.spin.position.z += (tz - v.spin.position.z) * Math.min(1, dt * 5);
+        } else v.spin.rotation.z += dt * 0.7;
+      }
       v.ring.visible = !!e.sel;
       continue;
     }
@@ -594,6 +599,28 @@ function drawRings() {
   }
   for (let i = ri; i < ringPool.length; i++) ringPool[i].visible = false;
 }
+const fsPool = [];
+const fsGeo = new THREE.CylinderGeometry(0.34, 0.42, 1.7, 8, 1, true);
+fsGeo.rotateX(Math.PI / 2);
+function drawFirestorm() {
+  let fi = 0;
+  if (fsActive > 0) {
+    for (const em of ents) {
+      if (em.dead || em.kind !== "struct" || !STRUCTS[em.type].fsem || em.owner !== 0) continue;
+      let m = fsPool[fi];
+      if (!m) {
+        m = new THREE.Mesh(fsGeo, addMat(0x8fd8ff, 0.5));
+        m.renderOrder = 7; scene.add(m); fsPool.push(m);
+      }
+      fi++;
+      m.position.set(em.x, em.y, 0.95);
+      m.material.opacity = 0.35 + Math.abs(Math.sin(tSec * 14 + em.gx * 2.1)) * 0.35;
+      m.scale.setScalar(0.92 + Math.sin(tSec * 22 + em.gy) * 0.1);
+      m.visible = true;
+    }
+  }
+  for (let i = fi; i < fsPool.length; i++) fsPool[i].visible = false;
+}
 const ionPool = [];
 function drawIon() {
   let ii = 0;
@@ -739,7 +766,7 @@ function draw() {
   updateCamera();
   syncEnts(dt);
   syncCorpses();
-  drawBeams(); drawProjectiles(); drawFlashes(); drawParticles(); drawRings(); drawIon(); drawGhost();
+  drawBeams(); drawProjectiles(); drawFlashes(); drawParticles(); drawRings(); drawIon(); drawFirestorm(); drawGhost();
   renderer.render(scene, camera);
   drawHud();
   drawMinimap();

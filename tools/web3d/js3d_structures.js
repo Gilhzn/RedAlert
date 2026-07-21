@@ -5,6 +5,50 @@
 
 var STRUCT_BUILDERS = {
 
+  /* ================= fortifications ================= */
+  dm_wall: (H) => {
+    const C = H.C, r = H.group();
+    H.box(r, 0, 0, 0.06, 0.95, 0.5, 0.12, C.CONCRETE);              // footing
+    H.box(r, 0, 0, 0.34, 0.9, 0.26, 0.46, C.CONCRETE);              // wall slab
+    H.box(r, -0.42, 0, 0.42, 0.16, 0.34, 0.68, C.GUNMETAL);         // end pillars
+    H.box(r, 0.42, 0, 0.42, 0.16, 0.34, 0.68, C.GUNMETAL);
+    H.box(r, 0, 0, 0.6, 0.92, 0.1, 0.06, C.DM_DARK);                // cap rail
+    return { root: r, fit: 0.98 };
+  },
+  dm_gate: (H) => {
+    const C = H.C, r = H.group();
+    H.box(r, 0, 0, 0.05, 0.98, 0.6, 0.1, C.CONCRETE);
+    H.box(r, -0.42, 0, 0.5, 0.18, 0.44, 0.9, C.GUNMETAL);           // gate posts
+    H.box(r, 0.42, 0, 0.5, 0.18, 0.44, 0.9, C.GUNMETAL);
+    H.ball(r, -0.42, 0, 0.98, 0.05, C.YELLOW, { e: true });
+    H.ball(r, 0.42, 0, 0.98, 0.05, C.YELLOW, { e: true });
+    const bar = H.group(r);                                          // sliding barrier
+    H.box(bar, 0, 0, 0.42, 0.72, 0.16, 0.34, C.DM_ARMOR);
+    H.box(bar, 0, 0, 0.6, 0.72, 0.1, 0.06, C.YELLOW);
+    return { root: r, fit: 0.98, spin: bar };
+  },
+  dm_fs_emitter: (H) => {
+    const C = H.C, r = H.group();
+    H.box(r, 0, 0, 0.08, 0.92, 0.66, 0.16, C.CONCRETE);             // pad
+    H.box(r, 0, 0, 0.22, 0.8, 0.3, 0.14, C.GUNMETAL);               // housing
+    H.box(r, 0, 0, 0.3, 0.74, 0.1, 0.05, C.CYAN, { e: true });      // emitter slit
+    H.box(r, -0.34, 0, 0.4, 0.1, 0.16, 0.3, C.BLUEGREY);            // prongs
+    H.box(r, 0.34, 0, 0.4, 0.1, 0.16, 0.3, C.BLUEGREY);
+    return { root: r, fit: 0.96 };
+  },
+  dm_firestorm_gen: (H) => {
+    const C = H.C, r = H.group();
+    H.box(r, 0, 0, 0.3, 1.8, 1.8, 0.6, C.DM_ARMOR);                 // main block
+    H.box(r, 0, 0.6, 0.75, 1.2, 0.5, 0.3, C.DM_DARK);               // control annex
+    for (const sx of [-0.5, 0, 0.5]) {                              // charged coils
+      H.rod(r, sx, -0.3, 0.85, 0.17, 0.5, C.GUNMETAL, { rx: 0, v: 12 });
+      H.rod(r, sx, -0.3, 1.02, 0.13, 0.08, C.CYAN, { rx: 0, v: 12, e: true });
+    }
+    H.rod(r, 0.7, 0.7, 1.1, 0.02, 0.6, C.GUNMETAL, { rx: 0 });
+    H.ball(r, 0.7, 0.7, 1.42, 0.045, C.CYAN, { e: true });
+    return { root: r, fit: 1.9 };
+  },
+
   /* ================= ported 1:1 from blender_air_structures.py ========== */
 
   dm_helipad: (H) => {

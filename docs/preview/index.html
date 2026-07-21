@@ -686,6 +686,50 @@ if (typeof module !== "undefined") module.exports = UNIT_BUILDERS;
 
 var STRUCT_BUILDERS = {
 
+  /* ================= fortifications ================= */
+  dm_wall: (H) => {
+    const C = H.C, r = H.group();
+    H.box(r, 0, 0, 0.06, 0.95, 0.5, 0.12, C.CONCRETE);              // footing
+    H.box(r, 0, 0, 0.34, 0.9, 0.26, 0.46, C.CONCRETE);              // wall slab
+    H.box(r, -0.42, 0, 0.42, 0.16, 0.34, 0.68, C.GUNMETAL);         // end pillars
+    H.box(r, 0.42, 0, 0.42, 0.16, 0.34, 0.68, C.GUNMETAL);
+    H.box(r, 0, 0, 0.6, 0.92, 0.1, 0.06, C.DM_DARK);                // cap rail
+    return { root: r, fit: 0.98 };
+  },
+  dm_gate: (H) => {
+    const C = H.C, r = H.group();
+    H.box(r, 0, 0, 0.05, 0.98, 0.6, 0.1, C.CONCRETE);
+    H.box(r, -0.42, 0, 0.5, 0.18, 0.44, 0.9, C.GUNMETAL);           // gate posts
+    H.box(r, 0.42, 0, 0.5, 0.18, 0.44, 0.9, C.GUNMETAL);
+    H.ball(r, -0.42, 0, 0.98, 0.05, C.YELLOW, { e: true });
+    H.ball(r, 0.42, 0, 0.98, 0.05, C.YELLOW, { e: true });
+    const bar = H.group(r);                                          // sliding barrier
+    H.box(bar, 0, 0, 0.42, 0.72, 0.16, 0.34, C.DM_ARMOR);
+    H.box(bar, 0, 0, 0.6, 0.72, 0.1, 0.06, C.YELLOW);
+    return { root: r, fit: 0.98, spin: bar };
+  },
+  dm_fs_emitter: (H) => {
+    const C = H.C, r = H.group();
+    H.box(r, 0, 0, 0.08, 0.92, 0.66, 0.16, C.CONCRETE);             // pad
+    H.box(r, 0, 0, 0.22, 0.8, 0.3, 0.14, C.GUNMETAL);               // housing
+    H.box(r, 0, 0, 0.3, 0.74, 0.1, 0.05, C.CYAN, { e: true });      // emitter slit
+    H.box(r, -0.34, 0, 0.4, 0.1, 0.16, 0.3, C.BLUEGREY);            // prongs
+    H.box(r, 0.34, 0, 0.4, 0.1, 0.16, 0.3, C.BLUEGREY);
+    return { root: r, fit: 0.96 };
+  },
+  dm_firestorm_gen: (H) => {
+    const C = H.C, r = H.group();
+    H.box(r, 0, 0, 0.3, 1.8, 1.8, 0.6, C.DM_ARMOR);                 // main block
+    H.box(r, 0, 0.6, 0.75, 1.2, 0.5, 0.3, C.DM_DARK);               // control annex
+    for (const sx of [-0.5, 0, 0.5]) {                              // charged coils
+      H.rod(r, sx, -0.3, 0.85, 0.17, 0.5, C.GUNMETAL, { rx: 0, v: 12 });
+      H.rod(r, sx, -0.3, 1.02, 0.13, 0.08, C.CYAN, { rx: 0, v: 12, e: true });
+    }
+    H.rod(r, 0.7, 0.7, 1.1, 0.02, 0.6, C.GUNMETAL, { rx: 0 });
+    H.ball(r, 0.7, 0.7, 1.42, 0.045, C.CYAN, { e: true });
+    return { root: r, fit: 1.9 };
+  },
+
   /* ================= ported 1:1 from blender_air_structures.py ========== */
 
   dm_helipad: (H) => {
@@ -1167,7 +1211,11 @@ const L = {
     again: "קרב חוזר", start: "התחל קרב", nsel: n => n + " יחידות נבחרו",
     sell: "מכור מבנה", sold: n => "המבנה נמכר — התקבלו $" + n + " ‏(85% מהעלות)",
     repair: "🔧 תקן מבנה", repair_stop: "🔧 עצור תיקון",
-    "nx_mcv": "משאית הקמה", deploy: "🏗️ פרוס למתחם בנייה",
+    "nx_mcv": "משאית הקמה",
+    "dm_wall": "חומת בטון", "dm_gate": "שער מבוצר", "dm_fs_emitter": "פולט חומת אש",
+    "dm_firestorm_gen": "מחולל חומת האש", fs_label: "חומת אש",
+    fs_ready: "חומת האש טעונה — לחצו להפעלה", fs_on: "חומת האש הופעלה — 10 שניות!",
+    needs_dm_firestorm_gen: "דרוש: מחולל חומת האש", deploy: "🏗️ פרוס למתחם בנייה",
     deployed: "מתחם הבנייה נפרס — הבסיס פעיל!",
     nodeploy: "אין מקום לפריסה — דרוש שטח פנוי 3×3",
     deploy_hint: "בחרו את משאית ההקמה ולחצו 'פרוס למתחם בנייה' כדי לייסד את הבסיס",
@@ -1222,7 +1270,11 @@ const L = {
     again: "PLAY AGAIN", start: "START BATTLE", nsel: n => n + " units selected",
     sell: "SELL STRUCTURE", sold: n => "Structure sold — received $" + n + " (85% of cost)",
     repair: "🔧 REPAIR", repair_stop: "🔧 STOP REPAIR",
-    "nx_mcv": "Mobile Construction Vehicle", deploy: "🏗️ DEPLOY CONSTRUCTION YARD",
+    "nx_mcv": "Mobile Construction Vehicle",
+    "dm_wall": "Concrete Wall", "dm_gate": "Fortified Gate", "dm_fs_emitter": "Firestorm Emitter",
+    "dm_firestorm_gen": "Firestorm Generator", fs_label: "FIRESTORM",
+    fs_ready: "Firestorm wall charged — click to activate", fs_on: "Firestorm wall active — 10 seconds!",
+    needs_dm_firestorm_gen: "Requires: Firestorm Generator", deploy: "🏗️ DEPLOY CONSTRUCTION YARD",
     deployed: "Construction yard deployed — base online!",
     nodeploy: "No room to deploy — needs clear 3x3 ground",
     deploy_hint: "Select the MCV and press 'Deploy' to found your base",
@@ -1312,16 +1364,21 @@ const STRUCTS = {
   dm_service_depot:{ hp: 700, cost: 800,  fw: 2, fh: 2, power: -20, sight: 4, repair: true },
   nx_emp_cannon:   { hp: 600, cost: 1000, fw: 2, fh: 2, power: -60, sight: 4, super: "emp" },
   dm_ion_uplink:   { hp: 750, cost: 1800, fw: 2, fh: 2, power: -80, sight: 5, super: "ion" },
+  dm_wall:         { hp: 300, cost: 50,   fw: 1, fh: 1, power: 0,   sight: 1, wall: true },
+  dm_gate:         { hp: 450, cost: 150,  fw: 1, fh: 1, power: 0,   sight: 2, gate: true },
+  dm_fs_emitter:   { hp: 400, cost: 120,  fw: 1, fh: 1, power: -5,  sight: 1, fsem: true },
+  dm_firestorm_gen:{ hp: 800, cost: 1500, fw: 2, fh: 2, power: -75, sight: 4, super: "fs" },
 };
 const BUILD_STRUCTS = ["dm_power_plant", "dm_barracks", "nx_refinery", "nx_silo", "dm_factory",
-                       "dm_helipad", "dm_service_depot", "dm_guard_tower", "dm_radar",
-                       "dm_rocket_tower", "dm_aa_tower", "dm_tech_center", "nx_emp_cannon", "dm_ion_uplink"];
+                       "dm_wall", "dm_gate", "dm_helipad", "dm_service_depot", "dm_guard_tower", "dm_radar",
+                       "dm_rocket_tower", "dm_aa_tower", "dm_tech_center", "nx_emp_cannon", "dm_ion_uplink",
+                       "dm_firestorm_gen", "dm_fs_emitter"];
 // extra tech requirements (id -> required structure)
 const REQUIRES = { dm_rocket_tower: "dm_radar", dm_mammoth: "dm_tech_center", dm_hover_mlrs: "dm_tech_center",
   dm_disruptor: "dm_tech_center", dm_sensor: "dm_radar", dm_jumptrooper: "dm_radar", dm_railhero: "dm_tech_center",
   dm_helipad: "dm_factory", dm_service_depot: "dm_factory", dm_aa_tower: "dm_radar",
   nx_emp_cannon: "dm_radar", dm_ion_uplink: "dm_tech_center", dm_orca_bomber: "dm_tech_center",
-  nx_mcv: "dm_tech_center" };
+  nx_mcv: "dm_tech_center", dm_firestorm_gen: "dm_tech_center", dm_fs_emitter: "dm_firestorm_gen" };
 function heroBlocked(type) {
   if (!UNITS[type] || !UNITS[type].hero) return false;
   if (ents.some(e => !e.dead && e.owner === 0 && e.type === type)) return true;
@@ -1365,6 +1422,7 @@ let credits, powerOut, powerUse, queues, placing;
 let worldVersion = 0;
 let supers, superAim, ionStrikes;
 let wepLvl, armLvl;
+let gateAt, gateTimer, fsActive;
 let camX, camY, zoom, running = false, over = false;
 let waveTimer, waveNum, evaTimer = 0, atkWarnCd = 0, selBox = null, tSec = 0;
 
@@ -1384,8 +1442,10 @@ function makeWorld() {
   visible = new Uint8Array(MAP * MAP);
   ents = []; projectiles = []; particles = []; beams = []; flashes = []; rings = []; corpses = [];
   credits = 3000; queues = { structure: null, infantry: null, vehicle: null, aircraft: null }; placing = null;
-  supers = { emp: { t: 0, dur: 75, ready: false }, ion: { t: 0, dur: 140, ready: false } };
+  supers = { emp: { t: 0, dur: 75, ready: false }, ion: { t: 0, dur: 140, ready: false },
+             fs: { t: 0, dur: 40, ready: false } };
   wepLvl = 0; armLvl = 0;
+  gateAt = {}; gateTimer = 0; fsActive = 0;
   superAim = null; ionStrikes = [];
   sbView = { mode: "general", id: 0 };
   waveTimer = 50; waveNum = 0; over = false; tSec = 0;
@@ -1485,6 +1545,8 @@ function spawnStruct(type, gx, gy, owner) {
     x: gx + b.fw / 2, y: gy + b.fh / 2, hp: b.hp, maxhp: b.hp, sel: false, cd: 0, target: null };
   for (let y = gy; y < gy + b.fh; y++) for (let x = gx; x < gx + b.fw; x++)
     if (inMap(x, y)) blocked[idx(x, y)] = 1;
+  if (b.fsem) blocked[idx(gx, gy)] = 0;      // firestorm sections are flat until powered
+  if (b.gate) gateAt[idx(gx, gy)] = e;
   ents.push(e); updatePower();
   if (owner === 0) buildButtons();   // a new producer may unlock sections
   return e;
@@ -1498,6 +1560,7 @@ function killEnt(e) {
   if (e.kind === "struct") {
     for (let y = e.gy; y < e.gy + e.fh; y++) for (let x = e.gx; x < e.gx + e.fw; x++)
       if (inMap(x, y)) blocked[idx(x, y)] = 0;
+    if (STRUCTS[e.type].gate) delete gateAt[idx(e.gx, e.gy)];
     boom(e.x, e.y, 1.6, e.owner);
     corpses.push({ type: "ruin", x: e.x, y: e.y, fw: e.fw, fh: e.fh, t: 0, life: 30 });
     if (e.owner === 0) buildButtons();   // losing a producer locks sections again
@@ -1573,6 +1636,7 @@ function sellStruct(e) {
   e.dead = true; e.sel = false;
   for (let y = e.gy; y < e.gy + e.fh; y++) for (let x = e.gx; x < e.gx + e.fw; x++)
     if (inMap(x, y)) blocked[idx(x, y)] = 0;
+  if (STRUCTS[e.type].gate) delete gateAt[idx(e.gx, e.gy)];
   updatePower();
   // 15% loss on the sale: refund 85% of the build cost
   const refund = Math.round(STRUCTS[e.type].cost * 0.85);
@@ -1594,8 +1658,9 @@ function updatePower() {
 }
 
 /* ============================== Pathfinding ============================== */
-function findPath(sx, sy, gx, gy, allowWater) {
-  const pass = i => !blocked[i] || (allowWater && terrain[i] === 3);
+function findPath(sx, sy, gx, gy, allowWater, owner) {
+  const pass = i => !blocked[i] || (allowWater && terrain[i] === 3) ||
+    (gateAt[i] && !gateAt[i].dead && gateAt[i].owner === owner);
   sx |= 0; sy |= 0; gx |= 0; gy |= 0;
   if (!inMap(gx, gy)) return null;
   if (!pass(idx(gx, gy))) {   // nudge goal to nearest free cell
@@ -1647,7 +1712,7 @@ function orderMove(e, x, y, target) {
   e.target = target || null;
   e.hstate = e.target ? e.hstate : "manual";
   const b = UNITS[e.type] || {};
-  e.path = b.flying ? [[x, y]] : findPath(e.x, e.y, x, y, b.amphib);
+  e.path = b.flying ? [[x, y]] : findPath(e.x, e.y, x, y, b.amphib, e.owner);
   e.tx = x; e.ty = y;
 }
 
@@ -1709,6 +1774,43 @@ function step(dt) {
   }
   ionStrikes = ionStrikes.filter(s => s.t < 1.6);
 
+  // gates slide open for their owner's ground units, stay shut for enemies
+  gateTimer -= dt;
+  if (gateTimer <= 0) {
+    gateTimer = 0.25;
+    for (const g of ents) {
+      if (g.dead || g.kind !== "struct" || !STRUCTS[g.type].gate) continue;
+      const open = ents.some(u => u.kind === "unit" && !u.dead && u.owner === g.owner &&
+        !UNITS[u.type].flying && Math.hypot(u.x - g.x, u.y - g.y) < 2.1);
+      if (open !== !!g.gateOpen) {
+        g.gateOpen = open;
+        blocked[idx(g.gx, g.gy)] = open ? 0 : 1;
+      }
+    }
+  }
+  // firestorm wall: while active the emitter line is lethal and impassable
+  if (fsActive > 0) {
+    fsActive -= dt;
+    for (const em of ents) {
+      if (em.dead || em.kind !== "struct" || !STRUCTS[em.type].fsem || em.owner !== 0) continue;
+      blocked[idx(em.gx, em.gy)] = 1;
+      for (const o of ents) {
+        if (o.dead || o.kind !== "unit") continue;
+        if (Math.hypot(o.x - em.x, o.y - em.y) < 0.8) {
+          o.hp -= 170 * dt;
+          if (rnd() < 0.3) spark(o.x, o.y);
+          if (o.hp <= 0) killEnt(o);
+        }
+      }
+    }
+    if (fsActive <= 0) {
+      fsActive = 0;
+      for (const em of ents)
+        if (!em.dead && em.kind === "struct" && STRUCTS[em.type].fsem)
+          blocked[idx(em.gx, em.gy)] = 0;
+    }
+  }
+
   for (const e of ents) {
     if (e.dead) continue;
     if (e.cd > 0) e.cd -= dt;
@@ -1734,7 +1836,7 @@ function step(dt) {
         apc.cargo.push({ type: e.type, hp: e.hp, maxhp: e.maxhp });
         e.dead = true; e.sel = false;
         continue;
-      } else if (!e.path) e.path = findPath(e.x, e.y, apc.x, apc.y);
+      } else if (!e.path) e.path = findPath(e.x, e.y, apc.x, apc.y, false, e.owner);
     }
     if (b.harvester) harvesterAI(e, dt);
     else if (b.capture) engineerAI(e, dt);
@@ -1853,7 +1955,7 @@ function harvesterAI(e, dt) {
     const dockX = rf.gx + rf.fw / 2, dockY = rf.gy + rf.fh + 0.6;
     if (Math.hypot(dockX - e.x, dockY - e.y) < 0.9) {
       e.hstate = "unload"; e.ht = 0; e.path = null;
-    } else if (!e.path) { e.path = findPath(e.x, e.y, dockX, dockY); }
+    } else if (!e.path) { e.path = findPath(e.x, e.y, dockX, dockY, false, e.owner); }
   } else if (e.hstate === "unload") {
     e.ht += dt;
     if (e.ht > 0.17) {
@@ -1885,7 +1987,7 @@ function engineerAI(e, dt) {
     spark(t.x, t.y);
     e.dead = true;   // the engineer is consumed by the capture
     buildButtons();  // captured factories unlock production
-  } else if (!e.path) e.path = findPath(e.x, e.y, t.x, t.y);
+  } else if (!e.path) e.path = findPath(e.x, e.y, t.x, t.y, false, e.owner);
 }
 function medicAI(e, b, dt) {
   if (e.cd > 0) return;
@@ -1902,7 +2004,7 @@ function medicAI(e, b, dt) {
     e.cd = 0.5;
     beams.push({ x1: e.x, y1: e.y - 0.4, x2: best.x, y2: best.y - 0.3, t: 0, c: "#49ff7a" });
   } else if (bd <= 8 && !e.path) {
-    e.path = findPath(e.x, e.y, best.x, best.y);
+    e.path = findPath(e.x, e.y, best.x, best.y, false, e.owner);
   }
 }
 function stealthHidden(e) {
@@ -1946,7 +2048,7 @@ function combatAI(e, b, dt) {
       e.face = Math.atan2(e.target.y - e.y, e.target.x - e.x);
       if (e.cd <= 0) { fire(e, e.target, w, b.weapon); e.cd = w.rof; if (b.stealth) e.decloak = 1.6; }
     } else if (!e.path || ((tSec * 2) | 0) % 2 === 0) {
-      if (!e.path) e.path = findPath(e.x, e.y, e.target.x, e.target.y);
+      if (!e.path) e.path = findPath(e.x, e.y, e.target.x, e.target.y, false, e.owner);
     }
   }
 }
@@ -2199,6 +2301,8 @@ function canPlace(type, gx, gy) {
   // adjacency: within 4 cells of an own structure
   for (const e of ents) {
     if (e.dead || e.owner !== 0 || e.kind !== "struct") continue;
+    const s = STRUCTS[e.type];
+    if (s.wall || s.gate || s.fsem) continue;   // fortifications don't extend reach
     if (gx < e.gx + e.fw + 4 && gx + b.fw > e.gx - 4 && gy < e.gy + e.fh + 4 && gy + b.fh > e.gy - 4) return true;
   }
   return false;
@@ -2348,6 +2452,12 @@ function refreshSuperBar() {
       btn.innerHTML = T(key + "_label") + ' <span class="pct num"></span>';
       btn.addEventListener("click", () => {
         if (!supers[key].ready) return;
+        if (key === "fs") {                        // no targeting: flip the switch
+          supers.fs.ready = false; supers.fs.t = 0;
+          fsActive = 10;
+          eva(T("fs_on")); sfx("laser");
+          return;
+        }
         superAim = superAim === key ? null : key;
         if (superAim) eva(T("super_aim"));
         sfx("click");
@@ -2488,7 +2598,7 @@ function commandAt(cx, cy) {
     for (const u of sel) {
       if (!UNITS[u.type].infantry || u === pick) continue;
       u.boardTarget = pick; u.target = null;
-      u.path = findPath(u.x, u.y, pick.x, pick.y);
+      u.path = findPath(u.x, u.y, pick.x, pick.y, false, u.owner);
       boarded = true;
     }
     if (boarded) return true;
@@ -2497,7 +2607,7 @@ function commandAt(cx, cy) {
   for (const u of sel) {
     if (pick && pick.owner === 1 && UNITS[u.type].capture && pick.kind === "struct") {
       u.captureTarget = pick; u.target = null;
-      u.path = findPath(u.x, u.y, pick.x, pick.y);
+      u.path = findPath(u.x, u.y, pick.x, pick.y, false, u.owner);
     }
     else if (pick && pick.owner === 1) { u.target = pick; orderMove(u, pick.x, pick.y, pick); }
     else {
@@ -3195,7 +3305,12 @@ function syncEnts(dt) {
         c: Math.random() < 0.3 ? "#6a6152" : "#2b2b28", s: 3 });
     if (e.kind === "struct") {
       v.wrap.position.set(e.x, e.y, 0);
-      if (v.spin) v.spin.rotation.z += dt * 0.7;
+      if (v.spin) {
+        if (v.type === "dm_gate") {   // barrier slides down into the ground when open
+          const tz = e.gateOpen ? -0.62 : 0;
+          v.spin.position.z += (tz - v.spin.position.z) * Math.min(1, dt * 5);
+        } else v.spin.rotation.z += dt * 0.7;
+      }
       v.ring.visible = !!e.sel;
       continue;
     }
@@ -3394,6 +3509,28 @@ function drawRings() {
   }
   for (let i = ri; i < ringPool.length; i++) ringPool[i].visible = false;
 }
+const fsPool = [];
+const fsGeo = new THREE.CylinderGeometry(0.34, 0.42, 1.7, 8, 1, true);
+fsGeo.rotateX(Math.PI / 2);
+function drawFirestorm() {
+  let fi = 0;
+  if (fsActive > 0) {
+    for (const em of ents) {
+      if (em.dead || em.kind !== "struct" || !STRUCTS[em.type].fsem || em.owner !== 0) continue;
+      let m = fsPool[fi];
+      if (!m) {
+        m = new THREE.Mesh(fsGeo, addMat(0x8fd8ff, 0.5));
+        m.renderOrder = 7; scene.add(m); fsPool.push(m);
+      }
+      fi++;
+      m.position.set(em.x, em.y, 0.95);
+      m.material.opacity = 0.35 + Math.abs(Math.sin(tSec * 14 + em.gx * 2.1)) * 0.35;
+      m.scale.setScalar(0.92 + Math.sin(tSec * 22 + em.gy) * 0.1);
+      m.visible = true;
+    }
+  }
+  for (let i = fi; i < fsPool.length; i++) fsPool[i].visible = false;
+}
 const ionPool = [];
 function drawIon() {
   let ii = 0;
@@ -3539,7 +3676,7 @@ function draw() {
   updateCamera();
   syncEnts(dt);
   syncCorpses();
-  drawBeams(); drawProjectiles(); drawFlashes(); drawParticles(); drawRings(); drawIon(); drawGhost();
+  drawBeams(); drawProjectiles(); drawFlashes(); drawParticles(); drawRings(); drawIon(); drawFirestorm(); drawGhost();
   renderer.render(scene, camera);
   drawHud();
   drawMinimap();
