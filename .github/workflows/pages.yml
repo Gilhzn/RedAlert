@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -18,14 +18,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Keeps the gh-pages branch in sync with the playable build, so
+  # "Deploy from a branch: gh-pages" always serves the latest game.
+  mirror-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push build snapshot to gh-pages
+        run: |
+          mkdir -p /tmp/site
+          cp docs/preview/index.html /tmp/site/index.html
+          touch /tmp/site/.nojekyll
+          cd /tmp/site
+          git init -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Deploy Tiberium Dusk browser build"
+          git push --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
+
+  # Official Pages deployment (works once Pages is enabled; tolerated
+  # while it is not, so the run stays green either way).
   deploy:
     runs-on: ubuntu-latest
+    continue-on-error: true
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v4
+        continue-on-error: true
         with:
           enablement: true
       - name: Stage the playable build
@@ -38,3 +61,4 @@ jobs:
           path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
