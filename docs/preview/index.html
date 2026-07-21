@@ -1549,6 +1549,14 @@ function spawnStruct(type, gx, gy, owner) {
   if (b.gate) gateAt[idx(gx, gy)] = e;
   ents.push(e); updatePower();
   if (owner === 0) buildButtons();   // a new producer may unlock sections
+  // a fresh refinery puts idle/roaming harvesters back to work automatically
+  if (type === "nx_refinery") {
+    for (const h of ents) {
+      if (h.dead || h.owner !== owner || !UNITS[h.type] || !UNITS[h.type].harvester) continue;
+      if (h.hstate === "idle" || h.hstate === "manual") { h.hstate = "seek"; h.path = null; }
+      h.dockRf = null;   // let each harvester re-pick its nearest refinery
+    }
+  }
   return e;
 }
 function killEnt(e) {
@@ -1952,8 +1960,10 @@ function harvesterAI(e, dt) {
       if (e.bails >= 28) e.hstate = "return";
     }
   } else if (e.hstate === "return") {
-    const rf = ents.find(s => !s.dead && s.owner === e.owner && s.type === "nx_refinery");
-    if (!rf) { e.hstate = "idle"; return; }
+    const rf = nearestRefinery(e);
+    if (!rf) { e.hstate = "idle"; e.path = null; return; }
+    // if a closer refinery appeared, re-route to it
+    if (e.dockRf !== rf.id) { e.dockRf = rf.id; e.path = null; }
     const dockX = rf.gx + rf.fw / 2, dockY = rf.gy + rf.fh + 0.6;
     if (Math.hypot(dockX - e.x, dockY - e.y) < 0.9) {
       e.hstate = "unload"; e.ht = 0; e.path = null;
@@ -1968,6 +1978,16 @@ function harvesterAI(e, dt) {
       } else { e.hstate = "seek"; if (e.owner === 0) { eva(T("harvest")); } }
     }
   } else if (e.hstate === "idle") { if (((tSec | 0) % 4) === 0) e.hstate = "seek"; }
+}
+function nearestRefinery(e) {
+  let best = null, bd = 1e9;
+  for (const s of ents) {
+    if (s.dead || s.owner !== e.owner || s.type !== "nx_refinery") continue;
+    const dx = s.gx + s.fw / 2, dy = s.gy + s.fh + 0.6;
+    const d = (dx - e.x) ** 2 + (dy - e.y) ** 2;
+    if (d < bd) { bd = d; best = s; }
+  }
+  return best;
 }
 function nearestCrystal(x, y) {
   let best = null, bd = 1e9;
