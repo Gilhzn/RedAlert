@@ -114,7 +114,7 @@ src = src.replace("""function resize() {
 """function resize() {
   vw = window.innerWidth; vh = window.innerHeight;
   dpr = Math.min(2.5, window.devicePixelRatio || 1);
-  renderer.setPixelRatio(dpr);
+  applyRes();
   renderer.setSize(vw, vh);
   camera.aspect = vw / vh;
   camera.updateProjectionMatrix();

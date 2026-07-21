@@ -83,6 +83,48 @@ function blobMesh(size, opacity) {
   return m;
 }
 
+/* Merge every mesh in a group into one mesh per material (transforms
+   baked in). Slashes draw calls — the difference between 15 and 60 FPS
+   on mobile GPUs. */
+function mergeGroupStatic(root) {
+  root.updateMatrixWorld(true);
+  const byMat = new Map();
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    const arr = byMat.get(o.material) || [];
+    arr.push(o);
+    byMat.set(o.material, arr);
+  });
+  const merged = new THREE.Group();
+  const v = new THREE.Vector3(), n = new THREE.Vector3(), nm = new THREE.Matrix3();
+  for (const [mat, meshes] of byMat) {
+    const posArr = [], nrmArr = [], idxArr = [];
+    let base = 0;
+    for (const m of meshes) {
+      const g = m.geometry, p = g.attributes.position, no = g.attributes.normal;
+      nm.getNormalMatrix(m.matrixWorld);
+      for (let i = 0; i < p.count; i++) {
+        v.fromBufferAttribute(p, i).applyMatrix4(m.matrixWorld);
+        posArr.push(v.x, v.y, v.z);
+        n.fromBufferAttribute(no, i).applyMatrix3(nm).normalize();
+        nrmArr.push(n.x, n.y, n.z);
+      }
+      const idx = g.index;
+      if (idx) for (let i = 0; i < idx.count; i++) idxArr.push(idx.getX(i) + base);
+      else for (let i = 0; i < p.count; i++) idxArr.push(i + base);
+      base += p.count;
+    }
+    const gg = new THREE.BufferGeometry();
+    gg.setAttribute("position", new THREE.Float32BufferAttribute(posArr, 3));
+    gg.setAttribute("normal", new THREE.Float32BufferAttribute(nrmArr, 3));
+    gg.setIndex(idxArr);
+    const mm = new THREE.Mesh(gg, mat);
+    mm.castShadow = true; mm.receiveShadow = true;
+    merged.add(mm);
+  }
+  return merged;
+}
+
 const camera = new THREE.PerspectiveCamera(38, 1, 0.5, 400);
 camera.up.set(0, 0, 1);
 let camYaw = Math.PI / 4;             // Q/E orbit
@@ -91,9 +133,10 @@ let camPitch = 0.86;                  // R/F tilt (radians above horizon)
 const hud = document.getElementById("hud");
 const hudctx = hud.getContext("2d");
 
+const IS_MOBILE = window.matchMedia && matchMedia("(pointer: coarse)").matches;
 const sun = new THREE.DirectionalLight(0xffe6b8, 1.0);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(IS_MOBILE ? 1024 : 2048, IS_MOBILE ? 1024 : 2048);
 sun.shadow.bias = -0.0004;
 sun.shadow.camera.near = 5; sun.shadow.camera.far = 160;
 scene.add(sun); scene.add(sun.target);
@@ -133,7 +176,28 @@ function toWorld(sx, sy) {
 
 /* ---------- static world: terrain, water, rocks, props, crystals ---------- */
 let worldGroup = null, waterMat = null, crystalGroup = null, crystalTimer = 0;
-const cellObjs = [];                  // [object3d, cellIdx] — hidden while unexplored
+let propDefs = [], propMesh = null, builtExplored = -1, exploredCount = 0;
+function rebuildProps() {
+  if (propMesh) {
+    worldGroup.remove(propMesh);
+    propMesh.traverse(o => { if (o.isMesh) o.geometry.dispose(); });
+  }
+  const g = new THREE.Group();
+  for (const d of propDefs) {
+    if (!explored[d.cell]) continue;
+    if (d.mesa) {
+      H.box(g, d.x, d.y, d.mesa / 2, 0.96, 0.96, d.mesa, 0x3d3322);
+      continue;
+    }
+    const b = PROP_BUILDERS[d.kind](H, d.v);
+    H.fitTo(b.root, b.fit * (typeof d.fit === "number" ? d.fit : 1));
+    b.root.position.x += d.x; b.root.position.y += d.y; b.root.position.z += d.z || 0;
+    g.add(b.root);
+  }
+  propMesh = mergeGroupStatic(g);
+  worldGroup.add(propMesh);
+  builtExplored = exploredCount;
+}
 let builtWorldVersion = -1;
 const fogCanvas = document.createElement("canvas");
 fogCanvas.width = fogCanvas.height = MAP;
@@ -197,28 +261,23 @@ function buildWorld() {
     worldGroup.add(wm);
   }
 
-  // rock-ridge cells: mesa block + rock prop (fog hides them until explored)
-  cellObjs.length = 0;
+  // props are collected as build recipes and rebuilt as ONE merged mesh
+  // per material whenever new terrain is scouted (fog-aware + fast)
+  propDefs = [];
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     if (terrain[idx(x, y)] !== 1) continue;
     const h = 0.22 + ((x * 7 + y * 13) % 5) * 0.05;
-    const mesa = H.box(worldGroup, x + 0.5, y + 0.5, h / 2, 0.96, 0.96, h, 0x3d3322);
-    cellObjs.push([mesa, idx(x, y)]);
-    const pr = PROP_BUILDERS.rock(H, (x * 3 + y) % 8);
-    H.fitTo(pr.root, pr.fit * (0.8 + ((x + y) % 3) * 0.15));
-    pr.root.position.x += x + 0.5; pr.root.position.y += y + 0.5; pr.root.position.z += h;
-    worldGroup.add(pr.root);
-    cellObjs.push([pr.root, idx(x, y)]);
+    propDefs.push({ mesa: h, x: x + 0.5, y: y + 0.5, cell: idx(x, y) });
+    propDefs.push({ kind: "rock", v: (x * 3 + y) % 8,
+      fit: 0.8 + ((x + y) % 3) * 0.15,
+      x: x + 0.5, y: y + 0.5, z: h, cell: idx(x, y) });
   }
-  // decor props (cacti / bushes / rocks from the map's decor list)
   for (const pr of decor) {
     const kind = pr.flora ? (pr.v % 3 === 0 ? "bush" : "cactus") : "rock";
-    const b = PROP_BUILDERS[kind](H, pr.v % 8);
-    H.fitTo(b.root, b.fit);
-    b.root.position.x += pr.x; b.root.position.y += pr.y;
-    worldGroup.add(b.root);
-    cellObjs.push([b.root, idx(Math.min(MAP - 1, pr.x | 0), Math.min(MAP - 1, pr.y | 0))]);
+    propDefs.push({ kind, v: pr.v % 8, x: pr.x, y: pr.y, z: 0,
+      cell: idx(Math.min(MAP - 1, pr.x | 0), Math.min(MAP - 1, pr.y | 0)) });
   }
+  builtExplored = -1;   // force a props rebuild
 
   // map rim: dark cliff skirt so the world doesn't float in space
   H.box(worldGroup, MAP / 2, MAP / 2, -0.62, MAP + 2.4, MAP + 2.4, 1.2, 0x171310);
@@ -288,14 +347,16 @@ function rebuildCrystals() {
 function updateFog() {
   const fctx = fogCanvas.getContext("2d");
   const img = fctx.createImageData(MAP, MAP);
+  let count = 0;
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const i = idx(x, y), o = i * 4;
+    if (explored[i]) count++;
     img.data[o] = 5; img.data[o + 1] = 4; img.data[o + 2] = 3;
     img.data[o + 3] = !explored[i] ? 252 : (!visible[i] ? 110 : 0);
   }
+  exploredCount = count;
   fctx.putImageData(img, 0, 0);
   fogTex.needsUpdate = true;
-  for (const [o, cell] of cellObjs) o.visible = !!explored[cell];
 }
 
 /* ---------- entity view objects ---------- */
@@ -427,6 +488,7 @@ function syncEnts(dt) {
       }
     }
     v.ring.visible = !!e.sel;
+    if (e.sel) v.ring.material.opacity = 0.6 + Math.sin(tSec * 5.5) * 0.25;
     v.ring.position.z = -alt - bob + 0.03;
     if (v.blob) v.blob.position.z = -alt - bob + 0.025;   // shadow stays on the ground
   }
@@ -599,6 +661,33 @@ function drawRings() {
   }
   for (let i = ri; i < ringPool.length; i++) ringPool[i].visible = false;
 }
+const fireballPool = [];
+function drawFireballs() {
+  let fi = 0;
+  for (const f of fireballs) {
+    let rec = fireballPool[fi];
+    if (!rec) {
+      rec = { glow: new THREE.Sprite(billboardMat(1)), core: glowSprite(0xfff2c0, 1, 1) };
+      rec.glow.renderOrder = 8; rec.core.renderOrder = 8;
+      scene.add(rec.glow); scene.add(rec.core);
+      fireballPool.push(rec);
+    }
+    fi++;
+    const prog = f.t / f.life;
+    const s = f.s * (0.8 + prog * 2.1);
+    rec.glow.position.set(f.x, f.y, 0.45 + prog * 0.5);
+    rec.glow.scale.set(s, s, 1);
+    rec.glow.material.opacity = Math.pow(1 - prog, 1.4) * 0.9;
+    rec.core.position.set(f.x, f.y, 0.45 + prog * 0.4);
+    rec.core.scale.set(s * 0.45, s * 0.45, 1);
+    rec.core.material.opacity = Math.pow(1 - prog, 2.2);
+    rec.glow.visible = rec.core.visible = true;
+  }
+  for (let i = fi; i < fireballPool.length; i++) {
+    fireballPool[i].glow.visible = false;
+    fireballPool[i].core.visible = false;
+  }
+}
 const fsPool = [];
 const fsGeo = new THREE.CylinderGeometry(0.34, 0.42, 1.7, 8, 1, true);
 fsGeo.rotateX(Math.PI / 2);
@@ -748,15 +837,34 @@ function iconFor(type, q) {
   return url;
 }
 
+/* ---------- adaptive resolution: keep mobile GPUs at a smooth frame rate ---------- */
+let resScale = 1, fpsEMA = 60, fpsCheck = 0;
+function applyRes() {
+  const cap = Math.min(IS_MOBILE ? 2 : 2.5, window.devicePixelRatio || 1);
+  renderer.setPixelRatio(Math.max(0.55, cap * resScale));
+}
+
 /* ---------- main per-frame entry (same name as the old 2D draw) ---------- */
 let _lastT = performance.now();
 function draw() {
   const now = performance.now();
-  const dt = Math.min(0.06, (now - _lastT) / 1000);
+  const rawDt = (now - _lastT) / 1000;
+  const dt = Math.min(0.06, rawDt);
   _lastT = now;
+  if (rawDt > 0.0005) fpsEMA = fpsEMA * 0.93 + (1 / rawDt) * 0.07;
+  fpsCheck -= dt;
+  if (fpsCheck <= 0) {
+    fpsCheck = 2.2;
+    if (fpsEMA < 34 && resScale > 0.55) { resScale -= 0.15; applyRes(); }
+    else if (fpsEMA > 56 && resScale < 1) { resScale += 0.1; applyRes(); }
+  }
   if (worldVersion !== builtWorldVersion) buildWorld();
   crystalTimer -= dt;
-  if (crystalTimer <= 0) { crystalTimer = 2; rebuildCrystals(); }
+  if (crystalTimer <= 0) {
+    crystalTimer = 2;
+    rebuildCrystals();
+    if (exploredCount !== builtExplored) rebuildProps();
+  }
   fogTimer -= dt;
   if (fogTimer <= 0) { fogTimer = 0.15; updateFog(); }
   if (waterMat) {
@@ -766,7 +874,7 @@ function draw() {
   updateCamera();
   syncEnts(dt);
   syncCorpses();
-  drawBeams(); drawProjectiles(); drawFlashes(); drawParticles(); drawRings(); drawIon(); drawFirestorm(); drawGhost();
+  drawBeams(); drawProjectiles(); drawFlashes(); drawParticles(); drawRings(); drawIon(); drawFirestorm(); drawFireballs(); drawGhost();
   renderer.render(scene, camera);
   drawHud();
   drawMinimap();
