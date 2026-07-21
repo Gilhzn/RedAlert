@@ -9,30 +9,30 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # Mirror the playable build to the gh-pages branch. Serving via
+  # "Deploy from a branch: gh-pages" sidesteps the Actions deploy
+  # environment, whose default branch-protection policy rejects our
+  # slash-containing default branch name.
+  mirror-branch:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v4
-      - name: Stage the playable build
+      - name: Push build snapshot to gh-pages
         run: |
-          mkdir -p _site
-          cp docs/preview/index.html _site/index.html
-          touch _site/.nojekyll
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          mkdir -p /tmp/site
+          cp docs/preview/index.html /tmp/site/index.html
+          touch /tmp/site/.nojekyll
+          cd /tmp/site
+          git init -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Deploy Tiberium Dusk browser build"
+          git push --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
