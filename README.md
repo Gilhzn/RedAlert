@@ -1,5 +1,7 @@
 # Tiberium Dusk
 
+**▶️ שחקו עכשיו בדפדפן (מחשב או טלפון): https://gilhzn.github.io/RedAlert/**
+
 **עברית:** משחק אסטרטגיה בזמן־אמת תלת־מימדי בהשראת קלאסיקות ה-RTS האיזומטריות של סוף שנות ה-90 — קצירת משאבים, בניית בסיס, שני צדדים א־סימטריים, סופר־נשקים ומולטיפלייר lockstep. כל הנכסים (שמות, גרפיקה, סאונד) מקוריים.
 
 **English:** A 3D real-time strategy game inspired by late-90s isometric RTS classics — resource harvesting, base building, two asymmetric factions, superweapons, and lockstep multiplayer. All assets (names, art, audio) are original.
