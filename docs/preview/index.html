@@ -133,6 +133,9 @@
   #fixbtn { color: var(--amber); border-color: rgba(255,201,77,0.5); padding: 3px 10px;
     font-size: 11.5px; white-space: nowrap; }
   #fixbtn:hover { color: #ffe9b0; border-color: var(--amber); }
+  #deploybtn { color: var(--phosphor); border-color: var(--phos-dim); padding: 3px 10px;
+    font-size: 11.5px; white-space: nowrap; animation: superpulse 1.4s infinite; }
+  #deploybtn:hover { background: rgba(55,232,110,0.12); }
   #evalog { color: var(--phos-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
   #evalog b { color: var(--phosphor); font-weight: normal; }
 
@@ -186,6 +189,7 @@
 
 <div id="botbar" class="hud" dir="rtl">
   <span id="selinfo"></span>
+  <button id="deploybtn" class="hidden"></button>
   <button id="fixbtn" class="hidden"></button>
   <span id="evalog"></span>
 </div>
@@ -647,6 +651,26 @@ var UNIT_BUILDERS = (function () {
     H.box(root, 0.14, -0.38, 0.62, 0.12, 0.12, 0.26, C.GREEN, { rx: -8, rz: -30, e: true });
     H.box(root, -0.02, -0.55, 0.58, 0.09, 0.09, 0.18, C.GREEN, { rx: 6, ry: 10, rz: 50, e: true });
     return { root, turret: null, fit: 1.15 };
+  };
+
+  // ---- nx_mcv: Mobile Construction Vehicle — heavy 8-wheel hauler with a
+  // folded crane boom; deploys into the construction yard.
+  B.nx_mcv = (H) => {
+    const C = H.C, root = H.group();
+    for (const sy of [-0.52, -0.18, 0.18, 0.52])
+      for (const sx of [-0.3, 0.3])
+        H.rod(root, sx, sy, 0.14, 0.13, 0.13, C.TIRE, { rx: 0, ry: 90, v: 12 });
+    H.box(root, 0, 0, 0.32, 0.56, 1.5, 0.2, C.GUNMETAL);                // chassis
+    H.box(root, 0, 0.55, 0.55, 0.5, 0.4, 0.3, C.DM_ARMOR);              // cab
+    H.box(root, 0, 0.72, 0.6, 0.44, 0.06, 0.16, C.BLUEGREY);            // windshield
+    H.box(root, 0, -0.15, 0.52, 0.52, 0.9, 0.22, C.DM_ARMOR);           // hull body
+    H.box(root, 0, -0.15, 0.66, 0.42, 0.8, 0.08, C.DM_DARK);            // roof plate
+    H.box(root, 0, -0.5, 0.72, 0.1, 0.55, 0.1, C.YELLOW, { rx: -22 });  // folded crane boom
+    H.box(root, 0, -0.75, 0.62, 0.14, 0.12, 0.12, C.GUNMETAL);          // crane base
+    H.box(root, 0.2, 0.1, 0.68, 0.08, 0.3, 0.05, C.YELLOW);             // hazard stripes
+    H.box(root, -0.2, 0.1, 0.68, 0.08, 0.3, 0.05, C.YELLOW);
+    H.ball(root, 0, 0.62, 0.78, 0.045, C.RED, { e: true });             // beacon
+    return { root, turret: null, fit: 1.25 };
   };
 
   return B;
@@ -1143,6 +1167,10 @@ const L = {
     again: "קרב חוזר", start: "התחל קרב", nsel: n => n + " יחידות נבחרו",
     sell: "מכור מבנה", sold: n => "המבנה נמכר — התקבלו $" + n + " ‏(85% מהעלות)",
     repair: "🔧 תקן מבנה", repair_stop: "🔧 עצור תיקון",
+    "nx_mcv": "משאית הקמה", deploy: "🏗️ פרוס למתחם בנייה",
+    deployed: "מתחם הבנייה נפרס — הבסיס פעיל!",
+    nodeploy: "אין מקום לפריסה — דרוש שטח פנוי 3×3",
+    deploy_hint: "בחרו את משאית ההקמה ולחצו 'פרוס למתחם בנייה' כדי לייסד את הבסיס",
     fix_vehicles: "🔧 תקן במפרץ", needs_depot: "דרוש: מפרץ תיקונים — בנו אחד ליד הבסיס",
     sent_repair: "הרכבים בדרך למפרץ התיקונים",
     upg_radar: "📡 שדרוג טווח רדאר", upg_wep: "⚔️ שדרוג חימוש", upg_arm: "🛡️ שדרוג שריון",
@@ -1194,6 +1222,10 @@ const L = {
     again: "PLAY AGAIN", start: "START BATTLE", nsel: n => n + " units selected",
     sell: "SELL STRUCTURE", sold: n => "Structure sold — received $" + n + " (85% of cost)",
     repair: "🔧 REPAIR", repair_stop: "🔧 STOP REPAIR",
+    "nx_mcv": "Mobile Construction Vehicle", deploy: "🏗️ DEPLOY CONSTRUCTION YARD",
+    deployed: "Construction yard deployed — base online!",
+    nodeploy: "No room to deploy — needs clear 3x3 ground",
+    deploy_hint: "Select the MCV and press 'Deploy' to found your base",
     fix_vehicles: "🔧 REPAIR AT DEPOT", needs_depot: "Requires: Service Depot — build one near your base",
     sent_repair: "Vehicles heading to the service depot",
     upg_radar: "📡 UPGRADE RADAR RANGE", upg_wep: "⚔️ UPGRADE WEAPONS", upg_arm: "🛡️ UPGRADE ARMOR",
@@ -1235,6 +1267,7 @@ const WEAPONS = {
 };
 const UNITS = {
   nx_harvester:  { hp: 1000, cost: 1400, speed: 1.5, sight: 4, r: 0.42, harvester: true, queue: "vehicle" },
+  nx_mcv:        { hp: 1000, cost: 2500, speed: 1.15, sight: 4, r: 0.46, big: true, deploys: true, queue: "vehicle" },
   dm_wolverine:  { hp: 175,  cost: 500,  speed: 2.1, sight: 5, r: 0.3,  weapon: "assault_cannon", walker: true, queue: "vehicle" },
   dm_mbt_walker: { hp: 400,  cost: 800,  speed: 1.3, sight: 6, r: 0.36, weapon: "cannon_120", walker: true, queue: "vehicle" },
   dm_mammoth:    { hp: 800,  cost: 3000, speed: 0.9, sight: 6, r: 0.44, weapon: "heavy_cannon", walker: true, big: true, queue: "vehicle" },
@@ -1287,7 +1320,8 @@ const BUILD_STRUCTS = ["dm_power_plant", "dm_barracks", "nx_refinery", "nx_silo"
 const REQUIRES = { dm_rocket_tower: "dm_radar", dm_mammoth: "dm_tech_center", dm_hover_mlrs: "dm_tech_center",
   dm_disruptor: "dm_tech_center", dm_sensor: "dm_radar", dm_jumptrooper: "dm_radar", dm_railhero: "dm_tech_center",
   dm_helipad: "dm_factory", dm_service_depot: "dm_factory", dm_aa_tower: "dm_radar",
-  nx_emp_cannon: "dm_radar", dm_ion_uplink: "dm_tech_center", dm_orca_bomber: "dm_tech_center" };
+  nx_emp_cannon: "dm_radar", dm_ion_uplink: "dm_tech_center", dm_orca_bomber: "dm_tech_center",
+  nx_mcv: "dm_tech_center" };
 function heroBlocked(type) {
   if (!UNITS[type] || !UNITS[type].hero) return false;
   if (ents.some(e => !e.dead && e.owner === 0 && e.type === type)) return true;
@@ -1303,7 +1337,7 @@ function hasRadar() {
   return ents.some(e => !e.dead && e.owner === 0 && e.kind === "struct" && STRUCTS[e.type].radar);
 }
 const INFANTRY_UNITS = ["dm_rifle", "dm_rocket", "dm_grenadier", "dm_heavy", "dm_engineer", "dm_medic", "dm_jumptrooper", "dm_railhero"];
-const VEHICLE_UNITS  = ["nx_harvester", "dm_apc", "dm_wolverine", "dm_mbt_walker", "dm_sensor", "dm_hover_mlrs", "dm_disruptor", "dm_mammoth"];
+const VEHICLE_UNITS  = ["nx_harvester", "nx_mcv", "dm_apc", "dm_wolverine", "dm_mbt_walker", "dm_sensor", "dm_hover_mlrs", "dm_disruptor", "dm_mammoth"];
 const AIRCRAFT_UNITS = ["dm_orca", "dm_orca_bomber"];
 // which player structure produces which queue (captured enemy factories count!)
 const PRODUCER_OF = { structure: ["nx_conyard"], infantry: ["dm_barracks"],
@@ -1390,10 +1424,8 @@ function makeWorld() {
     }
   }
 
-  // bases: player bottom-left, enemy top-right
-  spawnStruct("nx_conyard", 4, MAP - 9, 0);
-  spawnStruct("dm_power_plant", 9, MAP - 8, 0);
-  spawnStruct("nx_refinery", 4, MAP - 5, 0);
+  // bases: the player starts from a Mobile Construction Vehicle — deploy it!
+  spawnUnit("nx_mcv", 5.5, MAP - 7.5, 0);
   spawnUnit("nx_harvester", 8.5, MAP - 4.5, 0);
   spawnUnit("dm_wolverine", 10, MAP - 7, 0);
   spawnUnit("dm_wolverine", 11, MAP - 6, 0);
@@ -1506,6 +1538,23 @@ function buyArm() {
     e.hp = Math.round(e.maxhp * f);
   }
   eva(L[lang].arm_upgraded(armLvl)); sfx("done");
+}
+function deployMcv(e) {
+  if (!e || e.dead || e.type !== "nx_mcv" || e.owner !== 0) return;
+  const gx = Math.round(e.x - 1.5), gy = Math.round(e.y - 1.5);
+  for (let y = gy; y < gy + 3; y++) for (let x = gx; x < gx + 3; x++)
+    if (!inMap(x, y) || blocked[idx(x, y)] || crystal[idx(x, y)]) {
+      eva(T("nodeploy")); sfx("warn"); return;
+    }
+  e.dead = true; e.sel = false;      // one-way: the truck becomes the yard
+  spawnStruct("nx_conyard", gx, gy, 0);
+  rings.push({ x: gx + 1.5, y: gy + 1.5, t: 0, max: 0.7 });
+  for (let i = 0; i < 12; i++)
+    particles.push({ x: gx + 0.5 + rnd() * 2, y: gy + 0.5 + rnd() * 2,
+      vx: (rnd() - 0.5) * 0.5, vy: (rnd() - 0.5) * 0.5, g: -0.6,
+      t: 0, life: 0.9, c: "#c9a24b", s: 2.5 });
+  updateSelInfo();
+  eva(T("deployed")); sfx("done");
 }
 function cancelOne(q) {
   const job = queues[q];
@@ -1768,11 +1817,12 @@ function step(dt) {
       }
   }
 
-  // victory / defeat
+  // victory / defeat: lose the conyard AND the MCV — the war is over
   const eStr = ents.some(e => e.owner === 1 && e.kind === "struct");
-  const pStr = ents.some(e => e.owner === 0 && e.kind === "struct");
+  const pCore = ents.some(e => e.owner === 0 && !e.dead &&
+    (e.type === "nx_conyard" || e.type === "nx_mcv"));
   if (!eStr) endGame(true);
-  else if (!pStr) endGame(false);
+  else if (!pCore) endGame(false);
 }
 
 function harvesterAI(e, dt) {
@@ -2057,8 +2107,9 @@ function spawnWave() {
   }
   // air raids join in from wave 4 — build AA batteries!
   if (waveNum >= 4) for (let i = 0; i < (waveNum > 7 ? 2 : 1); i++) comp.push("so_harpy");
-  // pick a player target
-  const targets = ents.filter(e => !e.dead && e.owner === 0 && e.kind === "struct");
+  // pick a player target (pre-deploy: hunt the units instead)
+  let targets = ents.filter(e => !e.dead && e.owner === 0 && e.kind === "struct");
+  if (!targets.length) targets = ents.filter(e => !e.dead && e.owner === 0);
   const tgt = targets.length ? targets[(rnd() * targets.length) | 0] : null;
   for (let i = 0; i < comp.length; i++) {
     const u = spawnUnit(comp[i], sx + (rnd() - 0.5) * 3, sy + (rnd() - 0.5) * 3, 1);
@@ -2182,7 +2233,7 @@ function makeBuildButton(type, q) {
     }
     if (job && job.done && q === "structure") { placing = job.type; eva(T("placement")); return; }
     if (job) return;
-    if (q !== "structure" && !hasProducer(q)) { sfx("warn"); return; }
+    if (!hasProducer(q)) { sfx("warn"); return; }
     if (type === "nx_harvester" && !hasStruct("nx_refinery")) { eva(T("needs_nx_refinery")); sfx("warn"); return; }
     if (REQUIRES[type] && !hasStruct(REQUIRES[type])) { eva(T("needs_" + REQUIRES[type])); sfx("warn"); return; }
     if (heroBlocked(type)) { eva(T("herolimit")); sfx("warn"); return; }
@@ -2208,7 +2259,7 @@ function sectionFor(host, q, list, producerType) {
   head.textContent = q === "structure" ? T("structures") : q === "infantry" ? T("infantry")
     : q === "aircraft" ? T("aircraft") : T("vehicles");
   host.appendChild(head);
-  if (q !== "structure" && !hasProducer(q)) {
+  if (!hasProducer(q)) {
     const note = document.createElement("div");
     note.className = "sb-note";
     note.textContent = T("needs_" + producerType);
@@ -2333,7 +2384,7 @@ function refreshButtons() {
     const qty = btn.querySelector(".qty");
     if (qty) qty.textContent = mine && (job.count || 1) > 1 ? "×" + job.count : "";
     const cost = (q === "structure" ? STRUCTS[type] : UNITS[type]).cost;
-    const gateMissing = (q !== "structure" && !hasProducer(q)) ||
+    const gateMissing = !hasProducer(q) ||
                         (type === "nx_harvester" && !hasStruct("nx_refinery")) ||
                         (REQUIRES[type] && !hasStruct(REQUIRES[type])) || heroBlocked(type);
     btn.disabled = (!mine && !!job) || (!job && credits < cost) || gateMissing;
@@ -2624,6 +2675,16 @@ function updateSelInfo() {
     ((sel[0].cargo || []).length ? " [" + sel[0].cargo.length + "/" + UNITS[sel[0].type].transport + "]" : "");
   else el.textContent = L[lang].nsel(sel.length);
 }
+const deploybtn = document.getElementById("deploybtn");
+deploybtn.addEventListener("click", () => {
+  const mcv = ents.find(e => !e.dead && e.sel && e.type === "nx_mcv" && e.owner === 0);
+  deployMcv(mcv);
+});
+function refreshDeployBtn() {
+  const has = ents.some(e => !e.dead && e.sel && e.type === "nx_mcv" && e.owner === 0);
+  deploybtn.classList.toggle("hidden", !has);
+  if (has) deploybtn.textContent = T("deploy");
+}
 const fixbtn = document.getElementById("fixbtn");
 function damagedVehiclesSelected() {
   return ents.filter(e => !e.dead && e.sel && e.owner === 0 && e.kind === "unit" &&
@@ -2734,6 +2795,7 @@ document.getElementById("startbtn").addEventListener("click", () => {
   if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
   document.getElementById("intro").classList.add("hidden");
   running = true; sfx("done");
+  eva(T("deploy_hint"));
 });
 
 /* Tiberium Dusk — real-time 3D view (Three.js r128, Z-up).
@@ -3532,6 +3594,7 @@ function frame(now) {
   refreshButtons();
   refreshSuperBar();
   refreshFixBtn();
+  refreshDeployBtn();
   draw();
   requestAnimationFrame(frame);
 }

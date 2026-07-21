@@ -333,6 +333,26 @@ var UNIT_BUILDERS = (function () {
     return { root, turret: null, fit: 1.15 };
   };
 
+  // ---- nx_mcv: Mobile Construction Vehicle — heavy 8-wheel hauler with a
+  // folded crane boom; deploys into the construction yard.
+  B.nx_mcv = (H) => {
+    const C = H.C, root = H.group();
+    for (const sy of [-0.52, -0.18, 0.18, 0.52])
+      for (const sx of [-0.3, 0.3])
+        H.rod(root, sx, sy, 0.14, 0.13, 0.13, C.TIRE, { rx: 0, ry: 90, v: 12 });
+    H.box(root, 0, 0, 0.32, 0.56, 1.5, 0.2, C.GUNMETAL);                // chassis
+    H.box(root, 0, 0.55, 0.55, 0.5, 0.4, 0.3, C.DM_ARMOR);              // cab
+    H.box(root, 0, 0.72, 0.6, 0.44, 0.06, 0.16, C.BLUEGREY);            // windshield
+    H.box(root, 0, -0.15, 0.52, 0.52, 0.9, 0.22, C.DM_ARMOR);           // hull body
+    H.box(root, 0, -0.15, 0.66, 0.42, 0.8, 0.08, C.DM_DARK);            // roof plate
+    H.box(root, 0, -0.5, 0.72, 0.1, 0.55, 0.1, C.YELLOW, { rx: -22 });  // folded crane boom
+    H.box(root, 0, -0.75, 0.62, 0.14, 0.12, 0.12, C.GUNMETAL);          // crane base
+    H.box(root, 0.2, 0.1, 0.68, 0.08, 0.3, 0.05, C.YELLOW);             // hazard stripes
+    H.box(root, -0.2, 0.1, 0.68, 0.08, 0.3, 0.05, C.YELLOW);
+    H.ball(root, 0, 0.62, 0.78, 0.045, C.RED, { e: true });             // beacon
+    return { root, turret: null, fit: 1.25 };
+  };
+
   return B;
 })();
 if (typeof module !== "undefined") module.exports = UNIT_BUILDERS;
