@@ -92,8 +92,12 @@
   .build-btn .prog { position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
     background: rgba(55,232,110,0.18); pointer-events: none; }
   .build-btn.q .nm { color: var(--amber); }
-  .build-btn.q::after { content: "✕"; position: absolute; top: 2px; inset-inline-end: 5px;
-    color: var(--crimson); font-size: 12px; }
+  .build-btn .qcancel { display: none; position: absolute; top: 0; inset-inline-end: 0;
+    color: var(--crimson); font-size: 13px; padding: 2px 6px; cursor: pointer; z-index: 2; }
+  .build-btn.q .qcancel { display: block; }
+  .build-btn .qcancel:hover { color: #ff8d94; text-shadow: 0 0 6px rgba(216,64,74,0.8); }
+  .build-btn .qty { position: absolute; top: 2px; inset-inline-start: 5px;
+    color: var(--amber); font-size: 11.5px; font-weight: bold; }
   #buildpanel { display: flex; flex-direction: column; gap: 10px; }
   .sb-note { font-size: 10.5px; color: #7a6a45; border: 1px dashed rgba(255,201,77,0.35);
     padding: 4px 8px; }
@@ -126,6 +130,9 @@
     gap: 16px; padding: 0 14px; font-size: 12px;
     background: rgba(10,18,13,0.93); border-top: 1px solid var(--phos-faint); }
   #selinfo { color: var(--gold); white-space: nowrap; }
+  #fixbtn { color: var(--amber); border-color: rgba(255,201,77,0.5); padding: 3px 10px;
+    font-size: 11.5px; white-space: nowrap; }
+  #fixbtn:hover { color: #ffe9b0; border-color: var(--amber); }
   #evalog { color: var(--phos-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
   #evalog b { color: var(--phosphor); font-weight: normal; }
 
@@ -179,6 +186,7 @@
 
 <div id="botbar" class="hud" dir="rtl">
   <span id="selinfo"></span>
+  <button id="fixbtn" class="hidden"></button>
   <span id="evalog"></span>
 </div>
 
@@ -1135,6 +1143,8 @@ const L = {
     again: "קרב חוזר", start: "התחל קרב", nsel: n => n + " יחידות נבחרו",
     sell: "מכור מבנה", sold: n => "המבנה נמכר — התקבלו $" + n + " ‏(85% מהעלות)",
     repair: "🔧 תקן מבנה", repair_stop: "🔧 עצור תיקון",
+    fix_vehicles: "🔧 תקן במפרץ", needs_depot: "דרוש: מפרץ תיקונים — בנו אחד ליד הבסיס",
+    sent_repair: "הרכבים בדרך למפרץ התיקונים",
     upg_radar: "📡 שדרוג טווח רדאר", upg_wep: "⚔️ שדרוג חימוש", upg_arm: "🛡️ שדרוג שריון",
     upg_max: "ברמה מרבית", radar_upgraded: "טווח הרדאר הורחב",
     wep_upgraded: n => "חימוש שודרג לרמה " + n + " — ‎+20% נזק לכל הכוחות",
@@ -1184,6 +1194,8 @@ const L = {
     again: "PLAY AGAIN", start: "START BATTLE", nsel: n => n + " units selected",
     sell: "SELL STRUCTURE", sold: n => "Structure sold — received $" + n + " (85% of cost)",
     repair: "🔧 REPAIR", repair_stop: "🔧 STOP REPAIR",
+    fix_vehicles: "🔧 REPAIR AT DEPOT", needs_depot: "Requires: Service Depot — build one near your base",
+    sent_repair: "Vehicles heading to the service depot",
     upg_radar: "📡 UPGRADE RADAR RANGE", upg_wep: "⚔️ UPGRADE WEAPONS", upg_arm: "🛡️ UPGRADE ARMOR",
     upg_max: "MAX LEVEL", radar_upgraded: "Radar range extended",
     wep_upgraded: n => "Weapons upgraded to level " + n + " — +20% damage force-wide",
@@ -1495,6 +1507,18 @@ function buyArm() {
   }
   eva(L[lang].arm_upgraded(armLvl)); sfx("done");
 }
+function cancelOne(q) {
+  const job = queues[q];
+  if (!job || !running || over) return;
+  const spec = q === "structure" ? STRUCTS[job.type] : UNITS[job.type];
+  credits += spec.cost;
+  if ((job.count || 1) > 1) job.count--;
+  else {
+    queues[q] = null;
+    if (q === "structure" && placing === job.type) placing = null;
+  }
+  eva(T("cancelled")); sfx("warn");
+}
 function sellStruct(e) {
   if (e.dead || e.owner !== 0 || e.kind !== "struct") return;
   e.dead = true; e.sel = false;
@@ -1601,7 +1625,8 @@ function step(dt) {
           orderMove(u, src.x + (rnd() - 0.5) * 3, src.y + src.fh / 2 + 2 + rnd() * 1.5);
           eva(T("unitready")); sfx("done");
         }
-        queues[q] = null;
+        if ((job.count || 1) > 1) { job.count--; job.t = 0; }   // next copy rolls in
+        else queues[q] = null;
       }
     }
   }
@@ -1679,9 +1704,13 @@ function step(dt) {
     if (e.path && e.path.length) {
       const [px, py] = e.path[0];
       const dx = px - e.x, dy = py - e.y, d = Math.hypot(dx, dy);
-      if (d < 0.15) e.path.shift();
-      else {
-        const sp = b.speed * dt;
+      const sp = b.speed * dt;
+      // arrival threshold scales with the step size so big dt (slow
+      // devices / fast-forward) can't overshoot and orbit a waypoint
+      if (d < Math.max(0.15, sp * 1.1)) {
+        e.x = px; e.y = py;
+        e.path.shift();
+      } else {
         e.x += dx / d * sp; e.y += dy / d * sp;
         e.face = Math.atan2(dy, dx);
       }
@@ -1895,8 +1924,8 @@ function structAI(e, dt) {
       for (const o of ents) {
         if (o.dead || o.owner !== e.owner || o.kind !== "unit") continue;
         if (UNITS[o.type].infantry || o.hp >= o.maxhp) continue;
-        if (Math.hypot(o.x - e.x, o.y - e.y) <= 2.6) {
-          o.hp = Math.min(o.maxhp, o.hp + 10);
+        if (Math.hypot(o.x - e.x, o.y - e.y) <= 2.9) {
+          o.hp = Math.min(o.maxhp, o.hp + 14);
           beams.push({ x1: e.x, y1: e.y - 0.8, x2: o.x, y2: o.y - 0.3, t: 0, c: "#ffc94d" });
         }
       }
@@ -2135,11 +2164,20 @@ function makeBuildButton(type, q) {
     if (!running || over) return;
     const job = queues[q];
     if (job && job.type === type) {
-      // second click on the item being built (or already ready) cancels + refunds
-      credits += spec.cost;
-      queues[q] = null;
-      if (placing === type) placing = null;
-      eva(T("cancelled")); sfx("warn");
+      if (q === "structure") {
+        // structures can't stack: second click cancels + refunds
+        credits += spec.cost;
+        queues[q] = null;
+        if (placing === type) placing = null;
+        eva(T("cancelled")); sfx("warn");
+      } else {
+        // units stack: every click queues one more of the same type
+        if (heroBlocked(type)) { eva(T("herolimit")); sfx("warn"); return; }
+        if (credits < spec.cost) { eva(T("lowfunds")); sfx("warn"); return; }
+        credits -= spec.cost;
+        job.count = (job.count || 1) + 1;
+        sfx("click");
+      }
       return;
     }
     if (job && job.done && q === "structure") { placing = job.type; eva(T("placement")); return; }
@@ -2151,9 +2189,16 @@ function makeBuildButton(type, q) {
     if (credits < spec.cost) { eva(T("lowfunds")); sfx("warn"); return; }
     credits -= spec.cost;
     const srcId = (sbView.mode === "building" && BUILDING_QUEUE[sbView.type] === q) ? sbView.id : 0;
-    queues[q] = { type, t: 0, dur: Math.max(2, spec.cost / 300), done: false, srcId };
+    queues[q] = { type, t: 0, dur: Math.max(2, spec.cost / 300), done: false, srcId, count: 1 };
     sfx("click");
   });
+  const qc = document.createElement("span");
+  qc.className = "qcancel"; qc.textContent = "✕";
+  qc.addEventListener("click", ev => { ev.stopPropagation(); cancelOne(q); });
+  btn.appendChild(qc);
+  const qty = document.createElement("span");
+  qty.className = "qty num";
+  btn.appendChild(qty);
   return btn;
 }
 
@@ -2285,6 +2330,8 @@ function refreshButtons() {
     const mine = job && job.type === type;
     btn.classList.toggle("q", !!mine);
     prog.style.width = mine ? Math.min(100, job.t / job.dur * 100) + "%" : "0%";
+    const qty = btn.querySelector(".qty");
+    if (qty) qty.textContent = mine && (job.count || 1) > 1 ? "×" + job.count : "";
     const cost = (q === "structure" ? STRUCTS[type] : UNITS[type]).cost;
     const gateMissing = (q !== "structure" && !hasProducer(q)) ||
                         (type === "nx_harvester" && !hasStruct("nx_refinery")) ||
@@ -2577,6 +2624,29 @@ function updateSelInfo() {
     ((sel[0].cargo || []).length ? " [" + sel[0].cargo.length + "/" + UNITS[sel[0].type].transport + "]" : "");
   else el.textContent = L[lang].nsel(sel.length);
 }
+const fixbtn = document.getElementById("fixbtn");
+function damagedVehiclesSelected() {
+  return ents.filter(e => !e.dead && e.sel && e.owner === 0 && e.kind === "unit" &&
+    !UNITS[e.type].infantry && e.hp < e.maxhp);
+}
+function refreshFixBtn() {
+  const list = damagedVehiclesSelected();
+  fixbtn.classList.toggle("hidden", !list.length);
+  if (list.length) fixbtn.textContent = T("fix_vehicles") + (list.length > 1 ? " (" + list.length + ")" : "");
+}
+fixbtn.addEventListener("click", () => {
+  const list = damagedVehiclesSelected();
+  if (!list.length) return;
+  const depot = ents.filter(e => !e.dead && e.owner === 0 && e.kind === "struct" && STRUCTS[e.type].repair)
+    .sort((a, b) => Math.hypot(a.x - list[0].x, a.y - list[0].y) - Math.hypot(b.x - list[0].x, b.y - list[0].y))[0];
+  if (!depot) { eva(T("needs_depot")); sfx("warn"); return; }
+  list.forEach((u, k) => {
+    const a = k * 1.05, r = 1.5 + (k % 3) * 0.55;
+    u.target = null;
+    orderMove(u, depot.x + Math.cos(a) * r, depot.y + Math.sin(a) * r);
+  });
+  eva(T("sent_repair")); sfx("click");
+});
 canvas.addEventListener("wheel", ev => {
   ev.preventDefault();
   zoom = Math.max(0.5, Math.min(2.2, zoom * (ev.deltaY < 0 ? 1.12 : 0.89)));
@@ -3461,6 +3531,7 @@ function frame(now) {
   document.getElementById("powernum").textContent = powerOut + "/" + powerUse;
   refreshButtons();
   refreshSuperBar();
+  refreshFixBtn();
   draw();
   requestAnimationFrame(frame);
 }
