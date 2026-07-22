@@ -477,6 +477,44 @@ var PROP_BUILDERS = {
     }
     return { root: r, fit: 0.4 };
   },
+
+  grass: (H, v) => {                          // tuft of grass blades
+    const r = H.group();
+    const greens = [0x5f8a3a, 0x6ea043, 0x789a2f, 0x548034];
+    const n = 4 + (v % 4);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + v;
+      const rad = 0.03 + (i % 3) * 0.05;
+      const bx = Math.cos(a) * rad, by = Math.sin(a) * rad;
+      const h = 0.16 + ((i * 7 + v) % 5) * 0.05;
+      const tilt = ((i * 13 + v * 5) % 24) - 12;
+      H.box(r, bx, by, h / 2, 0.025, 0.025, h, greens[(i + v) % 4],
+        { rx: tilt, ry: tilt * 0.6 });
+    }
+    return { root: r, fit: 0.34 };
+  },
+
+  mountain: (H, v) => {                        // large rocky peak
+    const r = H.group();
+    const H0 = 2.4 + (v % 4) * 0.7;                                   // peak height
+    const base = 0x6a6152, mid = 0x7a715d, top = 0xa79f8e;           // rock -> snow-ish cap
+    // stacked shrinking blocks form a craggy peak
+    const layers = 5;
+    for (let i = 0; i < layers; i++) {
+      const f = i / layers;
+      const w = (1 - f) * 2.0 + 0.4;
+      const z = f * H0;
+      const col = i >= layers - 2 ? top : (i >= 2 ? mid : base);
+      const jx = ((i * 17 + v * 11) % 10 - 5) / 22;
+      const jy = ((i * 23 + v * 7) % 10 - 5) / 22;
+      H.box(r, jx, jy, z + H0 / layers / 2, w, w * 0.92, H0 / layers + 0.15, col,
+        { rz: (i * 31 + v * 17) % 45 });
+    }
+    // a couple of flanking spurs so the silhouette isn't a neat pyramid
+    H.box(r, 0.9, -0.3, 0.5 + (v % 2) * 0.3, 0.9, 0.8, 1.0 + (v % 3) * 0.4, base, { rz: 20 + v * 5 });
+    H.box(r, -0.8, 0.4, 0.4, 0.8, 0.7, 0.9 + (v % 2) * 0.5, mid, { rz: -18 - v * 4 });
+    return { root: r, fit: 3.2 + (v % 3) };
+  },
 };
 
 if (typeof module !== "undefined") module.exports = { STRUCT_BUILDERS, PROP_BUILDERS };
