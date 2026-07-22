@@ -1516,56 +1516,118 @@ function makeWorld() {
   sbView = { mode: "general", id: 0 };
   waveTimer = 50; waveNum = 0; over = false; tSec = 0;
 
-  for (let i = 0; i < MAP * MAP; i++) terrain[i] = rnd() < 0.22 ? 2 : 0;
-  // desert oases: water pools hugging the west and east map edges (impassable)
-  for (const [wx, wy, rx2, ry2] of [[2.5, MAP * 0.5, 4.5, 8], [MAP - 3.5, MAP * 0.52, 4.5, 8]]) {
+  const homeClear = (x, y) => (x < 13 && y > MAP - 14) || (x > MAP - 14 && y < 13);
+  // ---- value-noise field (seeded), for natural dunes & organic shapes ----
+  const NG = 10;                                 // coarse grid resolution
+  const nGrid = [];
+  for (let i = 0; i < (NG + 1) * (NG + 1); i++) nGrid.push(rnd());
+  const vnoise = (x, y) => {                      // bilinear value noise, 0..1
+    const gx = x / MAP * NG, gy = y / MAP * NG;   // handles any input (wraps)
+    const x0 = Math.floor(gx), y0 = Math.floor(gy);
+    const fx = gx - x0, fy = gy - y0;             // always in [0,1)
+    const w = i => ((i % NG) + NG) % NG;          // toroidal wrap
+    const g = (ix, iy) => nGrid[w(iy) * (NG + 1) + w(ix)];
+    return g(x0, y0) * (1 - fx) * (1 - fy) + g(x0 + 1, y0) * fx * (1 - fy) +
+           g(x0, y0 + 1) * (1 - fx) * fy + g(x0 + 1, y0 + 1) * fx * fy;
+  };
+
+  for (let i = 0; i < MAP * MAP; i++) terrain[i] = 0;
+  // gentle rolling desert dunes everywhere (walkable, subtle)
+  for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
+    const dune = (vnoise(x, y) * 0.7 + vnoise(x * 1.9 + 40, y * 1.9 + 40) * 0.3);
+    height[idx(x, y)] = dune * 0.9;
+    if (dune > 0.62) terrain[idx(x, y)] = 2;      // darker sand on the crests
+  }
+
+  // ---- a river snaking across the map + two lakes (water; bridges help) ----
+  // Natural fords (dry crossings) keep both sides reachable on foot; bridges
+  // are a convenience / defensive chokepoint rather than a hard wall.
+  const riverY = x => MAP * 0.5 + Math.sin(x * 0.13) * MAP * 0.16 + Math.cos(x * 0.05) * MAP * 0.06;
+  const fords = [Math.round(MAP * 0.32), Math.round(MAP * 0.66)];
+  for (let x = 0; x < MAP; x++) {
+    if (fords.some(fx => Math.abs(x - fx) <= 2)) continue;    // leave a crossing gap
+    const cy2 = riverY(x), half = 1.6 + vnoise(x, cy2) * 1.4;
+    for (let y = Math.floor(cy2 - half); y <= Math.ceil(cy2 + half); y++) {
+      if (!inMap(x, y) || homeClear(x, y)) continue;
+      terrain[idx(x, y)] = 3; blocked[idx(x, y)] = 1; height[idx(x, y)] = 0;
+    }
+  }
+  for (const [lx, ly, lr] of [[MAP * 0.22, MAP * 0.3, 5.5], [MAP * 0.8, MAP * 0.7, 6]]) {
     for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
-      const dx3 = (x - wx) / rx2, dy3 = (y - wy) / ry2;
-      if (dx3 * dx3 + dy3 * dy3 <= 1 + (rnd() - 0.5) * 0.25) {
-        terrain[idx(x, y)] = 3; blocked[idx(x, y)] = 1; crystal[idx(x, y)] = 0;
+      if (homeClear(x, y)) continue;
+      const d = Math.hypot(x - lx, y - ly) / lr;
+      if (d < 1 + (vnoise(x + 7, y + 7) - 0.5) * 0.5) {
+        terrain[idx(x, y)] = 3; blocked[idx(x, y)] = 1; height[idx(x, y)] = 0;
       }
     }
   }
-  // rock ridges
-  for (let n = 0; n < MAP; n++) {
-    let x = (rnd() * MAP) | 0, y = (rnd() * MAP) | 0;
-    const len = 2 + (rnd() * 5) | 0;
-    for (let k = 0; k < len; k++) {
-      if (inMap(x, y) && terrain[idx(x, y)] !== 3 && !(x < 12 && y > MAP - 13) && !(x > MAP - 13 && y < 12)) {
-        terrain[idx(x, y)] = 1; blocked[idx(x, y)] = 1;
-      }
-      x += (rnd() * 3 - 1) | 0; y += (rnd() * 3 - 1) | 0;
+
+  // ---- tall impassable rock MOUNTAINS (noise-shaped ranges) ----
+  const ranges = [[MAP * 0.28, MAP * 0.2, MAP * 0.5, MAP * 0.12],
+                  [MAP * 0.75, MAP * 0.85, MAP * 0.55, MAP * 0.9]];
+  for (const [ax, ay, bx, by] of ranges) {
+    const steps = 40;
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps, mx = ax + (bx - ax) * t, my = ay + (by - ay) * t;
+      const w = 2.6 + vnoise(mx * 2, my * 2) * 2.2;
+      for (let y = Math.floor(my - w); y <= Math.ceil(my + w); y++)
+        for (let x = Math.floor(mx - w); x <= Math.ceil(mx + w); x++) {
+          if (!inMap(x, y) || homeClear(x, y) || terrain[idx(x, y)] === 3) continue;
+          const d = Math.hypot(x - mx, y - my) / w;
+          if (d < 1) {
+            terrain[idx(x, y)] = 1; blocked[idx(x, y)] = 1;
+            const peak = (2.6 + vnoise(x, y) * 2.4) * (0.4 + 0.6 * Math.cos(d * Math.PI * 0.5));
+            if (peak > height[idx(x, y)]) height[idx(x, y)] = peak;
+          }
+        }
     }
   }
-  // walkable hills: raised ground you can climb for a high-ground advantage
-  // (does NOT block movement — only rock ridges/water block)
-  const hills = [[MAP * 0.5, MAP * 0.5, 9, 2.4], [MAP * 0.3, MAP * 0.42, 7, 1.8],
-                 [MAP * 0.7, MAP * 0.6, 7, 1.9], [MAP * 0.42, MAP * 0.72, 6, 1.5],
-                 [MAP * 0.6, MAP * 0.28, 6, 1.5]];
+
+  // ---- walkable hills: climbable high ground (irregular, noise-perturbed) ----
+  const hills = [[MAP * 0.5, MAP * 0.5, 10, 2.2], [MAP * 0.32, MAP * 0.6, 7, 1.6],
+                 [MAP * 0.68, MAP * 0.4, 7, 1.7], [MAP * 0.6, MAP * 0.72, 6, 1.4]];
   for (const [hx, hy, hr, hh] of hills) {
     for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
-      if (terrain[idx(x, y)] === 3) continue;                 // hills don't rise from water
-      if ((x < 12 && y > MAP - 13) || (x > MAP - 13 && y < 12)) continue;  // keep bases flat
-      const d = Math.hypot(x - hx, y - hy) / hr;
+      if (terrain[idx(x, y)] === 3 || blocked[idx(x, y)] || homeClear(x, y)) continue;
+      const wobble = 1 + (vnoise(x * 1.5, y * 1.5) - 0.5) * 0.5;
+      const d = Math.hypot(x - hx, y - hy) / (hr * wobble);
       if (d < 1) {
-        const rise = hh * (0.5 + 0.5 * Math.cos(d * Math.PI));  // smooth dome
+        const rise = hh * (0.5 + 0.5 * Math.cos(d * Math.PI));
         if (rise > height[idx(x, y)]) height[idx(x, y)] = rise;
       }
     }
   }
 
-  // crystal fields (positions relative to map size)
+  // crystal fields — placed on clear ground away from the river/mountains;
+  // if a chosen centre lands on bad terrain, nudge it to the nearest clear cell
   const F = (fx, fy, r, kind) => [Math.round(MAP * fx), Math.round(MAP * fy), r, kind];
-  const fields = [F(.2, .76, 5, 1), F(.8, .13, 5, 1),   // starter fields by each base
-                  F(.33, .68, 6, 1), F(.6, .3, 6, 1), F(.5, .5, 5, 1), F(.76, .72, 4, 9),
-                  F(.24, .27, 5, 1), F(.14, .48, 4, 1), F(.85, .52, 4, 9), F(.6, .82, 5, 1)];
-  for (const [cx, cy, r, kind] of fields) {
+  const clearCentre = (cx, cy) => {
+    if (inMap(cx, cy) && !blocked[idx(cx, cy)]) return [cx, cy];
+    for (let rad = 1; rad < 10; rad++)
+      for (let dy = -rad; dy <= rad; dy++) for (let dx = -rad; dx <= rad; dx++) {
+        const nx = cx + dx, ny = cy + dy;
+        if (inMap(nx, ny) && !blocked[idx(nx, ny)]) return [nx, ny];
+      }
+    return [cx, cy];
+  };
+  const fields = [F(.18, .74, 6, 1), F(.82, .14, 6, 1),   // starter fields by each base
+                  F(.28, .84, 6, 1), F(.72, .16, 6, 1),
+                  F(.12, .38, 6, 1), F(.88, .62, 6, 9),
+                  F(.4, .86, 6, 1), F(.6, .14, 6, 9),
+                  F(.5, .76, 6, 1), F(.5, .24, 6, 1),
+                  F(.18, .55, 5, 9), F(.82, .45, 5, 1),
+                  F(.34, .62, 5, 1), F(.66, .38, 5, 1)];
+  for (const [fx, fy, r, kind] of fields) {
+    const [cx, cy] = clearCentre(fx, fy);
     for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
       if (!inMap(x, y) || blocked[idx(x, y)] || terrain[idx(x, y)] === 3) continue;
       const d = Math.hypot(x - cx, y - cy);
-      if (d <= r && rnd() < 1 - d / (r + 1)) crystal[idx(x, y)] = kind === 9 ? 9 : 1 + ((rnd() * 4) | 0);
+      if (d <= r && rnd() < 1.15 - d / (r + 2)) crystal[idx(x, y)] = kind === 9 ? 9 : 1 + ((rnd() * 4) | 0);
     }
   }
+  // keep the starting base footprints clear of crystals (so the MCV can deploy)
+  for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++)
+    if (homeClear(x, y)) crystal[idx(x, y)] = 0;
 
   // bases: the player starts from a Mobile Construction Vehicle — deploy it!
   spawnUnit("nx_mcv", 5.5, MAP - 7.5, 0);
@@ -1704,7 +1766,7 @@ function upgRadar(e) {
   if (credits < RADAR_UPG[lvl]) { eva(T("lowfunds")); sfx("warn"); return; }
   credits -= RADAR_UPG[lvl];
   e.radarLvl = lvl + 1;
-  e.sightBonus = (e.sightBonus || 0) + 5;
+  e.sightBonus = (e.sightBonus || 0) + 14;
   eva(T("radar_upgraded")); sfx("done");
 }
 function buyWep() {
@@ -1808,7 +1870,7 @@ function findPath(sx, sy, gx, gy, allowWater, owner) {
   gs.set(key(sx, sy), 0);
   const h = (x, y) => Math.hypot(x - gx, y - gy);
   let iter = 0;
-  while (open.length && iter++ < 9000) {
+  while (open.length && iter++ < 24000) {
     let bi = 0;
     for (let i = 1; i < open.length; i++) if (open[i][0] < open[bi][0]) bi = i;
     const [, cx, cy] = open.splice(bi, 1)[0];
@@ -2050,16 +2112,26 @@ function step(dt) {
   fireballs = fireballs.filter(f => f.t < f.life);
   ents = ents.filter(e => !e.dead);
 
-  // fog
+  // fog of war: you only see around your own units/buildings. A radar
+  // reveals a MUCH larger area of the map (as explored terrain), and each
+  // radar upgrade widens that reveal further.
   visible.fill(0);
   for (const e of ents) {
-    if (e.owner !== 0) continue;
-    const s = (e.kind === "unit" ? UNITS[e.type].sight : STRUCTS[e.type].sight) + 1 + (e.sightBonus || 0);
+    if (e.owner !== 0 || e.dead) continue;
+    const b = e.kind === "unit" ? UNITS[e.type] : STRUCTS[e.type];
+    const s = (b.sight || 3) + 1;                 // live vision radius (shows units)
     const cx = e.x | 0, cy = e.y | 0;
     for (let y = cy - s; y <= cy + s; y++) for (let x = cx - s; x <= cx + s; x++)
       if (inMap(x, y) && (x - cx) ** 2 + (y - cy) ** 2 <= s * s) {
         visible[idx(x, y)] = 1; explored[idx(x, y)] = 1;
       }
+    // radar sweep: reveal terrain (explored) across a big radius
+    if (b.radar) {
+      const rr = 16 + (e.sightBonus || 0);        // grows with upgrades
+      for (let y = cy - rr; y <= cy + rr; y++) for (let x = cx - rr; x <= cx + rr; x++)
+        if (inMap(x, y) && (x - cx) ** 2 + (y - cy) ** 2 <= rr * rr)
+          explored[idx(x, y)] = 1;
+    }
   }
 
   // victory / defeat: lose the conyard AND the MCV — the war is over
@@ -3502,13 +3574,16 @@ function buildWorld() {
   // props are collected as build recipes and rebuilt as ONE merged mesh
   // per material whenever new terrain is scouted (fog-aware + fast)
   propDefs = [];
+  // rocky mountains: the heightfield already raises them; crown them with
+  // boulders (bigger on taller cells) for craggy detail
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     if (terrain[idx(x, y)] !== 1) continue;
-    const h = 0.22 + ((x * 7 + y * 13) % 5) * 0.05;
-    propDefs.push({ mesa: h, x: x + 0.5, y: y + 0.5, cell: idx(x, y) });
+    if ((x * 5 + y * 7) % 2 !== 0) continue;                          // thin out for perf
+    const hc = height[idx(x, y)];
     propDefs.push({ kind: "rock", v: (x * 3 + y) % 8,
-      fit: 0.8 + ((x + y) % 3) * 0.15,
-      x: x + 0.5, y: y + 0.5, z: h, cell: idx(x, y) });
+      fit: 0.7 + Math.min(1.4, hc * 0.4) + ((x + y) % 3) * 0.12,
+      x: x + 0.4 + ((x * 7 + y) % 4) * 0.06, y: y + 0.4 + ((y * 7 + x) % 4) * 0.06,
+      z: 0, cell: idx(x, y) });
   }
   for (const pr of decor) {
     const kind = pr.flora ? (pr.v % 3 === 0 ? "bush" : "cactus") : "rock";
