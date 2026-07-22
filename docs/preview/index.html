@@ -717,6 +717,20 @@ var STRUCT_BUILDERS = {
     H.box(r, 0.34, 0, 0.4, 0.1, 0.16, 0.3, C.BLUEGREY);
     return { root: r, fit: 0.96 };
   },
+  dm_bridge: (H) => {                          // walkable span across water (1x3)
+    const C = H.C, r = H.group();
+    // deck (long along Y), slightly cambered
+    H.box(r, 0, 0, 0.16, 0.92, 2.9, 0.1, C.CONCRETE);
+    for (let i = -2; i <= 2; i++)                                 // plank seams
+      H.box(r, 0, i * 0.55, 0.215, 0.9, 0.05, 0.02, 0x4a463c);
+    for (const s of [-1, 1]) {                                    // guard rails
+      H.box(r, s * 0.44, 0, 0.32, 0.06, 2.9, 0.22, C.GUNMETAL);
+      for (let i = -2; i <= 2; i++) H.box(r, s * 0.44, i * 0.7, 0.26, 0.08, 0.08, 0.14, C.GUNMETAL);
+    }
+    for (const sy of [-1.1, 0, 1.1]) for (const s of [-1, 1])     // pylons down into the water
+      H.box(r, s * 0.34, sy, -0.15, 0.12, 0.12, 0.5, C.DM_DARK);
+    return { root: r, fit: 2.9 };
+  },
   dm_firestorm_gen: (H) => {
     const C = H.C, r = H.group();
     H.box(r, 0, 0, 0.3, 1.8, 1.8, 0.6, C.DM_ARMOR);                 // main block
@@ -1251,7 +1265,7 @@ const L = {
     repair: "🔧 תקן מבנה", repair_stop: "🔧 עצור תיקון",
     "nx_mcv": "משאית הקמה",
     "dm_wall": "חומת בטון", "dm_gate": "שער מבוצר", "dm_fs_emitter": "פולט חומת אש",
-    "dm_firestorm_gen": "מחולל חומת האש", fs_label: "חומת אש",
+    "dm_firestorm_gen": "מחולל חומת האש", "dm_bridge": "גשר מעבר", fs_label: "חומת אש",
     fs_ready: "חומת האש טעונה — לחצו להפעלה", fs_on: "חומת האש הופעלה — 10 שניות!",
     needs_dm_firestorm_gen: "דרוש: מחולל חומת האש", deploy: "🏗️ פרוס למתחם בנייה",
     deployed: "מתחם הבנייה נפרס — הבסיס פעיל!",
@@ -1310,7 +1324,7 @@ const L = {
     repair: "🔧 REPAIR", repair_stop: "🔧 STOP REPAIR",
     "nx_mcv": "Mobile Construction Vehicle",
     "dm_wall": "Concrete Wall", "dm_gate": "Fortified Gate", "dm_fs_emitter": "Firestorm Emitter",
-    "dm_firestorm_gen": "Firestorm Generator", fs_label: "FIRESTORM",
+    "dm_firestorm_gen": "Firestorm Generator", "dm_bridge": "Bridge", fs_label: "FIRESTORM",
     fs_ready: "Firestorm wall charged — click to activate", fs_on: "Firestorm wall active — 10 seconds!",
     needs_dm_firestorm_gen: "Requires: Firestorm Generator", deploy: "🏗️ DEPLOY CONSTRUCTION YARD",
     deployed: "Construction yard deployed — base online!",
@@ -1406,11 +1420,12 @@ const STRUCTS = {
   dm_gate:         { hp: 450, cost: 150,  fw: 1, fh: 1, power: 0,   sight: 2, gate: true },
   dm_fs_emitter:   { hp: 400, cost: 120,  fw: 1, fh: 1, power: -5,  sight: 1, fsem: true },
   dm_firestorm_gen:{ hp: 800, cost: 1500, fw: 2, fh: 2, power: -75, sight: 4, super: "fs" },
+  dm_bridge:       { hp: 400, cost: 200,  fw: 1, fh: 3, power: 0,   sight: 1, bridge: true },
 };
 const BUILD_STRUCTS = ["dm_power_plant", "dm_barracks", "nx_refinery", "nx_silo", "dm_factory",
                        "dm_wall", "dm_gate", "dm_helipad", "dm_service_depot", "dm_guard_tower", "dm_radar",
                        "dm_rocket_tower", "dm_aa_tower", "dm_tech_center", "nx_emp_cannon", "dm_ion_uplink",
-                       "dm_firestorm_gen", "dm_fs_emitter"];
+                       "dm_firestorm_gen", "dm_fs_emitter", "dm_bridge"];
 // extra tech requirements (id -> required structure)
 const REQUIRES = { dm_rocket_tower: "dm_radar", dm_mammoth: "dm_tech_center", dm_hover_mlrs: "dm_tech_center",
   dm_disruptor: "dm_tech_center", dm_sensor: "dm_radar", dm_jumptrooper: "dm_radar", dm_railhero: "dm_tech_center",
@@ -1454,13 +1469,13 @@ let seed = 1337;
 const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
 
 // terrain: 0 dirt, 1 rock(block), 2 dark dirt
-let terrain, crystal, blocked, explored, visible;
+let terrain, crystal, blocked, explored, visible, height;
 let ents, projectiles, particles, beams, flashes, rings, corpses, decor;
 let credits, powerOut, powerUse, queues, placing;
 let worldVersion = 0;
 let supers, superAim, ionStrikes, fireballs;
 let wepLvl, armLvl;
-let gateAt, gateTimer, fsActive;
+let gateAt, gateTimer, fsActive, bridgeCells;
 let camX, camY, zoom, running = false, over = false;
 let waveTimer, waveNum, evaTimer = 0, atkWarnCd = 0, selBox = null, tSec = 0;
 
@@ -1470,6 +1485,17 @@ const mmctx = mm.getContext("2d");
 
 function idx(x, y) { return y * MAP + x; }
 function inMap(x, y) { return x >= 0 && y >= 0 && x < MAP && y < MAP; }
+// smooth (bilinear) terrain elevation at any continuous point
+function heightAt(x, y) {
+  if (!height) return 0;
+  x = Math.max(0, Math.min(MAP - 1.001, x - 0.5));
+  y = Math.max(0, Math.min(MAP - 1.001, y - 0.5));
+  const x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0;
+  const h00 = height[idx(x0, y0)], h10 = height[idx(x0 + 1, y0)];
+  const h01 = height[idx(x0, y0 + 1)], h11 = height[idx(x0 + 1, y0 + 1)];
+  return h00 * (1 - fx) * (1 - fy) + h10 * fx * (1 - fy) +
+         h01 * (1 - fx) * fy + h11 * fx * fy;
+}
 
 function makeWorld() {
   seed = 1337 + (waveNum || 0);
@@ -1478,6 +1504,8 @@ function makeWorld() {
   blocked = new Uint8Array(MAP * MAP);
   explored = new Uint8Array(MAP * MAP);
   visible = new Uint8Array(MAP * MAP);
+  height = new Float32Array(MAP * MAP);  // walkable elevation (hills)
+  bridgeCells = {};
   ents = []; projectiles = []; particles = []; beams = []; flashes = []; rings = []; corpses = [];
   credits = 3000; queues = { structure: null, infantry: null, vehicle: null, aircraft: null }; placing = null;
   supers = { emp: { t: 0, dur: 75, ready: false }, ion: { t: 0, dur: 140, ready: false },
@@ -1509,6 +1537,23 @@ function makeWorld() {
       x += (rnd() * 3 - 1) | 0; y += (rnd() * 3 - 1) | 0;
     }
   }
+  // walkable hills: raised ground you can climb for a high-ground advantage
+  // (does NOT block movement — only rock ridges/water block)
+  const hills = [[MAP * 0.5, MAP * 0.5, 9, 2.4], [MAP * 0.3, MAP * 0.42, 7, 1.8],
+                 [MAP * 0.7, MAP * 0.6, 7, 1.9], [MAP * 0.42, MAP * 0.72, 6, 1.5],
+                 [MAP * 0.6, MAP * 0.28, 6, 1.5]];
+  for (const [hx, hy, hr, hh] of hills) {
+    for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
+      if (terrain[idx(x, y)] === 3) continue;                 // hills don't rise from water
+      if ((x < 12 && y > MAP - 13) || (x > MAP - 13 && y < 12)) continue;  // keep bases flat
+      const d = Math.hypot(x - hx, y - hy) / hr;
+      if (d < 1) {
+        const rise = hh * (0.5 + 0.5 * Math.cos(d * Math.PI));  // smooth dome
+        if (rise > height[idx(x, y)]) height[idx(x, y)] = rise;
+      }
+    }
+  }
+
   // crystal fields (positions relative to map size)
   const F = (fx, fy, r, kind) => [Math.round(MAP * fx), Math.round(MAP * fy), r, kind];
   const fields = [F(.2, .76, 5, 1), F(.8, .13, 5, 1),   // starter fields by each base
@@ -1605,6 +1650,13 @@ function spawnStruct(type, gx, gy, owner) {
     if (inMap(x, y)) blocked[idx(x, y)] = 1;
   if (b.fsem) blocked[idx(gx, gy)] = 0;      // firestorm sections are flat until powered
   if (b.gate) gateAt[idx(gx, gy)] = e;
+  if (b.bridge) {                            // a bridge makes its span walkable
+    for (let y = gy; y < gy + b.fh; y++) for (let x = gx; x < gx + b.fw; x++)
+      if (inMap(x, y)) {
+        blocked[idx(x, y)] = 0; bridgeCells[idx(x, y)] = 1;
+        if (terrain[idx(x, y)] === 3) height[idx(x, y)] = 0.5;   // walk on the deck
+      }
+  }
   ents.push(e); updatePower();
   if (owner === 0) buildButtons();   // a new producer may unlock sections
   // a fresh refinery puts idle/roaming harvesters back to work automatically
@@ -1624,8 +1676,13 @@ function killEnt(e) {
     else if (!UNITS[e.type].infantry) corpses.push({ type: null, x: e.x, y: e.y, t: 0, life: 7 });
   }
   if (e.kind === "struct") {
+    const wasBridge = STRUCTS[e.type].bridge;
     for (let y = e.gy; y < e.gy + e.fh; y++) for (let x = e.gx; x < e.gx + e.fw; x++)
-      if (inMap(x, y)) blocked[idx(x, y)] = 0;
+      if (inMap(x, y)) {
+        // a destroyed bridge drops back into water again
+        if (wasBridge && terrain[idx(x, y)] === 3) { blocked[idx(x, y)] = 1; height[idx(x, y)] = 0; delete bridgeCells[idx(x, y)]; }
+        else { blocked[idx(x, y)] = 0; if (wasBridge) delete bridgeCells[idx(x, y)]; }
+      }
     if (STRUCTS[e.type].gate) delete gateAt[idx(e.gx, e.gy)];
     boom(e.x, e.y, 1.6, e.owner);
     corpses.push({ type: "ruin", x: e.x, y: e.y, fw: e.fw, fh: e.fh, t: 0, life: 30 });
@@ -1700,8 +1757,12 @@ function cancelOne(q) {
 function sellStruct(e) {
   if (e.dead || e.owner !== 0 || e.kind !== "struct") return;
   e.dead = true; e.sel = false;
+  const wasBridge = STRUCTS[e.type].bridge;
   for (let y = e.gy; y < e.gy + e.fh; y++) for (let x = e.gx; x < e.gx + e.fw; x++)
-    if (inMap(x, y)) blocked[idx(x, y)] = 0;
+    if (inMap(x, y)) {
+      if (wasBridge && terrain[idx(x, y)] === 3) { blocked[idx(x, y)] = 1; height[idx(x, y)] = 0; delete bridgeCells[idx(x, y)]; }
+      else { blocked[idx(x, y)] = 0; if (wasBridge) delete bridgeCells[idx(x, y)]; }
+    }
   if (STRUCTS[e.type].gate) delete gateAt[idx(e.gx, e.gy)];
   updatePower();
   // 15% loss on the sale: refund 85% of the build cost
@@ -2144,7 +2205,8 @@ function combatAI(e, b, dt) {
   }
   if (e.target) {
     const d = Math.hypot(e.target.x - e.x, e.target.y - e.y);
-    if (d <= w.range) {
+    const rng = w.range + (highGround(e, e.target) > 0.6 ? 1 : 0);
+    if (d <= rng) {
       e.path = null;
       e.face = Math.atan2(e.target.y - e.y, e.target.x - e.x);
       if (e.cd <= 0) { fire(e, e.target, w, b.weapon); e.cd = w.rof; if (b.stealth) e.decloak = 1.6; }
@@ -2208,8 +2270,11 @@ function structAI(e, dt) {
     fire(e, e.target, w, b.weapon); e.cd = w.rof;
   }
 }
+// high-ground: firing down from a hill grants extra range + damage
+function highGround(e, t) { return heightAt(e.x, e.y) - heightAt(t.x, t.y); }
 function fire(e, t, w, wid) {
   sfx(w.beam ? "laser" : "shot");
+  const dmg = w.dmg * (highGround(e, t) > 0.6 ? 1.3 : 1);   // high-ground bonus
   const fa = Math.atan2(t.y - e.y, t.x - e.x);
   const barrel = IS_VEH(e.type) ? 0.6 : 0.3;
   const ox = e.x + Math.cos(fa) * barrel, oy = e.y + Math.sin(fa) * barrel;
@@ -2232,23 +2297,23 @@ function fire(e, t, w, wid) {
         if (o.dead || o.owner === e.owner) continue;
         const tt = Math.max(0, Math.min(1, ((o.x - e.x) * dx2 + (o.y - e.y) * dy2) / len2));
         const px3 = e.x + dx2 * tt, py3 = e.y + dy2 * tt;
-        if (Math.hypot(o.x - px3, o.y - py3) < 0.55) hit(o, w.dmg, e.owner, w.vs);
+        if (Math.hypot(o.x - px3, o.y - py3) < 0.55) hit(o, dmg, e.owner, w.vs);
       }
     } else {
-      hit(t, w.dmg, e.owner, w.vs);
+      hit(t, dmg, e.owner, w.vs);
     }
     beams.push({ x1: e.x, y1: e.y - (wid === "obelisk_beam" ? 1.6 : 0.5), x2: ex2, y2: ey2, t: 0,
       c: w.tracer, thick: wid === "obelisk_beam" || w.pierce });
   }
   else if (w.instant) {
     beams.push({ x1: ox, y1: oy - 0.2, x2: t.x + (rnd() - 0.5) * 0.3, y2: t.y + (rnd() - 0.5) * 0.3, t: 0.06, c: w.tracer });
-    hit(t, w.dmg, e.owner, w.vs);
+    hit(t, dmg, e.owner, w.vs);
   } else {
     const shots = w.burst || 1;
     const d0 = Math.hypot(t.x - ox, t.y - oy);
     for (let s = 0; s < shots; s++)
       projectiles.push({ x: ox + (rnd() - 0.5) * 0.2, y: oy + (rnd() - 0.5) * 0.2, target: t,
-        dmg: w.dmg, speed: w.speed, owner: e.owner, c: w.tracer, vs: w.vs, trail: [],
+        dmg: dmg, speed: w.speed, owner: e.owner, c: w.tracer, vs: w.vs, trail: [],
         splash: w.splash, arc: w.arc, sx0: ox, sy0: oy, dist0: Math.max(0.6, d0),
         smoke: wid === "rocket" || !!w.burst, delay: s * 0.13 });
   }
@@ -2398,6 +2463,19 @@ function drawMinimap() {
 let placingSpot = null;
 function canPlace(type, gx, gy) {
   const b = STRUCTS[type];
+  if (b.bridge) {
+    // a bridge lays across water: cells must be water or clear ground (not
+    // rock, not another building) and the span must touch at least one water tile
+    let touchesWater = false;
+    for (let y = gy; y < gy + b.fh; y++) for (let x = gx; x < gx + b.fw; x++) {
+      if (!inMap(x, y) || crystal[idx(x, y)]) return false;
+      const t = terrain[idx(x, y)];
+      if (t === 1) return false;                                 // not on rock ridges
+      if (t === 3) touchesWater = true;
+      else if (blocked[idx(x, y)]) return false;                 // clear ground already occupied
+    }
+    return touchesWater;
+  }
   for (let y = gy; y < gy + b.fh; y++) for (let x = gx; x < gx + b.fw; x++)
     if (!inMap(x, y) || blocked[idx(x, y)] || crystal[idx(x, y)]) return false;
   // adjacency: within 4 cells of an own structure
@@ -2894,7 +2972,7 @@ function pickEntity(sx, sy) {
     for (const e of ents) {
       if (e.dead || e.kind !== kind) continue;
       if (e.owner === 1 && !visible[idx(Math.min(MAP-1, e.x|0), Math.min(MAP-1, e.y|0))]) continue;
-      const [ex, ey] = toScreen(e.x, e.y, e.kind === "struct" ? 0.7 : 0.35);
+      const [ex, ey] = toScreen(e.x, e.y, heightAt(e.x, e.y) + (e.kind === "struct" ? 0.7 : 0.35));
       const rad = (e.kind === "struct" ? e.fw * 26 : 20) * Math.min(zoom, 1.8) * (vh / 900);
       const d = Math.hypot(ex - sx, ey - sy);
       if (d < rad && d < bd) { bd = d; best = e; }
@@ -3236,7 +3314,8 @@ function rebuildProps() {
     }
     const b = PROP_BUILDERS[d.kind](H, d.v);
     H.fitTo(b.root, b.fit * (typeof d.fit === "number" ? d.fit : 1));
-    b.root.position.x += d.x; b.root.position.y += d.y; b.root.position.z += d.z || 0;
+    b.root.position.x += d.x; b.root.position.y += d.y;
+    b.root.position.z += (d.z || 0) + heightAt(d.x, d.y);
     g.add(b.root);
   }
   propMesh = mergeGroupStatic(g);
@@ -3320,7 +3399,16 @@ function buildWorld() {
     if (oasis || patch) grassCell[idx(x, y)] = 1;
   }
 
-  // terrain: one quad per cell, per-cell color × tiling detail noise
+  // smooth per-corner elevation (average of the cells meeting at a corner)
+  const cornerH = (cx, cy) => {
+    let s = 0, n = 0;
+    for (const [dx, dy] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) {
+      const x = cx + dx, y = cy + dy;
+      if (inMap(x, y) && terrain[idx(x, y)] !== 3) { s += height[idx(x, y)]; n++; }
+    }
+    return n ? s / n : 0;
+  };
+  // terrain: one quad per cell, per-cell color × tiling detail noise, hills raised
   const pos = [], col = [], nrm = [], uvs = [], idxA = [];
   const c3 = new THREE.Color();
   let vi = 0;
@@ -3328,11 +3416,12 @@ function buildWorld() {
     const t = terrain[idx(x, y)];
     const water = t === 3;
     const grass = grassCell[idx(x, y)];
-    c3.setHex(grass ? 0x4f7a34 : T_COLORS[t]);
+    const hc = height[idx(x, y)];
+    c3.setHex(grass ? 0x4f7a34 : (hc > 1.2 ? 0x6a6152 : T_COLORS[t]));  // high slopes rockier
     const shade = 0.9 + ((x * 31 + y * 17) % 7) * 0.022;    // deterministic patchwork
     const zb = water ? -0.28 : 0;
     for (const [ox, oy] of [[0, 0], [1, 0], [1, 1], [0, 1]]) {
-      pos.push(x + ox, y + oy, zb);
+      pos.push(x + ox, y + oy, zb + cornerH(x + ox, y + oy));
       col.push(c3.r * shade, c3.g * shade, c3.b * shade);
       nrm.push(0, 0, 1);
       uvs.push((x + ox) * 0.34, (y + oy) * 0.34);
@@ -3343,9 +3432,9 @@ function buildWorld() {
   const tg = new THREE.BufferGeometry();
   tg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   tg.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
-  tg.setAttribute("normal", new THREE.Float32BufferAttribute(nrm, 3));
   tg.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   tg.setIndex(idxA);
+  tg.computeVertexNormals();                                // real slope shading
   const terr = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({
     vertexColors: true, map: groundTex, roughness: 1, metalness: 0 }));
   terr.receiveShadow = true;
@@ -3574,7 +3663,7 @@ function syncEnts(dt) {
         vx: 0, vy: 0, g: -0.5, t: 0, life: 1.4,
         c: Math.random() < 0.3 ? "#6a6152" : "#2b2b28", s: 3 });
     if (e.kind === "struct") {
-      v.wrap.position.set(e.x, e.y, 0);
+      v.wrap.position.set(e.x, e.y, STRUCTS[e.type].bridge ? 0 : heightAt(e.x, e.y));
       if (v.spin) {
         if (v.type === "dm_gate") {   // barrier slides down into the ground when open
           const tz = e.gateOpen ? -0.62 : 0;
@@ -3587,7 +3676,9 @@ function syncEnts(dt) {
     const b = UNITS[e.type];
     const alt = b.flying ? (b.infantry ? 0.55 : 1.15) + Math.sin(e.anim * 1.6) * 0.07 : 0;
     const bob = b.walker ? Math.abs(Math.sin(e.anim * 4)) * 0.045 : 0;
-    v.wrap.position.set(e.x, e.y, alt + bob);
+    const gc = idx(Math.min(MAP - 1, e.x | 0), Math.min(MAP - 1, e.y | 0));
+    const gz = bridgeCells[gc] ? 0.5 : heightAt(e.x, e.y);   // ride the bridge deck
+    v.wrap.position.set(e.x, e.y, gz + alt + bob);
     v.wrap.rotation.z = (e.face || 0) - Math.PI / 2;
     if (v.p0) {   // infantry leg swing
       const moving = !!e.path;
@@ -3642,7 +3733,7 @@ function syncCorpses() {
         b.root.position.z = 0.06;
         g.add(b.root);
       }
-      g.position.set(c.x, c.y, 0.02);
+      g.position.set(c.x, c.y, 0.02 + heightAt(c.x, c.y));
       g.rotation.z = (c.face || 0);
       scene.add(g);
       v = { g }; corpseViews.set(c._vid, v);
@@ -3668,8 +3759,8 @@ function drawBeams() {
     if (!m) { m = new THREE.Mesh(beamGeo, addMat(0xffffff, 1)); m.renderOrder = 7; scene.add(m); beamPool.push(m); }
     bi++;
     const a = 1 - bm.t / 0.16;
-    const p1 = new THREE.Vector3(bm.x1, bm.y1, 0.55 + (bm.thick ? 0.7 : 0));
-    const p2 = new THREE.Vector3(bm.x2, bm.y2, 0.35);
+    const p1 = new THREE.Vector3(bm.x1, bm.y1, 0.55 + (bm.thick ? 0.7 : 0) + heightAt(bm.x1, bm.y1));
+    const p2 = new THREE.Vector3(bm.x2, bm.y2, 0.35 + heightAt(bm.x2, bm.y2));
     const mid = p1.clone().add(p2).multiplyScalar(0.5);
     m.position.copy(mid);
     m.scale.set(bm.thick ? 0.09 : 0.035, bm.thick ? 0.09 : 0.035, p1.distanceTo(p2));
@@ -3694,7 +3785,7 @@ function drawProjectiles() {
       const prog = Math.min(1, Math.hypot(p.x - p.sx0, p.y - p.sy0) / p.dist0);
       hh = 0.4 + Math.sin(prog * Math.PI) * p.dist0 * 0.35;
     }
-    m.position.set(p.x, p.y, hh);
+    m.position.set(p.x, p.y, hh + heightAt(p.x, p.y));
     const t = p.target;
     if (t) m.lookAt(t.x, t.y, 0.4);
     m.material.color.set(p.c);
@@ -3726,7 +3817,7 @@ function drawFlashes() {
     if (!s) { s = new THREE.Sprite(billboardMat(1)); s.renderOrder = 8; scene.add(s); flashPool.push(s); }
     fi++;
     const a = 1 - f.t / 0.07;
-    s.position.set(f.x, f.y, 0.55);
+    s.position.set(f.x, f.y, 0.55 + heightAt(f.x, f.y));
     const sc = f.big ? 1.1 : 0.6;
     s.scale.set(sc, sc, 1);
     s.material.opacity = a;
@@ -3883,13 +3974,19 @@ function drawGhost() {
 /* ---------- HUD overlay (hp bars, boxes, reticle, wrench) ---------- */
 function drawHud() {
   hudctx.clearRect(0, 0, vw, vh);
+  // enemies currently marked for attack by any of the player's units
+  const marked = new Set();
+  for (const u of ents)
+    if (!u.dead && u.owner === 0 && u.kind === "unit" && u.target && !u.target.dead && u.target.owner === 1)
+      marked.add(u.target);
   for (const e of ents) {
     if (e.dead || entHidden(e)) continue;
     const show = e.sel || e.hp < e.maxhp;
     const isStruct = e.kind === "struct";
+    const gz = e.kind === "struct" ? heightAt(e.x, e.y) : heightAt(e.x, e.y);
     if (show) {
-      const zTop = isStruct ? Math.max(e.fw, e.fh) * 0.9 + 0.4
-        : (UNITS[e.type].flying ? 1.9 : (UNITS[e.type].infantry ? 0.85 : 1.0));
+      const zTop = (isStruct ? Math.max(e.fw, e.fh) * 0.9 + 0.4
+        : (UNITS[e.type].flying ? 1.9 : (UNITS[e.type].infantry ? 0.85 : 1.0))) + gz;
       const [sx, sy] = toScreen(e.x, e.y, zTop);
       const w = (isStruct ? 46 : 26) * Math.min(zoom, 1.6);
       const frac = Math.max(0, e.hp / e.maxhp);
@@ -3899,9 +3996,25 @@ function drawHud() {
       hudctx.fillRect(sx - w / 2, sy, w * frac, 4);
     }
     if (isStruct && e.repairing && ((tSec * 2) | 0) % 2 === 0) {
-      const [sx, sy] = toScreen(e.x, e.y, Math.max(e.fw, e.fh) * 0.75);
+      const [sx, sy] = toScreen(e.x, e.y, Math.max(e.fw, e.fh) * 0.75 + gz);
       hudctx.font = "17px sans-serif";
       hudctx.fillText("🔧", sx - 8, sy);
+    }
+    // RED attack marker on any enemy our units are targeting
+    if (marked.has(e)) {
+      const [sx, sy] = toScreen(e.x, e.y, gz + (isStruct ? 0.3 : 0.2));
+      const rad = (isStruct ? 26 : 15) * Math.min(zoom, 1.7);
+      const rot = tSec * 1.6;
+      hudctx.strokeStyle = "#ff2e3a"; hudctx.lineWidth = 2.2;
+      hudctx.beginPath(); hudctx.arc(sx, sy, rad, 0, Math.PI * 2); hudctx.stroke();
+      // rotating corner ticks + crosshair
+      hudctx.lineWidth = 2.6;
+      for (let k = 0; k < 4; k++) {
+        const a = rot + k * Math.PI / 2;
+        const ix = sx + Math.cos(a) * rad, iy = sy + Math.sin(a) * rad;
+        const ox = sx + Math.cos(a) * (rad + 6), oy = sy + Math.sin(a) * (rad + 6);
+        hudctx.beginPath(); hudctx.moveTo(ix, iy); hudctx.lineTo(ox, oy); hudctx.stroke();
+      }
     }
   }
   if (selBox) {

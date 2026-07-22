@@ -94,7 +94,7 @@ src = src.replace("""    const pan = 12 * dt / Math.max(zoom, 0.7);
 src = src.replace("""      const [ex, ey] = toScreen(e.x, e.y);
       const rad = e.kind === "struct" ? (e.fw * TW / 3) * zoom : 16 * zoom;
       const d = Math.hypot(ex - sx, (ey - 8 * zoom) - sy);""",
-"""      const [ex, ey] = toScreen(e.x, e.y, e.kind === "struct" ? 0.7 : 0.35);
+"""      const [ex, ey] = toScreen(e.x, e.y, heightAt(e.x, e.y) + (e.kind === "struct" ? 0.7 : 0.35));
       const rad = (e.kind === "struct" ? e.fw * 26 : 20) * Math.min(zoom, 1.8) * (vh / 900);
       const d = Math.hypot(ex - sx, ey - sy);""")
 

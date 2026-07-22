@@ -191,7 +191,8 @@ function rebuildProps() {
     }
     const b = PROP_BUILDERS[d.kind](H, d.v);
     H.fitTo(b.root, b.fit * (typeof d.fit === "number" ? d.fit : 1));
-    b.root.position.x += d.x; b.root.position.y += d.y; b.root.position.z += d.z || 0;
+    b.root.position.x += d.x; b.root.position.y += d.y;
+    b.root.position.z += (d.z || 0) + heightAt(d.x, d.y);
     g.add(b.root);
   }
   propMesh = mergeGroupStatic(g);
@@ -275,7 +276,16 @@ function buildWorld() {
     if (oasis || patch) grassCell[idx(x, y)] = 1;
   }
 
-  // terrain: one quad per cell, per-cell color × tiling detail noise
+  // smooth per-corner elevation (average of the cells meeting at a corner)
+  const cornerH = (cx, cy) => {
+    let s = 0, n = 0;
+    for (const [dx, dy] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) {
+      const x = cx + dx, y = cy + dy;
+      if (inMap(x, y) && terrain[idx(x, y)] !== 3) { s += height[idx(x, y)]; n++; }
+    }
+    return n ? s / n : 0;
+  };
+  // terrain: one quad per cell, per-cell color × tiling detail noise, hills raised
   const pos = [], col = [], nrm = [], uvs = [], idxA = [];
   const c3 = new THREE.Color();
   let vi = 0;
@@ -283,11 +293,12 @@ function buildWorld() {
     const t = terrain[idx(x, y)];
     const water = t === 3;
     const grass = grassCell[idx(x, y)];
-    c3.setHex(grass ? 0x4f7a34 : T_COLORS[t]);
+    const hc = height[idx(x, y)];
+    c3.setHex(grass ? 0x4f7a34 : (hc > 1.2 ? 0x6a6152 : T_COLORS[t]));  // high slopes rockier
     const shade = 0.9 + ((x * 31 + y * 17) % 7) * 0.022;    // deterministic patchwork
     const zb = water ? -0.28 : 0;
     for (const [ox, oy] of [[0, 0], [1, 0], [1, 1], [0, 1]]) {
-      pos.push(x + ox, y + oy, zb);
+      pos.push(x + ox, y + oy, zb + cornerH(x + ox, y + oy));
       col.push(c3.r * shade, c3.g * shade, c3.b * shade);
       nrm.push(0, 0, 1);
       uvs.push((x + ox) * 0.34, (y + oy) * 0.34);
@@ -298,9 +309,9 @@ function buildWorld() {
   const tg = new THREE.BufferGeometry();
   tg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   tg.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
-  tg.setAttribute("normal", new THREE.Float32BufferAttribute(nrm, 3));
   tg.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   tg.setIndex(idxA);
+  tg.computeVertexNormals();                                // real slope shading
   const terr = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({
     vertexColors: true, map: groundTex, roughness: 1, metalness: 0 }));
   terr.receiveShadow = true;
@@ -529,7 +540,7 @@ function syncEnts(dt) {
         vx: 0, vy: 0, g: -0.5, t: 0, life: 1.4,
         c: Math.random() < 0.3 ? "#6a6152" : "#2b2b28", s: 3 });
     if (e.kind === "struct") {
-      v.wrap.position.set(e.x, e.y, 0);
+      v.wrap.position.set(e.x, e.y, STRUCTS[e.type].bridge ? 0 : heightAt(e.x, e.y));
       if (v.spin) {
         if (v.type === "dm_gate") {   // barrier slides down into the ground when open
           const tz = e.gateOpen ? -0.62 : 0;
@@ -542,7 +553,9 @@ function syncEnts(dt) {
     const b = UNITS[e.type];
     const alt = b.flying ? (b.infantry ? 0.55 : 1.15) + Math.sin(e.anim * 1.6) * 0.07 : 0;
     const bob = b.walker ? Math.abs(Math.sin(e.anim * 4)) * 0.045 : 0;
-    v.wrap.position.set(e.x, e.y, alt + bob);
+    const gc = idx(Math.min(MAP - 1, e.x | 0), Math.min(MAP - 1, e.y | 0));
+    const gz = bridgeCells[gc] ? 0.5 : heightAt(e.x, e.y);   // ride the bridge deck
+    v.wrap.position.set(e.x, e.y, gz + alt + bob);
     v.wrap.rotation.z = (e.face || 0) - Math.PI / 2;
     if (v.p0) {   // infantry leg swing
       const moving = !!e.path;
@@ -597,7 +610,7 @@ function syncCorpses() {
         b.root.position.z = 0.06;
         g.add(b.root);
       }
-      g.position.set(c.x, c.y, 0.02);
+      g.position.set(c.x, c.y, 0.02 + heightAt(c.x, c.y));
       g.rotation.z = (c.face || 0);
       scene.add(g);
       v = { g }; corpseViews.set(c._vid, v);
@@ -623,8 +636,8 @@ function drawBeams() {
     if (!m) { m = new THREE.Mesh(beamGeo, addMat(0xffffff, 1)); m.renderOrder = 7; scene.add(m); beamPool.push(m); }
     bi++;
     const a = 1 - bm.t / 0.16;
-    const p1 = new THREE.Vector3(bm.x1, bm.y1, 0.55 + (bm.thick ? 0.7 : 0));
-    const p2 = new THREE.Vector3(bm.x2, bm.y2, 0.35);
+    const p1 = new THREE.Vector3(bm.x1, bm.y1, 0.55 + (bm.thick ? 0.7 : 0) + heightAt(bm.x1, bm.y1));
+    const p2 = new THREE.Vector3(bm.x2, bm.y2, 0.35 + heightAt(bm.x2, bm.y2));
     const mid = p1.clone().add(p2).multiplyScalar(0.5);
     m.position.copy(mid);
     m.scale.set(bm.thick ? 0.09 : 0.035, bm.thick ? 0.09 : 0.035, p1.distanceTo(p2));
@@ -649,7 +662,7 @@ function drawProjectiles() {
       const prog = Math.min(1, Math.hypot(p.x - p.sx0, p.y - p.sy0) / p.dist0);
       hh = 0.4 + Math.sin(prog * Math.PI) * p.dist0 * 0.35;
     }
-    m.position.set(p.x, p.y, hh);
+    m.position.set(p.x, p.y, hh + heightAt(p.x, p.y));
     const t = p.target;
     if (t) m.lookAt(t.x, t.y, 0.4);
     m.material.color.set(p.c);
@@ -681,7 +694,7 @@ function drawFlashes() {
     if (!s) { s = new THREE.Sprite(billboardMat(1)); s.renderOrder = 8; scene.add(s); flashPool.push(s); }
     fi++;
     const a = 1 - f.t / 0.07;
-    s.position.set(f.x, f.y, 0.55);
+    s.position.set(f.x, f.y, 0.55 + heightAt(f.x, f.y));
     const sc = f.big ? 1.1 : 0.6;
     s.scale.set(sc, sc, 1);
     s.material.opacity = a;
@@ -838,13 +851,19 @@ function drawGhost() {
 /* ---------- HUD overlay (hp bars, boxes, reticle, wrench) ---------- */
 function drawHud() {
   hudctx.clearRect(0, 0, vw, vh);
+  // enemies currently marked for attack by any of the player's units
+  const marked = new Set();
+  for (const u of ents)
+    if (!u.dead && u.owner === 0 && u.kind === "unit" && u.target && !u.target.dead && u.target.owner === 1)
+      marked.add(u.target);
   for (const e of ents) {
     if (e.dead || entHidden(e)) continue;
     const show = e.sel || e.hp < e.maxhp;
     const isStruct = e.kind === "struct";
+    const gz = e.kind === "struct" ? heightAt(e.x, e.y) : heightAt(e.x, e.y);
     if (show) {
-      const zTop = isStruct ? Math.max(e.fw, e.fh) * 0.9 + 0.4
-        : (UNITS[e.type].flying ? 1.9 : (UNITS[e.type].infantry ? 0.85 : 1.0));
+      const zTop = (isStruct ? Math.max(e.fw, e.fh) * 0.9 + 0.4
+        : (UNITS[e.type].flying ? 1.9 : (UNITS[e.type].infantry ? 0.85 : 1.0))) + gz;
       const [sx, sy] = toScreen(e.x, e.y, zTop);
       const w = (isStruct ? 46 : 26) * Math.min(zoom, 1.6);
       const frac = Math.max(0, e.hp / e.maxhp);
@@ -854,9 +873,25 @@ function drawHud() {
       hudctx.fillRect(sx - w / 2, sy, w * frac, 4);
     }
     if (isStruct && e.repairing && ((tSec * 2) | 0) % 2 === 0) {
-      const [sx, sy] = toScreen(e.x, e.y, Math.max(e.fw, e.fh) * 0.75);
+      const [sx, sy] = toScreen(e.x, e.y, Math.max(e.fw, e.fh) * 0.75 + gz);
       hudctx.font = "17px sans-serif";
       hudctx.fillText("🔧", sx - 8, sy);
+    }
+    // RED attack marker on any enemy our units are targeting
+    if (marked.has(e)) {
+      const [sx, sy] = toScreen(e.x, e.y, gz + (isStruct ? 0.3 : 0.2));
+      const rad = (isStruct ? 26 : 15) * Math.min(zoom, 1.7);
+      const rot = tSec * 1.6;
+      hudctx.strokeStyle = "#ff2e3a"; hudctx.lineWidth = 2.2;
+      hudctx.beginPath(); hudctx.arc(sx, sy, rad, 0, Math.PI * 2); hudctx.stroke();
+      // rotating corner ticks + crosshair
+      hudctx.lineWidth = 2.6;
+      for (let k = 0; k < 4; k++) {
+        const a = rot + k * Math.PI / 2;
+        const ix = sx + Math.cos(a) * rad, iy = sy + Math.sin(a) * rad;
+        const ox = sx + Math.cos(a) * (rad + 6), oy = sy + Math.sin(a) * (rad + 6);
+        hudctx.beginPath(); hudctx.moveTo(ix, iy); hudctx.lineTo(ox, oy); hudctx.stroke();
+      }
     }
   }
   if (selBox) {

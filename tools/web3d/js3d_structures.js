@@ -36,6 +36,20 @@ var STRUCT_BUILDERS = {
     H.box(r, 0.34, 0, 0.4, 0.1, 0.16, 0.3, C.BLUEGREY);
     return { root: r, fit: 0.96 };
   },
+  dm_bridge: (H) => {                          // walkable span across water (1x3)
+    const C = H.C, r = H.group();
+    // deck (long along Y), slightly cambered
+    H.box(r, 0, 0, 0.16, 0.92, 2.9, 0.1, C.CONCRETE);
+    for (let i = -2; i <= 2; i++)                                 // plank seams
+      H.box(r, 0, i * 0.55, 0.215, 0.9, 0.05, 0.02, 0x4a463c);
+    for (const s of [-1, 1]) {                                    // guard rails
+      H.box(r, s * 0.44, 0, 0.32, 0.06, 2.9, 0.22, C.GUNMETAL);
+      for (let i = -2; i <= 2; i++) H.box(r, s * 0.44, i * 0.7, 0.26, 0.08, 0.08, 0.14, C.GUNMETAL);
+    }
+    for (const sy of [-1.1, 0, 1.1]) for (const s of [-1, 1])     // pylons down into the water
+      H.box(r, s * 0.34, sy, -0.15, 0.12, 0.12, 0.5, C.DM_DARK);
+    return { root: r, fit: 2.9 };
+  },
   dm_firestorm_gen: (H) => {
     const C = H.C, r = H.group();
     H.box(r, 0, 0, 0.3, 1.8, 1.8, 0.6, C.DM_ARMOR);                 // main block
