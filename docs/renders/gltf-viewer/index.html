@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiberium Dusk — 3D terrain (glTF)</title>
+<style>
+  html,body{margin:0;height:100%;background:#0d1117;overflow:hidden;font-family:system-ui,sans-serif}
+  #c{display:block;width:100vw;height:100vh}
+  #hud{position:fixed;left:12px;bottom:12px;color:#9fb0c0;font-size:12px;
+       background:rgba(0,0,0,.4);padding:6px 10px;border-radius:6px}
+  #err{position:fixed;left:12px;top:12px;color:#ff8080;font-size:13px;white-space:pre}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">loading…</div>
+<div id="err"></div>
+<script src="three.min.js"></script>
+<script src="GLTFLoader.js"></script>
+<script src="DRACOLoader.js"></script>
+<script src="OrbitControls.js"></script>
+<script>
+const showErr = m => { document.getElementById('err').textContent += m + "\n"; };
+window.addEventListener('error', e => showErr('ERR: ' + e.message));
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d1117);
+scene.fog = new THREE.Fog(0x14213a, 160, 520);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.5, 6000);
+
+const hemi = new THREE.HemisphereLight(0x9fb8ff, 0x3a2a18, 0.55); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffb060, 2.6);
+sun.position.set(-120, 200, 80); scene.add(sun);
+const rim = new THREE.DirectionalLight(0x4060b0, 0.5);
+rim.position.set(160, 80, -140); scene.add(rim);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.06;
+
+const draco = new THREE.DRACOLoader();
+draco.setDecoderPath('draco/');
+const loader = new THREE.GLTFLoader();
+loader.setDRACOLoader(draco);
+loader.load('terrain.glb', gltf => {
+  const model = gltf.scene;
+  model.rotation.x = -Math.PI/2;                    // glb is Z-up → lay flat for Y-up
+  model.traverse(o => {
+    if (o.isMesh && o.material) {
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach(m => {
+        if (m.emissive && (m.emissive.r + m.emissive.g + m.emissive.b) > 0.05)
+          m.emissiveIntensity = 1.8;
+      });
+    }
+  });
+  scene.add(model);
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  model.position.sub(center);
+  const radius = Math.max(size.x, size.z) * 0.5;
+  camera.position.set(radius*0.9, radius*0.95, radius*1.15);
+  controls.target.set(0,0,0); controls.update();
+  window.__loaded = true;
+  document.getElementById('hud').textContent =
+    'glTF (Draco) loaded ✓  ' + size.x.toFixed(0) + '×' + size.z.toFixed(0) +
+    ' units · drag = orbit · wheel = zoom';
+}, undefined, err => showErr('GLTF load failed: ' + (err && err.message || err)));
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+(function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+</script>
+</body>
+</html>

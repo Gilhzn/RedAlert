@@ -11,15 +11,22 @@ from mathutils import Vector
 # ----------------------------------------------------------------------------
 import os
 PREVIEW = os.environ.get("PREVIEW", "0") == "1"
-RES_X, RES_Y = (960, 540) if PREVIEW else (1920, 1080)
-SAMPLES      = 24 if PREVIEW else 200
+RES     = os.environ.get("RES", "1080")          # 1080 | 4k
+CAM     = os.environ.get("CAM", "hero")          # hero | dunes | topdown
+RENDER      = os.environ.get("RENDER", "1") == "1"
+EXPORT_GLTF = os.environ.get("EXPORT_GLTF", "0") == "1"
+GLB_OUT     = os.environ.get("GLB_OUT", "terrain.glb")
+if PREVIEW:      RES_X, RES_Y, SAMPLES = 960, 540, 24
+elif RES == "4k": RES_X, RES_Y, SAMPLES = 3840, 2160, int(os.environ.get("SAMPLES", "200"))
+else:            RES_X, RES_Y, SAMPLES = 1920, 1080, int(os.environ.get("SAMPLES", "200"))
 OUT = os.environ.get("OUT", "tiberium_dusk_map.png")
 
 # ----------------------------------------------------------------------------
 # 1. reconstruct the game world  (ports makeWorld() from the JS source)
 # ----------------------------------------------------------------------------
-MAP = 64
-ZS  = 1.7                       # height exaggeration for drama
+MAP = int(os.environ.get("MAPSIZE", "64"))  # 64 = game size; 128 = 4x area
+S   = MAP / 64.0                            # feature-size scale (keep grandeur when bigger)
+ZS  = float(os.environ.get("ZS", "1.7"))   # height exaggeration (renders); 1.0 for glTF
 
 seed = 1337                     # waveNum == 0
 def rnd():
@@ -62,11 +69,11 @@ def riverY(x): return MAP*0.5 + math.sin(x*0.13)*MAP*0.16 + math.cos(x*0.05)*MAP
 fords = [round(MAP*0.32), round(MAP*0.66)]
 for x in range(MAP):
     if any(abs(x-fx) <= 2 for fx in fords): continue
-    cy2 = riverY(x); half = 1.6 + vnoise(x, cy2)*1.4
+    cy2 = riverY(x); half = (1.6 + vnoise(x, cy2)*1.4)*S
     for y in range(math.floor(cy2-half), math.ceil(cy2+half)+1):
         if not inMap(x,y) or homeClear(x,y): continue
         terrain[idx(x,y)] = 3; blocked[idx(x,y)] = 1; height[idx(x,y)] = 0
-for lx, ly, lr in [[MAP*0.22, MAP*0.3, 5.5], [MAP*0.8, MAP*0.7, 6]]:
+for lx, ly, lr in [[MAP*0.22, MAP*0.3, 5.5*S], [MAP*0.8, MAP*0.7, 6*S]]:
     for y in range(MAP):
         for x in range(MAP):
             if homeClear(x,y): continue
@@ -81,14 +88,14 @@ for ax, ay, bx, by in ranges:
     steps = 40
     for s in range(steps+1):
         t = s/steps; mx = ax+(bx-ax)*t; my = ay+(by-ay)*t
-        wd = 2.6 + vnoise(mx*2, my*2)*2.2
+        wd = (2.6 + vnoise(mx*2, my*2)*2.2)*S
         for y in range(math.floor(my-wd), math.ceil(my+wd)+1):
             for x in range(math.floor(mx-wd), math.ceil(mx+wd)+1):
                 if not inMap(x,y) or homeClear(x,y) or terrain[idx(x,y)]==3: continue
                 d = math.hypot(x-mx, y-my)/wd
                 if d < 1:
                     terrain[idx(x,y)] = 1; blocked[idx(x,y)] = 1
-                    peak = (2.6 + vnoise(x,y)*2.4)*(0.4 + 0.6*math.cos(d*math.pi*0.5))
+                    peak = (2.6 + vnoise(x,y)*2.4)*(0.4 + 0.6*math.cos(d*math.pi*0.5))*S
                     if peak > height[idx(x,y)]: height[idx(x,y)] = peak
 
 # walkable hills
@@ -99,13 +106,13 @@ for hx, hy, hr, hh in hills:
         for x in range(MAP):
             if terrain[idx(x,y)]==3 or blocked[idx(x,y)] or homeClear(x,y): continue
             wob = 1 + (vnoise(x*1.5, y*1.5)-0.5)*0.5
-            d = math.hypot(x-hx, y-hy)/(hr*wob)
+            d = math.hypot(x-hx, y-hy)/(hr*S*wob)
             if d < 1:
                 rise = hh*(0.5 + 0.5*math.cos(d*math.pi))
                 if rise > height[idx(x,y)]: height[idx(x,y)] = rise
 
 # crystal fields
-def F(fx, fy, r, kind): return [round(MAP*fx), round(MAP*fy), r, kind]
+def F(fx, fy, r, kind): return [round(MAP*fx), round(MAP*fy), round(r*S), kind]
 def clearCentre(cx, cy):
     if inMap(cx,cy) and not blocked[idx(cx,cy)]: return (cx,cy)
     for rad in range(1,10):
@@ -134,7 +141,7 @@ for y in range(MAP):
 # distance-to-water via simple multi-pass relaxation on the 64 grid
 INF = 999
 dw = [0 if terrain[i]==3 else INF for i in range(MAP*MAP)]
-for _ in range(5):                        # 5 passes ~ radius 5
+for _ in range(int(5*S)+2):               # passes ~ meadow belt radius (scales with map)
     for y in range(MAP):
         for x in range(MAP):
             best = dw[idx(x,y)]
@@ -148,9 +155,9 @@ for y in range(MAP):
         i = idx(x,y)
         if terrain[i] in (0,2) and not blocked[i] and not crystal[i]:
             moist = 0
-            if dw[i] <= 3: moist = 1
+            if dw[i] <= 3*S: moist = 1
             # a broad verdant belt on the wetter noise pockets, too
-            if dw[i] <= 5 and vnoise(x*1.3+11, y*1.3+11) > 0.62: moist = 1
+            if dw[i] <= 5*S and vnoise(x*1.3+11, y*1.3+11) > 0.62: moist = 1
             if moist and height[i] < 1.3:
                 meadow[i] = 1
                 terrain[i] = 4
@@ -182,7 +189,7 @@ def cellAt(gx, gy):
 # ----------------------------------------------------------------------------
 # 3. terrain mesh (fine grid) with a vertex-colour biome blend
 # ----------------------------------------------------------------------------
-DIV = 3                                   # sub-cells per game cell
+DIV = int(os.environ.get("DIV", "3"))     # sub-cells per game cell (2 = lighter glb)
 NX = MAP*DIV                              # verts per side
 def col_for(i, h):
     t = terrain[i]
@@ -192,8 +199,8 @@ def col_for(i, h):
         hi = (0.40, 0.29, 0.23)           # weathered upper rock
         k = min(1.0, hn/4.5)
         base = tuple(lo[j]*(1-k) + hi[j]*k for j in range(3))
-        if hn > 4.4:                      # only the very tips catch snow
-            s = min(1.0, (hn-4.4)/1.2)*0.5
+        if hn > 4.4*S:                    # only the very tips catch snow
+            s = min(1.0, (hn-4.4*S)/(1.2*S))*0.5
             base = tuple(base[j]*(1-s) + (0.84,0.84,0.9)[j]*s for j in range(3))
         return base
     if t == 4:                            # meadow / grassland
@@ -415,18 +422,30 @@ bpy.context.collection.objects.link(fill)
 fill.rotation_euler = (math.radians(48), math.radians(-12), math.radians(-52))
 
 # ----------------------------------------------------------------------------
-# 8. camera — cinematic 3/4 iso framing of the whole map
+# 8. camera — hero 3/4 iso, low "in the dunes", or top-down tactical
 # ----------------------------------------------------------------------------
-cam_data = bpy.data.cameras.new("Cam"); cam_data.lens = 52
+cam_data = bpy.data.cameras.new("Cam")
+cam_data.clip_end = MAP * 8                     # keep the whole board in the frustum
 cam = bpy.data.objects.new("Cam", cam_data)
 bpy.context.collection.objects.link(cam)
 C = MAP/2
-cam.location = (C - 46, C - 60, 58)
-# aim at map centre
+M = MAP                                         # camera offsets scale with map size
 def look_at(obj, target):
     d = Vector(target) - obj.location
     obj.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()
-look_at(cam, (C+2, C+4, 3))
+if CAM == "topdown":
+    cam_data.type = 'ORTHO'
+    cam_data.ortho_scale = MAP * 1.03          # frame the whole board
+    cam.location = (C, C, MAP * 2.2)
+    cam.rotation_euler = (0.0, 0.0, 0.0)       # straight down, north (+Y) up
+elif CAM == "dunes":
+    cam_data.lens = 40                         # dramatic low 3/4
+    cam.location = (C - 0.53*M, C - 0.75*M, 0.30*M)   # low over the sand
+    look_at(cam, (C + 0.12*M, C + 0.12*M, 2.5))       # across the glowing valley
+else:  # hero
+    cam_data.lens = 52
+    cam.location = (C - 0.72*M, C - 0.94*M, 0.90*M)
+    look_at(cam, (C + 0.03*M, C + 0.06*M, 3))
 bpy.context.scene.camera = cam
 
 # ----------------------------------------------------------------------------
@@ -442,6 +461,8 @@ try:
     sc.cycles.use_denoising = True
     sc.cycles.denoiser = 'OPENIMAGEDENOISE'
 except Exception: pass
+if CAM == "topdown":                    # tactical map wants a square frame
+    RES_X = RES_Y = RES_Y
 sc.render.resolution_x = RES_X
 sc.render.resolution_y = RES_Y
 sc.render.resolution_percentage = 100
@@ -458,6 +479,27 @@ sc.view_settings.gamma = 1.02
 
 # (bloom + grade + vignette are applied as a numpy/PIL post-process — see post.py)
 
-print("Rendering %dx%d  samples=%d  ->  %s" % (RES_X, RES_Y, SAMPLES, OUT))
-bpy.ops.render.render(write_still=True)
-print("DONE", OUT)
+# ----------------------------------------------------------------------------
+# 10. optional glTF export (game-ready mesh for Three.js)
+# ----------------------------------------------------------------------------
+if EXPORT_GLTF:
+    for o in bpy.data.objects:
+        o.select_set(o.type == 'MESH')
+    kw = dict(filepath=GLB_OUT, export_format='GLB', use_selection=True,
+              export_apply=True, export_yup=False)   # keep Z-up (matches the game)
+    if os.environ.get("EXPORT_DRACO", "0") == "1":
+        kw['export_draco_mesh_compression_enable'] = True
+        kw['export_draco_mesh_compression_level'] = 6
+    try:
+        bpy.ops.export_scene.gltf(**kw)
+    except TypeError:
+        for k in ('export_yup', 'export_draco_mesh_compression_enable',
+                  'export_draco_mesh_compression_level'):
+            kw.pop(k, None)
+        bpy.ops.export_scene.gltf(**kw)
+    print("GLTF ->", GLB_OUT)
+
+if RENDER:
+    print("Rendering %dx%d  samples=%d  cam=%s  ->  %s" % (RES_X, RES_Y, SAMPLES, CAM, OUT))
+    bpy.ops.render.render(write_still=True)
+    print("DONE", OUT)
