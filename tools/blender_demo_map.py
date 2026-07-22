@@ -15,11 +15,11 @@ RES     = os.environ.get("RES", "1080")          # 1080 | 4k
 CAM     = os.environ.get("CAM", "hero")          # hero | dunes | topdown
 RENDER      = os.environ.get("RENDER", "1") == "1"
 EXPORT_GLTF = os.environ.get("EXPORT_GLTF", "0") == "1"
-GLB_OUT     = os.environ.get("GLB_OUT", "terrain.glb")
+GLB_OUT     = os.path.abspath(os.environ.get("GLB_OUT", "terrain.glb"))
 if PREVIEW:      RES_X, RES_Y, SAMPLES = 960, 540, 24
 elif RES == "4k": RES_X, RES_Y, SAMPLES = 3840, 2160, int(os.environ.get("SAMPLES", "200"))
 else:            RES_X, RES_Y, SAMPLES = 1920, 1080, int(os.environ.get("SAMPLES", "200"))
-OUT = os.environ.get("OUT", "tiberium_dusk_map.png")
+OUT = os.path.abspath(os.environ.get("OUT", "tiberium_dusk_map.png"))  # Blender needs abs
 
 # ----------------------------------------------------------------------------
 # 1. reconstruct the game world  (ports makeWorld() from the JS source)
