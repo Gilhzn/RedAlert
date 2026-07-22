@@ -1438,10 +1438,9 @@ function heroBlocked(type) {
   return Object.values(queues).some(j => j && j.type === type);
 }
 function creditCap() {
-  let cap = 4000;
-  for (const e of ents) if (!e.dead && e.owner === 0 && e.kind === "struct" && STRUCTS[e.type].storage)
-    cap += STRUCTS[e.type].storage;
-  return cap;
+  // Unlimited credits — no storage ceiling. Kept as a function so all the
+  // Math.min(creditCap(), …) call sites still clamp against +Infinity (a no-op).
+  return Infinity;
 }
 function hasRadar() {
   return ents.some(e => !e.dead && e.owner === 0 && e.kind === "struct" && STRUCTS[e.type].radar);
@@ -4277,7 +4276,7 @@ function frame(now) {
     step(dt);
     if (evaTimer > 0) { evaTimer -= dt; if (evaTimer <= 0) document.getElementById("evalog").textContent = ""; }
   }
-  document.getElementById("credits").textContent = credits + "/" + creditCap();
+  document.getElementById("credits").textContent = credits + " ∞";
   const frac = powerOut > 0 ? Math.min(1, powerOut / Math.max(powerUse, 1)) : 0;
   const pb = document.getElementById("powerbar");
   pb.style.width = (powerUse > powerOut ? 30 : 40 + frac * 60) + "%";
