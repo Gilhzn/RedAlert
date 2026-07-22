@@ -1964,10 +1964,17 @@ function harvesterAI(e, dt) {
     if (!rf) { e.hstate = "idle"; e.path = null; return; }
     // if a closer refinery appeared, re-route to it
     if (e.dockRf !== rf.id) { e.dockRf = rf.id; e.path = null; }
-    const dockX = rf.gx + rf.fw / 2, dockY = rf.gy + rf.fh + 0.6;
-    if (Math.hypot(dockX - e.x, dockY - e.y) < 0.9) {
+    // "docked" = touching the refinery footprint from any side (robust even
+    // if the bay below it is blocked by terrain or another building)
+    const nx = Math.max(rf.gx, Math.min(rf.gx + rf.fw, e.x));
+    const ny = Math.max(rf.gy, Math.min(rf.gy + rf.fh, e.y));
+    if (Math.hypot(nx - e.x, ny - e.y) < 1.15) {
       e.hstate = "unload"; e.ht = 0; e.path = null;
-    } else if (!e.path) { e.path = findPath(e.x, e.y, dockX, dockY, false, e.owner); }
+    } else if (!e.path) {
+      // aim for the nearest free cell around the whole building, not one fixed spot
+      e.path = findPath(e.x, e.y, rf.gx + rf.fw / 2, rf.gy + rf.fh / 2, false, e.owner);
+      if (!e.path) { e.dockTry = (e.dockTry || 0) + dt; }   // unreachable — retry later
+    }
   } else if (e.hstate === "unload") {
     e.ht += dt;
     if (e.ht > 0.17) {
