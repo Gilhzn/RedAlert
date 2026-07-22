@@ -1531,8 +1531,28 @@ function makeWorld() {
 }
 
 let nextId = 1;
+// nearest passable cell centre to (x,y) — used to keep units off structures
+function nearestFree(x, y, allowWater) {
+  const ok = (cx, cy) => inMap(cx, cy) &&
+    (!blocked[idx(cx, cy)] || (allowWater && terrain[idx(cx, cy)] === 3));
+  let bx = x | 0, by = y | 0;
+  if (ok(bx, by)) return [bx + 0.5, by + 0.5];
+  for (let r = 1; r < 8; r++) {
+    let best = null, bd = 1e9;
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      const nx = bx + dx, ny = by + dy;
+      if (!ok(nx, ny)) continue;
+      const d = (nx + 0.5 - x) ** 2 + (ny + 0.5 - y) ** 2;
+      if (d < bd) { bd = d; best = [nx + 0.5, ny + 0.5]; }
+    }
+    if (best) return best;
+  }
+  return [x, y];
+}
 function spawnUnit(type, x, y, owner) {
   const b = UNITS[type];
+  // never spawn inside a structure/wall — pop out to the nearest free cell
+  if (!b.flying) [x, y] = nearestFree(x, y, b.amphib);
   const hp = Math.round(b.hp * (owner === 0 ? 1 + armLvl * 0.2 : 1));
   const e = { id: nextId++, kind: "unit", type, owner, x, y, hp, maxhp: hp,
     sel: false, path: null, tx: null, ty: null, target: null, cd: 0, face: rnd() * 6.28,
@@ -1884,6 +1904,20 @@ function step(dt) {
     }
     e.x = Math.max(0.3, Math.min(MAP - 0.3, e.x));
     e.y = Math.max(0.3, Math.min(MAP - 0.3, e.y));
+    // anti-stuck: a ground unit must never rest on a structure/wall cell —
+    // if it ended up on one (spawned, shoved by separation, or a building
+    // was placed on it) glide it out to the nearest free cell.
+    if (!b.flying) {
+      const ci = idx(Math.min(MAP - 1, e.x | 0), Math.min(MAP - 1, e.y | 0));
+      const onBlocked = blocked[ci] && !(b.amphib && terrain[ci] === 3);
+      if (onBlocked) {
+        const [fx, fy] = nearestFree(e.x, e.y, b.amphib);
+        const dx = fx - e.x, dy = fy - e.y, d = Math.hypot(dx, dy) || 1;
+        const push = Math.max(b.speed, 2) * 1.6 * dt;
+        e.x += dx / d * push; e.y += dy / d * push;
+        e.face = Math.atan2(dy, dx);
+      }
+    }
   }
 
   // projectiles
