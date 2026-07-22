@@ -9,7 +9,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;   // filmic response curve
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.12;
+renderer.physicallyCorrectLights = false;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x100d09);
 scene.fog = new THREE.Fog(0x100d09, 60, 195);
@@ -42,26 +43,38 @@ scene.environment = pmrem.fromEquirectangular(skyTex).texture;
 
 /* multi-octave value-noise detail texture: ground grain + water ripples */
 const noiseCanvas = document.createElement("canvas");
-noiseCanvas.width = noiseCanvas.height = 256;
+noiseCanvas.width = noiseCanvas.height = 512;
 {
+  // smooth multi-octave detail: each octave is drawn coarse then blurred,
+  // so the grain reads as soft natural soil, not blocky pixels
   const g = noiseCanvas.getContext("2d");
-  g.fillStyle = "#b4b0a6"; g.fillRect(0, 0, 256, 256);
-  for (const [n, a] of [[13, 0.42], [29, 0.3], [61, 0.2], [137, 0.13]]) {
-    g.globalAlpha = a;
-    const cell = 256 / n;
-    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-      const v = 140 + (Math.random() * 90 | 0);
-      g.fillStyle = `rgb(${v},${v - 5},${v - 12})`;
-      g.fillRect(x * cell - 0.5, y * cell - 0.5, cell + 1, cell + 1);
+  g.fillStyle = "#b6b1a4"; g.fillRect(0, 0, 512, 512);
+  const tmp = document.createElement("canvas"); tmp.width = tmp.height = 512;
+  const tg = tmp.getContext("2d");
+  for (const [n, a, blur] of [[10, 0.4, 10], [22, 0.28, 6], [48, 0.2, 3], [110, 0.13, 1.5]]) {
+    tg.clearRect(0, 0, 512, 512);
+    const cell = 512 / n;
+    for (let y = -1; y <= n; y++) for (let x = -1; x <= n; x++) {
+      const v = 132 + (Math.random() * 96 | 0);
+      tg.fillStyle = `rgb(${v},${v - 6},${v - 14})`;
+      tg.fillRect(x * cell, y * cell, cell + 1, cell + 1);
     }
+    g.globalAlpha = a;
+    g.filter = `blur(${blur}px)`;
+    g.drawImage(tmp, 0, 0);
   }
-  g.globalAlpha = 1;
+  g.filter = "none"; g.globalAlpha = 1;
 }
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
 const groundTex = new THREE.CanvasTexture(noiseCanvas);
 groundTex.wrapS = groundTex.wrapT = THREE.RepeatWrapping;
 groundTex.encoding = THREE.sRGBEncoding;
+groundTex.anisotropy = maxAniso;
+groundTex.generateMipmaps = true;
+groundTex.minFilter = THREE.LinearMipmapLinearFilter;
 const waterBump = groundTex.clone();
 waterBump.needsUpdate = true;
+waterBump.anisotropy = maxAniso;
 
 /* soft radial blob for grounding shadows under objects */
 const blobTex = (() => {
@@ -176,6 +189,7 @@ function toWorld(sx, sy) {
 
 /* ---------- static world: terrain, water, rocks, props, crystals ---------- */
 let worldGroup = null, waterMat = null, crystalGroup = null, crystalTimer = 0;
+let waterMesh = null, waterGeoBase = null;
 let propDefs = [], propMesh = null, builtExplored = -1, exploredCount = 0;
 function rebuildProps() {
   if (propMesh) {
@@ -276,66 +290,91 @@ function buildWorld() {
     if (oasis || patch) grassCell[idx(x, y)] = 1;
   }
 
-  // smooth per-corner elevation (average of the cells meeting at a corner)
-  const cornerH = (cx, cy) => {
-    let s = 0, n = 0;
-    for (const [dx, dy] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) {
-      const x = cx + dx, y = cy + dy;
-      if (inMap(x, y) && terrain[idx(x, y)] !== 3) { s += height[idx(x, y)]; n++; }
-    }
-    return n ? s / n : 0;
-  };
-  // terrain: one quad per cell, per-cell color × tiling detail noise, hills raised
-  const pos = [], col = [], nrm = [], uvs = [], idxA = [];
-  const c3 = new THREE.Color();
-  let vi = 0;
+  // ---- per-cell base colour (soil/grass/rock/water-bed), later blended ----
+  const cellCol = new Float32Array(MAP * MAP * 3);
+  const cc = new THREE.Color();
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
-    const t = terrain[idx(x, y)];
-    const water = t === 3;
-    const grass = grassCell[idx(x, y)];
-    const hc = height[idx(x, y)];
-    c3.setHex(grass ? 0x4f7a34 : (hc > 1.2 ? 0x6a6152 : T_COLORS[t]));  // high slopes rockier
-    const shade = 0.9 + ((x * 31 + y * 17) % 7) * 0.022;    // deterministic patchwork
-    const zb = water ? -0.28 : 0;
-    for (const [ox, oy] of [[0, 0], [1, 0], [1, 1], [0, 1]]) {
-      pos.push(x + ox, y + oy, zb + cornerH(x + ox, y + oy));
-      col.push(c3.r * shade, c3.g * shade, c3.b * shade);
-      nrm.push(0, 0, 1);
-      uvs.push((x + ox) * 0.34, (y + oy) * 0.34);
+    const i = idx(x, y), t = terrain[i], hc = height[i];
+    let hex = grassCell[i] ? 0x527f34 : T_COLORS[t];
+    if (t === 3) hex = 0x24485a;                    // submerged bed (water drawn on top)
+    else if (hc > 1.6) hex = 0x6d6455;              // rocky peaks
+    else if (hc > 0.7) hex = grassCell[i] ? 0x5b6a3a : 0x5f5334;   // upper slopes
+    cc.setHex(hex);
+    const shade = 0.94 + ((x * 13 + y * 29) % 11) / 11 * 0.12;     // gentle variation
+    cellCol[i * 3] = cc.r * shade; cellCol[i * 3 + 1] = cc.g * shade; cellCol[i * 3 + 2] = cc.b * shade;
+  }
+  // bilinear colour sample at any continuous point → smooth transitions
+  const sampleCol = (wx, wy, out) => {
+    const x = Math.max(0, Math.min(MAP - 1.001, wx - 0.5));
+    const y = Math.max(0, Math.min(MAP - 1.001, wy - 0.5));
+    const x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0;
+    for (let c = 0; c < 3; c++) {
+      const a = cellCol[(y0 * MAP + x0) * 3 + c], b = cellCol[(y0 * MAP + x0 + 1) * 3 + c];
+      const d = cellCol[((y0 + 1) * MAP + x0) * 3 + c], e = cellCol[((y0 + 1) * MAP + x0 + 1) * 3 + c];
+      out[c] = a * (1 - fx) * (1 - fy) + b * fx * (1 - fy) + d * (1 - fx) * fy + e * fx * fy;
     }
-    idxA.push(vi, vi + 1, vi + 2, vi, vi + 2, vi + 3);
-    vi += 4;
+  };
+  const waterAt = (wx, wy) => terrain[idx(Math.min(MAP - 1, wx | 0), Math.min(MAP - 1, wy | 0))] === 3;
+  const hnoise = (x, y) => (Math.sin(x * 1.7 + y * 0.6) + Math.sin(x * 0.5 - y * 2.1)
+    + Math.sin((x + y) * 1.1)) * 0.5;
+
+  // ---- SMOOTH high-detail terrain: subdivided mesh, blended heights+colours ----
+  const SUB = 3, GN = MAP * SUB, out3 = [0, 0, 0];
+  const pos = [], col = [], uvs = [], idxA = [];
+  for (let iy = 0; iy <= GN; iy++) for (let ix = 0; ix <= GN; ix++) {
+    const wx = ix / SUB, wy = iy / SUB;
+    const water = waterAt(wx, wy);
+    const z = (water ? -0.3 : 0) + heightAt(wx, wy) + (water ? 0 : hnoise(wx, wy) * 0.035);
+    pos.push(wx, wy, z);
+    sampleCol(wx, wy, out3);
+    col.push(out3[0], out3[1], out3[2]);
+    uvs.push(wx * 0.42, wy * 0.42);
+  }
+  const row = GN + 1;
+  for (let iy = 0; iy < GN; iy++) for (let ix = 0; ix < GN; ix++) {
+    const a = iy * row + ix, b = a + 1, c = a + row, d = c + 1;
+    idxA.push(a, b, d, a, d, c);
   }
   const tg = new THREE.BufferGeometry();
   tg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   tg.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
   tg.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   tg.setIndex(idxA);
-  tg.computeVertexNormals();                                // real slope shading
+  tg.computeVertexNormals();                                // smooth slope shading
   const terr = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({
-    vertexColors: true, map: groundTex, roughness: 1, metalness: 0 }));
+    vertexColors: true, map: groundTex, roughness: 0.95, metalness: 0 }));
   terr.receiveShadow = true;
   worldGroup.add(terr);
 
-  // water surface (animated emissive pulse)
-  const wpos = [], widx = [];
-  let wi = 0;
+  // water surface: subdivided so waves ripple smoothly (not one flat quad)
+  const wpos = [], wuv = [], widx = [];
+  const WSUB = 2; let wv = 0;
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     if (terrain[idx(x, y)] !== 3) continue;
-    for (const [ox, oy] of [[0, 0], [1, 0], [1, 1], [0, 1]]) wpos.push(x + ox, y + oy, -0.08);
-    widx.push(wi, wi + 1, wi + 2, wi, wi + 2, wi + 3);
-    wi += 4;
+    const base = wv;
+    for (let sy = 0; sy <= WSUB; sy++) for (let sx = 0; sx <= WSUB; sx++) {
+      wpos.push(x + sx / WSUB, y + sy / WSUB, -0.06);
+      wuv.push((x + sx / WSUB) * 0.5, (y + sy / WSUB) * 0.5);
+      wv++;
+    }
+    const r = WSUB + 1;
+    for (let sy = 0; sy < WSUB; sy++) for (let sx = 0; sx < WSUB; sx++) {
+      const a = base + sy * r + sx;
+      widx.push(a, a + 1, a + r + 1, a, a + r + 1, a + r);
+    }
   }
   if (wpos.length) {
+    waterGeoBase = new Float32Array(wpos);
     const wg = new THREE.BufferGeometry();
-    wg.setAttribute("position", new THREE.Float32BufferAttribute(wpos, 3));
-    wg.computeVertexNormals(); wg.setIndex(widx);
-    waterMat = new THREE.MeshStandardMaterial({ color: 0x2779a3, roughness: 0.12,
-      metalness: 0.55, transparent: true, opacity: 0.9, emissive: 0x0d3a52, emissiveIntensity: 0.5,
-      bumpMap: waterBump, bumpScale: 0.05 });
-    const wm = new THREE.Mesh(wg, waterMat);
-    worldGroup.add(wm);
-  }
+    wg.setAttribute("position", new THREE.Float32BufferAttribute(wpos.slice(), 3));
+    wg.setAttribute("uv", new THREE.Float32BufferAttribute(wuv, 2));
+    wg.setIndex(widx); wg.computeVertexNormals();
+    waterMat = new THREE.MeshStandardMaterial({ color: 0x1f6f9a, roughness: 0.08,
+      metalness: 0.6, transparent: true, opacity: 0.86, emissive: 0x0c3348, emissiveIntensity: 0.45,
+      bumpMap: waterBump, bumpScale: 0.09, envMapIntensity: 1.2 });
+    waterMesh = new THREE.Mesh(wg, waterMat);
+    worldGroup.add(waterMesh);
+  } else { waterMesh = null; waterGeoBase = null; }
 
   // props are collected as build recipes and rebuilt as ONE merged mesh
   // per material whenever new terrain is scouted (fog-aware + fast)
@@ -979,6 +1018,17 @@ function draw() {
   if (waterMat) {
     waterMat.emissiveIntensity = 0.4 + Math.sin(tSec * 1.4) * 0.18;
     waterBump.offset.set(tSec * 0.014, tSec * 0.009);   // drifting ripples
+    // gentle rolling wave displacement on the water vertices
+    if (waterMesh && waterGeoBase) {
+      const p = waterMesh.geometry.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        const bx = waterGeoBase[i * 3], by = waterGeoBase[i * 3 + 1];
+        p.array[i * 3 + 2] = -0.06 + Math.sin(bx * 1.3 + tSec * 1.8) * 0.03
+          + Math.cos(by * 1.7 - tSec * 1.4) * 0.025;
+      }
+      p.needsUpdate = true;
+      waterMesh.geometry.computeVertexNormals();
+    }
   }
   updateCamera();
   syncEnts(dt);
