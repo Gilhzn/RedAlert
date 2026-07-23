@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: fix-keyboard-left-right-pan --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: radar-click-camera-glide --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -1725,6 +1725,7 @@ let supers, superAim, ionStrikes, fireballs;
 let wepLvl, armLvl;
 let gateAt, gateTimer, fsActive, bridgeCells;
 let camX, camY, zoom, running = false, over = false;
+let camGlide = null;   // when set to [wx,wy], the camera eases toward it (radar "travel there")
 let waveTimer, waveNum, evaTimer = 0, atkWarnCd = 0, selBox = null, tSec = 0, fieldTimer = 6;
 let harvWarnCd = 0, resWarnCd = 0;   // throttles for harvester-under-fire / resources-depleted notices
 let creditsShown = 0, creditsBumpT = 0;   // HUD credit-counter pulse state
@@ -3361,8 +3362,8 @@ canvas.addEventListener("mousemove", ev => {
 });
 canvas.addEventListener("mousedown", ev => {
   if (!running || touchGuard()) return;
-  if (ev.button === 1) { panning = true; panLast = [ev.clientX, ev.clientY]; ev.preventDefault(); return; }
-  if (ev.button === 2) { rbtn = { x: ev.clientX, y: ev.clientY, moved: false }; return; }
+  if (ev.button === 1) { camGlide = null; panning = true; panLast = [ev.clientX, ev.clientY]; ev.preventDefault(); return; }
+  if (ev.button === 2) { camGlide = null; rbtn = { x: ev.clientX, y: ev.clientY, moved: false }; return; }
   if (ev.button === 0) {
     if (ev.ctrlKey || ev.altKey) { orbitDrag = { x: ev.clientX, y: ev.clientY }; return; }
     if (superAim) {
@@ -3543,6 +3544,7 @@ canvas.addEventListener("touchstart", ev => {
   ev.preventDefault();
   lastTouchAt = performance.now();
   if (!running) return;
+  camGlide = null;   // touching the battlefield cancels a radar glide
   if (ev.touches.length === 1) {
     const t = ev.touches[0];
     // mode: null=undecided, "box"=drag-select, "pan"=explore the map
@@ -3754,7 +3756,7 @@ mm.addEventListener("mousedown", ev => {
   const px = (ev.clientX - r.left) / r.width * 194 - 97;
   const py = (ev.clientY - r.top) / r.height * 194 - 97;
   const th = -(Math.PI / 2 - (typeof camYaw !== "undefined" ? camYaw : Math.PI / 4));
-  const k = 1 / 0.7;
+  const k = 1 / 0.72;   // exactly invert the scale(0.72) applied when drawing the minimap
   const rx = (px * Math.cos(th) - py * Math.sin(th)) * k;
   const ry = (px * Math.sin(th) + py * Math.cos(th)) * k;
   const wx = Math.max(0, Math.min(MAP, (rx + 97) / (194 / MAP)));
@@ -3765,7 +3767,8 @@ mm.addEventListener("mousedown", ev => {
     orderSelectedTo(wx, wy);
     eva(T("moving"));
   } else {
-    camX = wx; camY = wy;
+    // nothing selected → glide the camera over to that spot (dark stays dark)
+    camGlide = [wx, wy];
   }
 });
 
@@ -5172,10 +5175,17 @@ function frame(now) {
   last = now;
   if (running && !over) {
     const pan = 12 * dt / Math.max(zoom, 0.7);
-    if (keys["w"] || keys["arrowup"]) camY -= pan, camX -= pan;
-    if (keys["s"] || keys["arrowdown"]) camY += pan, camX += pan;
-    if (keys["a"] || keys["arrowleft"]) camX += pan, camY -= pan;
-    if (keys["d"] || keys["arrowright"]) camX -= pan, camY += pan;
+    let panKey = false;
+    if (keys["w"] || keys["arrowup"]) camY -= pan, camX -= pan, panKey = true;
+    if (keys["s"] || keys["arrowdown"]) camY += pan, camX += pan, panKey = true;
+    if (keys["a"] || keys["arrowleft"]) camX += pan, camY -= pan, panKey = true;
+    if (keys["d"] || keys["arrowright"]) camX -= pan, camY += pan, panKey = true;
+    if (panKey) camGlide = null;   // any manual pan cancels a radar glide
+    if (camGlide) {                // ease toward the radar target, then snap and stop
+      const t = Math.min(1, dt * 6);
+      camX += (camGlide[0] - camX) * t; camY += (camGlide[1] - camY) * t;
+      if (Math.hypot(camGlide[0] - camX, camGlide[1] - camY) < 0.25) { camX = camGlide[0]; camY = camGlide[1]; camGlide = null; }
+    }
     camX = Math.max(0, Math.min(MAP, camX));
     camY = Math.max(0, Math.min(MAP, camY));
     step(dt);
