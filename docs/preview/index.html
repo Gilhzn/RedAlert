@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: settings-power-radar --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: veridium-ai-place --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -263,6 +263,11 @@
     <div class="settings-row"><span id="s-notify-lbl">התראות משחק</span>
       <div class="seg-group" id="s-notify-group">
         <button data-notify="1" class="on" id="s-notify-on">פעיל</button><button data-notify="0" id="s-notify-off">כבוי</button>
+      </div>
+    </div>
+    <div class="settings-row"><span id="s-diff-lbl">רמת מחשב</span>
+      <div class="seg-group" id="s-diff-group">
+        <button data-diff="0">קל</button><button data-diff="1" class="on">בינוני</button><button data-diff="2">קשה</button><button data-diff="3">קשה מאוד</button><button data-diff="4">אכזרי</button>
       </div>
     </div>
     <div class="settings-note" id="s-note">בקרוב: טוטוריאל והוראות משחק מלאות.</div>
@@ -1406,7 +1411,10 @@ const L = {
     noProduction: "המבנה הזה לא מייצר יחידות",
     captured: "מבנה אויב נכבש — עכשיו הוא שלכם!",
     cancelled: "הייצור בוטל — האשראי הוחזר",
-    placement: "גררו את המבנה מהתפריט אל המפה",
+    placement: "המבנה מוכן — בחרו אותו בסרגל כדי למקם על המפה",
+    placespot: "לחצו על המפה ליד הבסיס כדי למקם (לחצו במקום אחר להזזה)",
+    placed: "המבנה הוקם",
+    needsel: "בחרו מבנה מוכן בסרגל כדי להקים אותו",
     moving: "היחידות בדרך",
     badspot: "אי אפשר לבנות כאן — צריך שטח פנוי ליד הבסיס",
     lowfunds: "אין מספיק אשראי", building: "בבנייה...", ready: "המבנה מוכן",
@@ -1469,7 +1477,10 @@ const L = {
     noProduction: "This structure produces nothing",
     captured: "Enemy structure captured — it is yours now!",
     cancelled: "Production cancelled — credits refunded",
-    placement: "Drag the building from the menu onto the map",
+    placement: "Structure ready — select it in the sidebar to place it on the map",
+    placespot: "Click near your base to place it (click elsewhere to move it)",
+    placed: "Structure deployed",
+    needsel: "Select a ready structure in the sidebar to place it",
     moving: "Units moving out",
     badspot: "Cannot build here — needs clear ground near your base",
     lowfunds: "Insufficient credits", building: "Building...", ready: "Structure ready",
@@ -1499,6 +1510,17 @@ const L = {
   }
 };
 let lang = "he";
+// AI difficulty — 5 tiers, easy → very hard. Governs how far the enemy engages
+// (aggro), how hard it hits (dmg), and how big/frequent its waves are.
+const DIFFS = [
+  { key: "easy",   aggro: 6,  dmg: 0.70, waveScale: 0.7, waveEvery: 1.35 },
+  { key: "normal", aggro: 9,  dmg: 0.90, waveScale: 0.9, waveEvery: 1.10 },
+  { key: "hard",   aggro: 12, dmg: 1.00, waveScale: 1.1, waveEvery: 0.90 },
+  { key: "brutal", aggro: 15, dmg: 1.15, waveScale: 1.3, waveEvery: 0.75 },
+  { key: "insane", aggro: 19, dmg: 1.30, waveScale: 1.5, waveEvery: 0.62 },
+];
+let aiDiff = 1;   // default: normal
+try { const d = parseInt(localStorage.getItem("td_diff")); if (d >= 0 && d < 5) aiDiff = d; } catch (e) {}
 // he + en are fully localised; es / zh / hi fall back to en until their strings land
 const T = k => (L[lang] || L.en)[k] ?? L.en[k] ?? k;
 
@@ -1643,7 +1665,7 @@ let supers, superAim, ionStrikes, fireballs;
 let wepLvl, armLvl;
 let gateAt, gateTimer, fsActive, bridgeCells;
 let camX, camY, zoom, running = false, over = false;
-let waveTimer, waveNum, evaTimer = 0, atkWarnCd = 0, selBox = null, tSec = 0;
+let waveTimer, waveNum, evaTimer = 0, atkWarnCd = 0, selBox = null, tSec = 0, fieldTimer = 6;
 
 const canvas = document.getElementById("game");
 const mm = document.getElementById("minimap");
@@ -1681,7 +1703,7 @@ function makeWorld() {
   gateAt = {}; gateTimer = 0; fsActive = 0;
   superAim = null; ionStrikes = []; fireballs = [];
   sbView = { mode: "general", id: 0 };
-  waveTimer = 50; waveNum = 0; over = false; tSec = 0;
+  waveTimer = 50; waveNum = 0; over = false; tSec = 0; fieldTimer = 6;
 
   const homeClear = (x, y) => (x < 13 && y > MAP - 14) || (x > MAP - 14 && y < 13);
   // ---- value-noise field (seeded), for natural dunes & organic shapes ----
@@ -2143,6 +2165,14 @@ function orderMove(e, x, y, target) {
 /* ============================== Simulation ============================== */
 function step(dt) {
   tSec += dt;
+  // veridium supply: as fields get mined down, fresh deposits form out in the
+  // field (never inside a base) so harvesters always have somewhere to go
+  fieldTimer -= dt;
+  if (fieldTimer <= 0) {
+    fieldTimer = 3;
+    let guard = 0;
+    while (crystalCellCount() < CRYSTAL_MIN && guard++ < 3) spawnCrystalField();
+  }
   // production queues — every queued job advances IN PARALLEL, PAY-AS-YOU-BUILD:
   // credits are spent gradually as a job progresses. When the treasury runs dry
   // the job simply STALLS at its current progress until money comes in again.
@@ -2388,7 +2418,11 @@ function harvesterAI(e, dt) {
   if (e.hstate === "manual") { if (!e.path) e.hstate = "seek"; return; }
   if (e.hstate === "seek") {
     if (e.bails >= 28) { e.hstate = "return"; return; }
-    const c = nearestCrystal(e.x, e.y);
+    // head for the deposit closest to this harvester's home refinery (keeps it
+    // working near base); fall back to its own position if it has no refinery yet
+    const rf = nearestRefinery(e);
+    const ax = rf ? rf.gx + rf.fw / 2 : e.x, ay = rf ? rf.gy + rf.fh / 2 : e.y;
+    const c = nearestCrystal(ax, ay);
     if (!c) { e.hstate = e.bails > 0 ? "return" : "idle"; return; }
     const [cx, cy] = c;
     if (Math.hypot(cx + 0.5 - e.x, cy + 0.5 - e.y) < 0.8) {
@@ -2453,6 +2487,43 @@ function nearestCrystal(x, y) {
   return best;
 }
 
+/* ---- veridium deposits: concentrated fields that relocate when mined out ---- */
+const CRYSTAL_MIN = 2400;             // keep this many veridium cells alive on the map (deposits reform as they are mined)
+function crystalCellCount() { let n = 0; for (let i = 0; i < crystal.length; i++) if (crystal[i]) n++; return n; }
+function farFromBuildings(cx, cy, pad) {
+  for (const s of ents) {
+    if (s.dead || s.kind !== "struct") continue;
+    if (Math.abs(cx - (s.gx + s.fw / 2)) < pad && Math.abs(cy - (s.gy + s.fh / 2)) < pad) return false;
+  }
+  return true;
+}
+function paintCrystalField(cx, cy, r, kind) {
+  let painted = 0;
+  for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
+    if (!inMap(x, y)) continue;
+    const i = idx(x, y);
+    if (blocked[i] || terrain[i] === 3 || terrain[i] === 1 || crystal[i]) continue;   // clear dirt only
+    const d = Math.hypot(x - cx, y - cy);
+    if (d <= r && rnd() < 1.15 - d / (r + 2)) { crystal[i] = kind === 9 ? 9 : 1 + ((rnd() * 4) | 0); painted++; }
+  }
+  return painted;
+}
+// grow a fresh deposit on a sensible patch of open ground, well OUTSIDE any base
+function spawnCrystalField() {
+  const MARGIN = 11, PAD = 10;
+  for (let tries = 0; tries < 70; tries++) {
+    const cx = MARGIN + ((rnd() * (MAP - 2 * MARGIN)) | 0);
+    const cy = MARGIN + ((rnd() * (MAP - 2 * MARGIN)) | 0);
+    const i = idx(cx, cy);
+    if (blocked[i] || terrain[i] === 3 || terrain[i] === 1 || crystal[i]) continue;
+    if (!farFromBuildings(cx, cy, PAD)) continue;
+    const kind = rnd() < 0.22 ? 9 : 1;                 // an occasional richer blue deposit
+    const r = 4 + ((rnd() * 2) | 0);
+    if (paintCrystalField(cx, cy, r, kind) >= 6) return [cx, cy];   // 3D view repaints crystals on its own timer
+  }
+  return null;
+}
+
 function engineerAI(e, dt) {
   const t = e.captureTarget;
   if (!t || t.dead || t.owner === 0) { e.captureTarget = null; return; }
@@ -2502,23 +2573,57 @@ function canHit(w, o) {
   if (w.noAir && fly) return false;
   return true;
 }
+// the AI's strategic objective: the nearest player building, else nearest unit
+function pickAiObjective(e) {
+  let best = null, bd = 1e9, bestU = null, bud = 1e9;
+  for (const o of ents) {
+    if (o.dead || o.owner !== 0) continue;
+    const d = (o.x - e.x) ** 2 + (o.y - e.y) ** 2;
+    if (o.kind === "struct" && !STRUCTS[o.type].bridge) { if (d < bd) { bd = d; best = o; } }
+    else if (o.kind === "unit") { if (d < bud) { bud = d; bestU = o; } }
+  }
+  return best || bestU;
+}
 function combatAI(e, b, dt) {
   if (!b.weapon) return;
   const w = WEAPONS[b.weapon];
   // validate explicit target
   if (e.target && (e.target.dead || !canHit(w, e.target) ||
       (e.target.kind === "struct" && STRUCTS[e.target.type].bridge))) e.target = null;   // drop bridge targets
-  // acquire
-  if (!e.target) {
+  if (e.owner === 1) {
+    // ---- smart enemy: like a human, it doesn't walk past a threat. It engages the
+    //      closest foe inside its aggro range (widened on higher difficulty),
+    //      preferring live units, and otherwise keeps advancing on its objective. ----
+    const aggro = DIFFS[aiDiff].aggro;
+    let best = e.target;
+    let bd = e.target ? Math.hypot(e.target.x - e.x, e.target.y - e.y) - (e.target.kind === "unit" ? 1.5 : 0) : 1e9;
+    for (const o of ents) {
+      if (o.dead || o.owner === 1) continue;
+      if (o.kind === "struct" && STRUCTS[o.type].bridge) continue;
+      if (!canHit(w, o) || hiddenFrom(o, 1)) continue;
+      const d = Math.hypot(o.x - e.x, o.y - e.y);
+      if (d > aggro) continue;
+      const score = d - (o.kind === "unit" ? 1.5 : 0);   // a passing unit outranks a distant building
+      if (score < bd - 0.4) { bd = score; best = o; }
+    }
+    e.target = best || null;
+    // committed attackers (given a marchTarget on spawn) keep pressing the objective;
+    // base defenders with no objective simply hold and fight what comes into aggro range
+    if (!e.target && e.marchTarget) {
+      if (e.marchTarget.dead) e.marchTarget = pickAiObjective(e);
+      if (e.marchTarget && !e.path) e.path = findPath(e.x, e.y, e.marchTarget.x, e.marchTarget.y, false, 1);
+    }
+  } else if (!e.target) {
+    // ---- player units auto-defend only when idle, within a tight radius ----
     let best = null, bd = 1e9;
     for (const o of ents) {
       if (o.dead || o.owner === e.owner) continue;
       if (o.kind === "struct" && STRUCTS[o.type].bridge) continue;   // never fire on neutral bridges
       if (!canHit(w, o)) continue;
-      if (e.owner === 0 && !visible[idx(o.x | 0, o.y | 0)]) continue;
+      if (!visible[idx(o.x | 0, o.y | 0)]) continue;
       if (hiddenFrom(o, e.owner)) continue;   // can't target a unit cloaked from this side
       const d = Math.hypot(o.x - e.x, o.y - e.y);
-      if (d < bd && d <= (e.owner === 1 ? w.range + 2.5 : w.range + 1.5)) { bd = d; best = o; }
+      if (d < bd && d <= w.range + 1.5) { bd = d; best = o; }
     }
     if (best) e.target = best;
   }
@@ -2673,6 +2778,7 @@ function versus(t, vs) {
 function hit(t, dmg, byOwner, vs) {
   if (t.kind === "struct" && STRUCTS[t.type].bridge) return;   // bridges are neutral, indestructible scenery
   if (byOwner === 0) dmg *= 1 + wepLvl * 0.2;   // armory weapon upgrades
+  if (byOwner === 1) dmg *= DIFFS[aiDiff].dmg;   // AI difficulty scales enemy firepower
   t.hp -= dmg * versus(t, vs);
   spark(t.x, t.y);
   rings.push({ x: t.x, y: t.y, t: 0, max: 0.3 });
@@ -2685,11 +2791,12 @@ function hit(t, dmg, byOwner, vs) {
 
 function spawnWave() {
   waveNum++;
-  waveTimer = Math.max(36, 62 - waveNum * 2);
+  const D = DIFFS[aiDiff];
+  waveTimer = Math.max(36, 62 - waveNum * 2) * D.waveEvery;
   const fac = ents.find(e => !e.dead && e.owner === 1 && e.type === "so_factory");
   const sx = fac ? fac.x : MAP - 6, sy = fac ? fac.y + 2 : 6;
   const comp = [];
-  const n = Math.min(2 + waveNum, 8);
+  const n = Math.max(2, Math.round(Math.min(2 + waveNum, 8) * D.waveScale));
   for (let i = 0; i < n; i++) {
     const roll = rnd();
     if (waveNum >= 5 && roll < 0.15) comp.push("so_stealth_tank");
@@ -2704,7 +2811,8 @@ function spawnWave() {
   const tgt = targets.length ? targets[(rnd() * targets.length) | 0] : null;
   for (let i = 0; i < comp.length; i++) {
     const u = spawnUnit(comp[i], sx + (rnd() - 0.5) * 3, sy + (rnd() - 0.5) * 3, 1);
-    if (tgt) orderMove(u, tgt.x, tgt.y, tgt);
+    // the objective is the base, but combatAI lets them engage threats on the way there
+    if (tgt) { u.marchTarget = tgt; orderMove(u, tgt.x, tgt.y); }
   }
   eva(T("wave")); sfx("warn");
 }
@@ -2760,8 +2868,8 @@ function drawMinimap() {
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const i = idx(x, y);
     if (!explored[i]) continue;
-    let col;
-    if (crystal[i]) col = crystal[i] === 9 ? "#39a6e6" : "#3ec96e";       // blue / green tiberium
+    let col, isCrys = !!crystal[i];
+    if (isCrys) col = crystal[i] === 9 ? "#54cbff" : "#54e88a";            // veridium deposit (bright on radar)
     else if (terrain[i] === 3) col = "#2f86b4";                            // water
     else if (terrain[i] === 1) col = "#5f5136";                            // rock
     else {                                                                 // dirt, shaded by elevation
@@ -2770,7 +2878,9 @@ function drawMinimap() {
     }
     mmctx.fillStyle = col;
     mmctx.fillRect(x * s, y * s, s + 0.6, s + 0.6);
-    if (!visible[i]) { mmctx.fillStyle = "rgba(6,11,18,0.5)"; mmctx.fillRect(x * s, y * s, s + 0.6, s + 0.6); }
+    // deposits stay lit on radar even out of direct sight (so you can plan routes);
+    // ordinary terrain out of vision is dimmed
+    if (!visible[i] && !isCrys) { mmctx.fillStyle = "rgba(6,11,18,0.5)"; mmctx.fillRect(x * s, y * s, s + 0.6, s + 0.6); }
   }
   const radarOn = hasRadar();
   for (const e of ents) {
@@ -2806,26 +2916,39 @@ function drawMinimap() {
 }
 
 /* ============================== Build UI ============================== */
-let placingSpot = null, dragPlacing = false;
-// a FINISHED structure is dragged from the sidebar onto the map to place it
+let placingSpot = null, dragPlacing = false, armSource = null;
 function structReady(type) { return queues.structure.some(j => j.type === type && j.done); }
-function startDragPlace(type) {
-  if (!running || over || !structReady(type)) return false;   // only once it has finished building
-  placing = type; dragPlacing = true; sfx("click");
+function structReadyAny() { return queues.structure.some(j => j.done); }
+// A FINISHED structure is placed by either (a) clicking it in the sidebar to ARM
+// it, then clicking a spot on the map, or (b) dragging it from the sidebar onto
+// the map. Both funnel through placeStructAt().
+function armPlace(type) {
+  if (!running || over || !structReady(type)) return false;
+  placing = type; dragPlacing = false; sfx("click");
+  eva(T("placespot"));
   return true;
 }
-// drop: place the finished building where released, consuming its ready job
-function dropDragPlace() {
-  if (!dragPlacing) return;
-  const type = placing;
-  dragPlacing = false; placing = null;
-  if (type && placingSpot && placingSpot[2]) {    // valid spot under the cursor
-    spawnStruct(type, placingSpot[0], placingSpot[1], 0);
+// consume the ready job and drop the building on the chosen grid cell
+function placeStructAt(type, gx, gy, ok) {
+  if (ok) {
+    spawnStruct(type, gx, gy, 0);
     const di = queues.structure.findIndex(j => j.type === type && j.done);
     if (di >= 0) queues.structure.splice(di, 1);
-    eva(T("ready")); sfx("done");
-  } else if (type) { eva(T("badspot")); sfx("warn"); }
-  placingSpot = null;
+    placing = null; placingSpot = null;
+    const nx = queues.structure.find(j => j.done);   // another finished one waiting? arm it
+    if (nx) { placing = nx.type; eva(T("placespot")); } else eva(T("placed"));
+    sfx("done");
+    return true;
+  }
+  eva(T("badspot")); sfx("warn");   // invalid cell → stay armed so the player can pick another
+  return false;
+}
+// drop on drag-release: place at the released cell (or keep armed if it was invalid)
+function dropDragPlace() {
+  if (!dragPlacing) return;
+  dragPlacing = false;
+  const type = placing;
+  if (type && placingSpot) placeStructAt(type, placingSpot[0], placingSpot[1], placingSpot[2]);
 }
 function canPlace(type, gx, gy) {
   const b = STRUCTS[type];
@@ -2861,15 +2984,16 @@ function makeBuildButton(type, q) {
   btn.className = "build-btn"; btn.dataset.type = type; btn.dataset.q = q;
   btn.innerHTML = `<span class="prog"></span><img class="bicon" alt="" src="${iconFor(type, q)}">` +
     `<span class="nm">${T(type)}</span><span class="cost num">$${spec.cost}</span>`;
-  // structures: click to BUILD, then drag the finished icon onto the map to place it
+  // structures: click to BUILD; once ready, click the icon to ARM it then click the
+  // map to place (or drag the icon onto the map). Both paths share placeStructAt().
   if (q === "structure")
     btn.addEventListener("pointerdown", ev => {
       if (ev.button != null && ev.button !== 0) return;
-      if (structReady(type)) { ev.preventDefault(); startDragPlace(type); }
+      if (structReady(type)) { ev.preventDefault(); armPlace(type); armSource = { type, x: ev.clientX, y: ev.clientY }; }
     });
   btn.addEventListener("click", () => {
     if (!running || over) return;
-    if (q === "structure" && structReady(type)) { eva(T("placement")); return; }   // ready → drag it out
+    if (q === "structure" && structReady(type)) return;   // already armed on pointerdown
     const list = queues[q];
     // every click queues one more — different types build in parallel
     if (!hasProducer(q)) { sfx("warn"); return; }
@@ -3169,6 +3293,7 @@ window.addEventListener("mouseup", ev => {
       const dropped = ents.some(e => e.sel);
       for (const e of ents) e.sel = false;
       if (dropped) sfx("click");
+      else if (!placing && structReadyAny()) eva(T("needsel"));   // a finished building is waiting to be placed
       updateSelInfo();
       syncSidebar(null);
     }
@@ -3230,25 +3355,24 @@ function orderSelectedTo(wx, wy) {
   }
   return true;
 }
+// click-to-place: when a structure is armed, a click on the map builds it there.
+// An invalid cell keeps it armed so the next click can pick a better spot.
 function tryPlace() {
-  if (!placing || !placingSpot) return false;
-  const [gx, gy, ok] = placingSpot;
-  if (ok) {
-    spawnStruct(placing, gx, gy, 0);
-    const list = queues.structure;
-    const di = list.findIndex(j => j.type === placing && j.done);
-    if (di >= 0) list.splice(di, 1);           // consume the finished job
-    placing = null;
-    const nx = list.find(j => j.done);          // another structure already waiting? place it next
-    if (nx) { placing = nx.type; eva(T("placement")); }
-    eva(T("ready")); sfx("done");
-  } else { eva(T("badspot")); sfx("warn"); }
-  return true;
+  if (!placing || dragPlacing) return false;
+  if (placingSpot) placeStructAt(placing, placingSpot[0], placingSpot[1], placingSpot[2]);
+  return true;   // swallow the click either way (armed → the map click is "place here")
 }
-// drag-to-place (mouse + touch): track the cursor for the ghost, drop on release
-window.addEventListener("pointermove", ev => { if (dragPlacing) { mouseX = ev.clientX; mouseY = ev.clientY; } }, { passive: true });
-window.addEventListener("pointerup", () => { if (dragPlacing) dropDragPlace(); });
-window.addEventListener("pointercancel", () => { if (dragPlacing) { dragPlacing = false; placing = null; placingSpot = null; } });
+// arm-and-place plumbing (mouse + touch): a press on a ready button arms it; a
+// small drag turns into drag-to-place; a plain click leaves it armed for a map click
+window.addEventListener("pointermove", ev => {
+  if (armSource && !dragPlacing &&
+      Math.abs(ev.clientX - armSource.x) + Math.abs(ev.clientY - armSource.y) > 10) {
+    dragPlacing = true;                       // the press became a drag
+  }
+  if (dragPlacing) { mouseX = ev.clientX; mouseY = ev.clientY; }
+}, { passive: true });
+window.addEventListener("pointerup", () => { if (dragPlacing) dropDragPlace(); armSource = null; });
+window.addEventListener("pointercancel", () => { dragPlacing = false; armSource = null; });
 canvas.addEventListener("contextmenu", ev => {
   ev.preventDefault();
   if (performance.now() < suppressCtxUntil) return;   // right-drag was an orbit
@@ -3533,10 +3657,12 @@ function applyLang() {
 // ---- Settings modal ----
 const SETXT = {
   he: { title: "הגדרות", lang: "שפה", layout: "מיקום סרגל", side: "צד", bottom: "תחתון",
-        team: "צבע קבוצה", notify: "התראות משחק", on: "פעיל", off: "כבוי",
+        team: "צבע קבוצה", notify: "התראות משחק", on: "פעיל", off: "כבוי", diff: "רמת מחשב",
+        diffs: ["קל", "בינוני", "קשה", "קשה מאוד", "אכזרי"],
         note: "בקרוב: טוטוריאל והוראות משחק מלאות." },
   en: { title: "Settings", lang: "Language", layout: "Sidebar side", side: "Side", bottom: "Bottom",
-        team: "Team color", notify: "Notifications", on: "On", off: "Off",
+        team: "Team color", notify: "Notifications", on: "On", off: "Off", diff: "AI level",
+        diffs: ["Easy", "Normal", "Hard", "Very Hard", "Brutal"],
         note: "Coming soon: tutorial and full game instructions." },
 };
 function syncSettingsUI(rtl) {
@@ -3545,11 +3671,13 @@ function syncSettingsUI(rtl) {
   set("s-title", t.title); set("s-lang-lbl", t.lang); set("s-layout-lbl", t.layout);
   set("s-side", t.side); set("s-bottom", t.bottom); set("s-team-lbl", t.team);
   set("s-notify-lbl", t.notify); set("s-notify-on", t.on); set("s-notify-off", t.off);
-  set("s-note", t.note);
+  set("s-diff-lbl", t.diff); set("s-note", t.note);
+  document.querySelectorAll("#s-diff-group button").forEach(b => { const i = +b.dataset.diff; if (t.diffs[i]) b.textContent = t.diffs[i]; });
   const card = document.querySelector("#settings-modal .settings-card");
   if (card) card.dir = rtl ? "rtl" : "ltr";
   document.querySelectorAll("#s-lang-group button").forEach(b => b.classList.toggle("on", b.dataset.lang === lang));
   document.querySelectorAll("#s-notify-group button").forEach(b => b.classList.toggle("on", (b.dataset.notify === "1") === notifyOn));
+  document.querySelectorAll("#s-diff-group button").forEach(b => b.classList.toggle("on", +b.dataset.diff === aiDiff));
 }
 document.getElementById("lang-he").addEventListener("click", () => { lang = "he"; try { localStorage.setItem("td_lang", lang); } catch (e) {} applyLang(); });
 document.getElementById("lang-en").addEventListener("click", () => { lang = "en"; try { localStorage.setItem("td_lang", lang); } catch (e) {} applyLang(); });
@@ -3581,6 +3709,12 @@ document.querySelectorAll("#s-notify-group button").forEach(b => b.addEventListe
   notifyOn = b.dataset.notify === "1";
   document.querySelectorAll("#s-notify-group button").forEach(x => x.classList.toggle("on", x === b));
   try { localStorage.setItem("td_notify", notifyOn ? "1" : "0"); } catch (e) {}
+  sfx("click");
+}));
+document.querySelectorAll("#s-diff-group button").forEach(b => b.addEventListener("click", () => {
+  aiDiff = +b.dataset.diff;
+  document.querySelectorAll("#s-diff-group button").forEach(x => x.classList.toggle("on", x === b));
+  try { localStorage.setItem("td_diff", String(aiDiff)); } catch (e) {}
   sfx("click");
 }));
 // restore saved preferences
