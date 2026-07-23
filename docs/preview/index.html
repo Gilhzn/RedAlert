@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: radar-click-camera-glide --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: radar-quarters-wave-gating-mobile-toasts --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -225,6 +225,13 @@
   .toast.good { color: var(--veridium); border-color: rgba(73,255,122,0.5); }
   @keyframes toastIn { from { opacity: 0; transform: translateY(-14px) scale(.94); } to { opacity: 1; transform: none; } }
   @keyframes toastOut { to { opacity: 0; transform: translateY(-8px) scale(.97); } }
+  @media (max-width: 760px) {
+    /* mobile: full-width, readable cards centred just below the top HUD */
+    #toasts { top: calc(env(safe-area-inset-top, 0px) + 50px); width: 92vw; max-width: 92vw; gap: 7px; }
+    .toast { width: 100%; box-sizing: border-box; justify-content: center; text-align: center;
+             font-size: 13.5px; line-height: 1.3; padding: 12px 14px; border-radius: 12px; }
+    .toast .ic { font-size: 16px; }
+  }
 
   /* Bottom log */
   #botbar { bottom: 0; left: 0; right: 0; height: 34px; display: flex; align-items: center;
@@ -1471,7 +1478,7 @@ const L = {
     moving: "היחידות בדרך",
     badspot: "אי אפשר לבנות כאן — צריך שטח פנוי ליד הבסיס",
     lowfunds: "אין מספיק אשראי", building: "בבנייה...", ready: "המבנה מוכן",
-    unitready: "יחידה מוכנה", underattack: "הבסיס מותקף!",
+    unitready: "יחידה מוכנה", underattack: "הבסיס מותקף!", enemy_near: "האויב מתקרב לבסיס!",
     poweroff: "אין מספיק חשמל — מבנים הושבתו! בנו תחנת כח",
     wave: "גל תקיפה של מסדר הנחש בדרך!", lowpower: "מחסור בחשמל — הייצור הואט",
     harvest: "הקציר פורק ורידיום", win: "ניצחון", lose: "תבוסה",
@@ -1492,8 +1499,8 @@ const L = {
     deploy_hint: "בחרו את משאית ההקמה ולחצו 'פרוס למתחם בנייה' כדי לייסד את הבסיס",
     fix_vehicles: "🔧 תקן במפרץ", needs_depot: "דרוש: מפרץ תיקונים — בנו אחד ליד הבסיס",
     sent_repair: "הרכבים בדרך למפרץ התיקונים",
-    upg_radar: "📡 שדרוג טווח רדאר", upg_wep: "⚔️ שדרוג חימוש", upg_arm: "🛡️ שדרוג שריון",
-    upg_max: "ברמה מרבית", radar_upgraded: "טווח הרדאר הורחב",
+    upg_radar: "📡 שדרוג רדאר — חשיפת מפה", upg_wep: "⚔️ שדרוג חימוש", upg_arm: "🛡️ שדרוג שריון",
+    upg_max: "ברמה מרבית", radar_upgraded: "הרדאר שודרג — עוד רבע מהמפה נחשף",
     wep_upgraded: n => "חימוש שודרג לרמה " + n + " — ‎+20% נזק לכל הכוחות",
     arm_upgraded: n => "שריון שודרג לרמה " + n + " — ‎+20% חוסן לכל הכוחות",
   },
@@ -1542,7 +1549,7 @@ const L = {
     moving: "Units moving out",
     badspot: "Cannot build here — needs clear ground near your base",
     lowfunds: "Insufficient credits", building: "Building...", ready: "Structure ready",
-    unitready: "Unit ready", underattack: "Base under attack!",
+    unitready: "Unit ready", underattack: "Base under attack!", enemy_near: "Enemy approaching your base!",
     poweroff: "Not enough power — buildings offline! Build a power plant",
     wave: "Serpent Order attack wave inbound!", lowpower: "Low power — production slowed",
     harvest: "Harvester unloading veridium", win: "VICTORY", lose: "DEFEAT",
@@ -1563,8 +1570,8 @@ const L = {
     deploy_hint: "Select the MCV and press 'Deploy' to found your base",
     fix_vehicles: "🔧 REPAIR AT DEPOT", needs_depot: "Requires: Service Depot — build one near your base",
     sent_repair: "Vehicles heading to the service depot",
-    upg_radar: "📡 UPGRADE RADAR RANGE", upg_wep: "⚔️ UPGRADE WEAPONS", upg_arm: "🛡️ UPGRADE ARMOR",
-    upg_max: "MAX LEVEL", radar_upgraded: "Radar range extended",
+    upg_radar: "📡 UPGRADE RADAR — MAP REVEAL", upg_wep: "⚔️ UPGRADE WEAPONS", upg_arm: "🛡️ UPGRADE ARMOR",
+    upg_max: "MAX LEVEL", radar_upgraded: "Radar upgraded — another quarter of the map revealed",
     wep_upgraded: n => "Weapons upgraded to level " + n + " — +20% damage force-wide",
     arm_upgraded: n => "Armor upgraded to level " + n + " — +20% durability force-wide",
   }
@@ -1727,7 +1734,8 @@ let gateAt, gateTimer, fsActive, bridgeCells;
 let camX, camY, zoom, running = false, over = false;
 let camGlide = null;   // when set to [wx,wy], the camera eases toward it (radar "travel there")
 let waveTimer, waveNum, evaTimer = 0, atkWarnCd = 0, selBox = null, tSec = 0, fieldTimer = 6;
-let harvWarnCd = 0, resWarnCd = 0;   // throttles for harvester-under-fire / resources-depleted notices
+let harvWarnCd = 0, resWarnCd = 0, nearWarnCd = 0;   // throttles for harvester-under-fire / resources-depleted / enemy-near-base notices
+let radarOrder = null, radarOrderKey = -1;           // cached cell order (nearest-to-base first) for radar map reveal
 let creditsShown = 0, creditsBumpT = 0;   // HUD credit-counter pulse state
 
 const canvas = document.getElementById("game");
@@ -2046,7 +2054,7 @@ function killEnt(e) {
   } else boom(e.x, e.y, UNITS[e.type].infantry ? 0.5 : 1, e.owner);
 }
 /* -------- upgrades: radar range (per building) + armory (global) -------- */
-const RADAR_UPG = [800, 1400];              // level costs; +5 sight each
+const RADAR_UPG = [1000, 1800, 2800];      // 3 upgrades: base radar reveals 1/4 of the map, each upgrade +1/4 up to the whole map
 const WEP_UPG = [800, 1600, 2400];          // +20% damage per level
 const ARM_UPG = [800, 1600, 2400];          // +20% durability per level
 function upgRadar(e) {
@@ -2278,6 +2286,21 @@ function step(dt) {
   if (atkWarnCd > 0) atkWarnCd -= dt;
   if (harvWarnCd > 0) harvWarnCd -= dt;
   if (resWarnCd > 0) resWarnCd -= dt;
+  if (nearWarnCd > 0) nearWarnCd -= dt;
+  // "enemy approaching your base" — warn when a hostile enters a defined zone
+  // relatively close to your base (independent of radar; they're near enough to spot)
+  if (nearWarnCd <= 0 && notifyOn) {
+    const bc = playerBaseCell();
+    if (bc) {
+      const ZONE = 20;   // cells
+      for (const e of ents) {
+        if (e.dead || e.owner !== 1 || e.kind !== "unit") continue;
+        if ((e.x - bc[0]) ** 2 + (e.y - bc[1]) ** 2 <= ZONE * ZONE) {
+          eva(T("enemy_near"), "warn"); sfx("warn"); nearWarnCd = 16; break;
+        }
+      }
+    }
+  }
 
   // superweapon charge (needs the structure alive; low power slows charge)
   for (const key in supers) {
@@ -2459,23 +2482,23 @@ function step(dt) {
   // reveals a MUCH larger area of the map (as explored terrain), and each
   // radar upgrade widens that reveal further.
   visible.fill(0);
-  let radarActive = false;
+  let radarLvl = -1;                               // highest working radar level owned (-1 = none)
   for (const e of ents) {
     if (e.owner !== 0 || e.dead) continue;
     const b = e.kind === "unit" ? UNITS[e.type] : STRUCTS[e.type];
     let s = (b.sight || 3) + 1;                    // live vision radius (shows units)
-    if (b.radar) s += (e.sightBonus || 0);         // radar upgrades widen live vision
+    if (b.radar) { s += (e.sightBonus || 0); if (!e.unpowered) radarLvl = Math.max(radarLvl, e.radarLvl || 0); }
     const cx = e.x | 0, cy = e.y | 0;
     for (let y = cy - s; y <= cy + s; y++) for (let x = cx - s; x <= cx + s; x++)
       if (inMap(x, y) && (x - cx) ** 2 + (y - cy) ** 2 <= s * s) {
         visible[idx(x, y)] = 1; explored[idx(x, y)] = 1;
       }
-    if (b.radar) radarActive = true;
   }
-  // A Radar Center reveals the ENTIRE map as explored terrain. Until you
-  // build one, only ground your soldiers/vehicles have visited is known —
-  // everything else stays black on both the battlefield and the minimap.
-  if (radarActive) explored.fill(1);
+  // A Radar Center reveals part of the map as explored terrain, expanding OUT
+  // from your base: freshly built = a quarter, then +a quarter per upgrade up to
+  // the whole map. Until you build one, only ground your units have visited is
+  // known — everything else stays black on the battlefield and the minimap.
+  if (radarLvl >= 0) revealRadar(radarLvl);
 
   // victory / defeat: lose the conyard AND the MCV — the war is over
   const eStr = ents.some(e => e.owner === 1 && e.kind === "struct");
@@ -2483,6 +2506,35 @@ function step(dt) {
     (e.type === "nx_conyard" || e.type === "nx_mcv"));
   if (!eStr) endGame(true);
   else if (!pCore) endGame(false);
+}
+
+// the cell at the heart of the player's base (conyard → MCV → any structure)
+function playerBaseCell() {
+  const s = ents.find(e => !e.dead && e.owner === 0 && e.type === "nx_conyard")
+         || ents.find(e => !e.dead && e.owner === 0 && e.type === "nx_mcv")
+         || ents.find(e => !e.dead && e.owner === 0 && e.kind === "struct");
+  if (!s) return null;
+  return [Math.max(0, Math.min(MAP - 1, s.x | 0)), Math.max(0, Math.min(MAP - 1, s.y | 0))];
+}
+// reveal the nearest fraction of the map to your base: lvl 0 = 1/4, 1 = 1/2,
+// 2 = 3/4, 3 = the whole map. Cells are ordered nearest-first once and cached.
+function revealRadar(lvl) {
+  const f = Math.min(1, (lvl + 1) / 4);
+  if (f >= 1) { explored.fill(1); return; }
+  const bc = playerBaseCell();
+  if (!bc) { explored.fill(1); return; }
+  const key = bc[0] * 1000 + bc[1];
+  if (!radarOrder || radarOrderKey !== key) {
+    const N = MAP * MAP, a = new Array(N);
+    for (let i = 0; i < N; i++) a[i] = i;
+    const bx = bc[0], by = bc[1];
+    a.sort((p, q) =>
+      (((p % MAP) - bx) ** 2 + (((p / MAP) | 0) - by) ** 2) -
+      (((q % MAP) - bx) ** 2 + (((q / MAP) | 0) - by) ** 2));
+    radarOrder = a; radarOrderKey = key;
+  }
+  const n = (f * MAP * MAP) | 0;
+  for (let i = 0; i < n; i++) explored[radarOrder[i]] = 1;
 }
 
 function harvesterAI(e, dt) {
@@ -2891,7 +2943,10 @@ function spawnWave() {
     // the objective is the base, but combatAI lets them engage threats on the way there
     if (tgt) { u.marchTarget = tgt; orderMove(u, tgt.x, tgt.y); }
   }
-  eva(T("wave"), "warn"); sfx("warn");
+  // you only get the "wave inbound" warning if your radar actually sees them
+  // mustering — i.e. the wave's origin sits inside your radar-revealed area
+  const ox = sx | 0, oy = sy | 0;
+  if (notifyOn && hasRadar() && inMap(ox, oy) && explored[idx(ox, oy)]) { eva(T("wave"), "warn"); sfx("warn"); }
 }
 
 /* ============================== FX / audio ============================== */
@@ -3281,8 +3336,8 @@ function refreshButtons() {
       const ent = ents.find(e => !e.dead && e.id == ub.dataset.id);
       const lvl = ent ? (ent.radarLvl || 0) : 0;
       const maxed = lvl >= RADAR_UPG.length;
-      ub.textContent = maxed ? T("upg_radar") + " — " + T("upg_max")
-        : T("upg_radar") + " ▸ $" + RADAR_UPG[lvl];
+      ub.textContent = maxed ? T("upg_radar") + " — " + T("upg_max") + " (4/4)"
+        : T("upg_radar") + " ▸ $" + RADAR_UPG[lvl] + " (" + (lvl + 2) + "/4)";
       ub.disabled = maxed || !ent || credits < RADAR_UPG[lvl];
     } else {
       const lvl = kind === "wep" ? wepLvl : armLvl;
