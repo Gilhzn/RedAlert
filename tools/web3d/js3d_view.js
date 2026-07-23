@@ -542,7 +542,7 @@ function rebuildCrystals() {
     for (const [, , n] of list) count += n;
     if (!count) return null;
     const im = new THREE.InstancedMesh(crysGeo,
-      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5, roughness: 0.3 }), count);
+      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.95, roughness: 0.22 }), count);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
     let i = 0;
     for (const [x, y, n] of list) for (let k = 0; k < n; k++) {
@@ -551,23 +551,23 @@ function rebuildCrystals() {
       const h = 0.22 + ((k * 29 + x * 7) % 6) * 0.05;
       p.set(x + 0.5 + ox, y + 0.5 + oy, 0);
       q.setFromEuler(new THREE.Euler(((k * 11 + x) % 10 - 5) * 0.05, ((k * 7 + y) % 10 - 5) * 0.05, (k * 47 + x * 3) % 7));
-      s.set(h * 0.42, h * 0.42, h);
+      s.set(h * 0.5, h * 0.5, h * 1.3);
       m4.compose(p, q, s); im.setMatrixAt(i++, m4);
     }
     im.castShadow = true;
     crystalGroup.add(im);
     return im;
   };
-  crysMeshG = mk(g, 0x2fae57);
-  crysMeshB = mk(b, 0x2b7fb3);
-  // fake-bloom halos over each crystal cluster
+  crysMeshG = mk(g, 0x36e86a);
+  crysMeshB = mk(b, 0x4fc3ff);
+  // fake-bloom halos over each crystal cluster — a bright, obvious lit "field"
   if (crysGlow) crystalGroup.remove(crysGlow);
   crysGlow = new THREE.Group();
-  for (const [list, color] of [[g, 0x2fae57], [b, 0x2b7fb3]]) {
+  for (const [list, color] of [[g, 0x36e86a], [b, 0x4fc3ff]]) {
     for (const [x, y] of list) {
-      if ((x * 7 + y * 5) % 3 !== 0) continue;   // thin the halos (~1/3) — keeps the glow field cheap on big maps
-      const s = glowSprite(color, 1.6, 0.16);
-      s.position.set(x + 0.5, y + 0.5, 0.4);
+      if ((x * 7 + y * 5) % 2 !== 0) continue;   // ~1/2 of cells get a glow so the deposit reads clearly as a lit zone
+      const s = glowSprite(color, 2.6, 0.24);
+      s.position.set(x + 0.5, y + 0.5, 0.35);
       crysGlow.add(s);
     }
   }

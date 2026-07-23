@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: radar-quarters-wave-gating-mobile-toasts --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: bright-veridium-zones-screen-pan --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -3030,6 +3030,18 @@ function drawMinimap() {
     // ordinary terrain out of vision is dimmed
     if (!visible[i] && !isCrys) { mmctx.fillStyle = "rgba(6,11,18,0.5)"; mmctx.fillRect(x * s, y * s, s + 0.6, s + 0.6); }
   }
+  // veridium collection zones: a soft aura (overlaps into a glowing blob over a
+  // dense field) plus a bright core, so the deposits read unmistakably as the
+  // designated harvesting areas on the radar
+  for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
+    const i = idx(x, y);
+    if (!crystal[i] || !explored[i]) continue;
+    const blue = crystal[i] === 9;
+    mmctx.fillStyle = blue ? "rgba(90,200,255,0.26)" : "rgba(110,255,170,0.26)";
+    mmctx.fillRect(x * s - s, y * s - s, s * 3, s * 3);            // aura → reads as a zone
+    mmctx.fillStyle = blue ? "#8fe6ff" : "#8dffb4";
+    mmctx.fillRect(x * s - 0.3, y * s - 0.3, s + 1.4, s + 1.4);    // bright core
+  }
   const radarOn = hasRadar();
   for (const e of ents) {
     if (e.dead) continue;
@@ -4513,7 +4525,7 @@ function rebuildCrystals() {
     for (const [, , n] of list) count += n;
     if (!count) return null;
     const im = new THREE.InstancedMesh(crysGeo,
-      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5, roughness: 0.3 }), count);
+      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.95, roughness: 0.22 }), count);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
     let i = 0;
     for (const [x, y, n] of list) for (let k = 0; k < n; k++) {
@@ -4522,23 +4534,23 @@ function rebuildCrystals() {
       const h = 0.22 + ((k * 29 + x * 7) % 6) * 0.05;
       p.set(x + 0.5 + ox, y + 0.5 + oy, 0);
       q.setFromEuler(new THREE.Euler(((k * 11 + x) % 10 - 5) * 0.05, ((k * 7 + y) % 10 - 5) * 0.05, (k * 47 + x * 3) % 7));
-      s.set(h * 0.42, h * 0.42, h);
+      s.set(h * 0.5, h * 0.5, h * 1.3);
       m4.compose(p, q, s); im.setMatrixAt(i++, m4);
     }
     im.castShadow = true;
     crystalGroup.add(im);
     return im;
   };
-  crysMeshG = mk(g, 0x2fae57);
-  crysMeshB = mk(b, 0x2b7fb3);
-  // fake-bloom halos over each crystal cluster
+  crysMeshG = mk(g, 0x36e86a);
+  crysMeshB = mk(b, 0x4fc3ff);
+  // fake-bloom halos over each crystal cluster — a bright, obvious lit "field"
   if (crysGlow) crystalGroup.remove(crysGlow);
   crysGlow = new THREE.Group();
-  for (const [list, color] of [[g, 0x2fae57], [b, 0x2b7fb3]]) {
+  for (const [list, color] of [[g, 0x36e86a], [b, 0x4fc3ff]]) {
     for (const [x, y] of list) {
-      if ((x * 7 + y * 5) % 3 !== 0) continue;   // thin the halos (~1/3) — keeps the glow field cheap on big maps
-      const s = glowSprite(color, 1.6, 0.16);
-      s.position.set(x + 0.5, y + 0.5, 0.4);
+      if ((x * 7 + y * 5) % 2 !== 0) continue;   // ~1/2 of cells get a glow so the deposit reads clearly as a lit zone
+      const s = glowSprite(color, 2.6, 0.24);
+      s.position.set(x + 0.5, y + 0.5, 0.35);
       crysGlow.add(s);
     }
   }
@@ -5229,12 +5241,20 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (running && !over) {
-    const pan = 12 * dt / Math.max(zoom, 0.7);
+    const pan = 15 * dt / Math.max(zoom, 0.7);
+    // screen-aligned panning: ↑ tours toward the TOP of the screen, ↓ the bottom,
+    // → the right, ← the left — whatever the current camera angle is (derived from
+    // the live view transform so it always matches what you see)
+    const [ccx, ccy] = toWorld(vw / 2, vh / 2);
+    const [crx, cry] = toWorld(vw / 2 + 60, vh / 2);   // world direction of screen-right
+    const [cux, cuy] = toWorld(vw / 2, vh / 2 - 60);   // world direction of screen-up
+    const rl = Math.hypot(crx - ccx, cry - ccy) || 1, ul = Math.hypot(cux - ccx, cuy - ccy) || 1;
+    const rX = (crx - ccx) / rl, rY = (cry - ccy) / rl, uX = (cux - ccx) / ul, uY = (cuy - ccy) / ul;
     let panKey = false;
-    if (keys["w"] || keys["arrowup"]) camY -= pan, camX -= pan, panKey = true;
-    if (keys["s"] || keys["arrowdown"]) camY += pan, camX += pan, panKey = true;
-    if (keys["a"] || keys["arrowleft"]) camX += pan, camY -= pan, panKey = true;
-    if (keys["d"] || keys["arrowright"]) camX -= pan, camY += pan, panKey = true;
+    if (keys["w"] || keys["arrowup"]) camX += uX * pan, camY += uY * pan, panKey = true;
+    if (keys["s"] || keys["arrowdown"]) camX -= uX * pan, camY -= uY * pan, panKey = true;
+    if (keys["d"] || keys["arrowright"]) camX += rX * pan, camY += rY * pan, panKey = true;
+    if (keys["a"] || keys["arrowleft"]) camX -= rX * pan, camY -= rY * pan, panKey = true;
     if (panKey) camGlide = null;   // any manual pan cancels a radar glide
     if (camGlide) {                // ease toward the radar target, then snap and stop
       const t = Math.min(1, dt * 6);
