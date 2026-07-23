@@ -494,15 +494,24 @@ function buildWorld() {
   // desert ringed by distant mountains, with a large lake off to one side.
   buildSurroundings();
 
-  // fog-of-war overlay: a grid that DRAPES over the terrain relief, so the
-  // shroud reads as unseen land/hills — not a flat black pit punched in the map
+  // fog-of-war overlay: a grid that DRAPES over the terrain relief so unexplored
+  // ground is SOLID black — no mountains/hills/meadows/water leak through. The
+  // grid matches the terrain subdivision and each vertex is lifted to the MAX
+  // height of its neighbourhood so even sharp peaks stay fully covered.
   if (fogMesh) scene.remove(fogMesh);
   const fmat = new THREE.MeshBasicMaterial({ map: fogTex, transparent: true, depthWrite: false });
-  const fgeo = new THREE.PlaneGeometry(MAP, MAP, MAP, MAP);
+  const FSEG = MAP * SUB;                       // match the terrain mesh resolution
+  const fgeo = new THREE.PlaneGeometry(MAP, MAP, FSEG, FSEG);
   const fp = fgeo.attributes.position;
+  const maxH = (wx, wy) => {                    // highest terrain within ~1 cell → covers peaks
+    let m = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++)
+      m = Math.max(m, heightAt(wx + dx, wy + dy));
+    return m;
+  };
   for (let i = 0; i < fp.count; i++) {
     const wx = fp.getX(i) + MAP / 2, wy = fp.getY(i) + MAP / 2;
-    fp.setZ(i, heightAt(wx, wy) + 0.08);
+    fp.setZ(i, maxH(wx, wy) + 0.35);
   }
   fp.needsUpdate = true; fgeo.computeVertexNormals();
   fogMesh = new THREE.Mesh(fgeo, fmat);
@@ -1005,6 +1014,14 @@ function drawHud() {
   for (const u of ents)
     if (!u.dead && u.owner === 0 && u.kind === "unit" && u.target && !u.target.dead && u.target.owner === 1)
       marked.add(u.target);
+  // enemy under the cursor while attack-capable units are selected → preview the reticle on hover
+  let hovered = null;
+  if (typeof placing !== "undefined" && !placing && !superAim &&
+      ents.some(u => u.sel && u.owner === 0 && u.kind === "unit" && UNITS[u.type] &&
+                     (UNITS[u.type].weapon || UNITS[u.type].capture))) {
+    const hv = typeof pickEntity === "function" ? pickEntity(mouseX, mouseY) : null;
+    if (hv && !hv.dead && hv.owner === 1 && !entHidden(hv)) hovered = hv;
+  }
   for (const e of ents) {
     if (e.dead || entHidden(e)) continue;
     const show = e.sel || e.hp < e.maxhp;
@@ -1026,8 +1043,8 @@ function drawHud() {
       hudctx.font = "17px sans-serif";
       hudctx.fillText("🔧", sx - 8, sy);
     }
-    // RED attack marker on any enemy our units are targeting
-    if (marked.has(e)) {
+    // RED attack reticle: on any enemy our units are targeting, or the one hovered
+    if (marked.has(e) || e === hovered) {
       const [sx, sy] = toScreen(e.x, e.y, gz + (isStruct ? 0.3 : 0.2));
       const rad = (isStruct ? 26 : 15) * Math.min(zoom, 1.7);
       const rot = tSec * 1.6;
