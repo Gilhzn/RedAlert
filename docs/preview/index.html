@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: wave-frequency-gradient --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: mobile-topbar-fit --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -144,10 +144,16 @@
     #sidebar { width: 178px; padding: 8px; gap: 8px; }
     #sbtab { right: 178px; }
     body.sb-collapsed #sbtab { right: 0; }
-    #topbar { font-size: 11px; }
-    #topbar .seg { padding: 0 7px; gap: 5px; }
-    #topbar .title { letter-spacing: 1px; }
-    #powerwrap { width: 56px; }
+    /* phones can't fit the desktop strip in one row, so shed what isn't needed
+       mid-match: the game's branding and the inline language toggle (language is
+       still one tap away in ⚙ settings). Credits, power, mute and settings stay. */
+    #topbar { font-size: 12px; }
+    #topbar #brandseg { display: none; }   /* beat the #topbar .seg base rule's specificity */
+    #topbar #lang-he, #topbar #lang-en { display: none; }
+    #topbar .seg { padding: 0 7px; gap: 6px; }
+    #topbar .seg:first-child { padding-inline-start: 9px; }
+    #topbar button { padding: 6px 7px; font-size: 15px; }
+    #powerwrap { width: 54px; }
     .build-btn { padding: 4px 3px; }
     .build-btn .bicon { height: 32px; }
     .build-btn .nm { font-size: 9.5px; }
@@ -278,7 +284,7 @@
 <div id="crt"></div>
 
 <div id="topbar" class="hud">
-  <div class="seg"><span class="title" id="t-title">TIBERIUM DUSK</span><span class="tag" id="t-preview">PREVIEW</span></div>
+  <div class="seg" id="brandseg"><span class="title" id="t-title">TIBERIUM DUSK</span><span class="tag" id="t-preview">PREVIEW</span></div>
   <div class="seg"><span id="t-credits">אשראי</span> <span class="num" id="credits">3000</span></div>
   <div class="seg"><span id="t-power">חשמל</span> <div id="powerwrap"><div id="powerbar"></div></div> <span class="num" id="powernum"></span></div>
   <div class="spacer"></div>
