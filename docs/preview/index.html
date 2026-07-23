@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: rotate-sellcy --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: left-orbit --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -3346,12 +3346,12 @@ canvas.addEventListener("mousemove", ev => {
   if (dragStart) {
     const moved = Math.abs(mouseX - dragStart[0]) + Math.abs(mouseY - dragStart[1]) > 6;
     // drag intent was decided on mousedown from the selection state
-    if (lmbPanMode === true && panLast) {          // no units selected → drag pans the map
+    if (lmbPanMode === "orbit" && panLast) {        // nothing selected → drag changes the viewing angle
       if (moved) lmbPanned = true;
-      const w1 = toWorld(panLast[0], panLast[1]), w2 = toWorld(mouseX, mouseY);
-      camX -= w2[0] - w1[0]; camY -= w2[1] - w1[1];
+      camYaw -= (mouseX - panLast[0]) * 0.008;
+      camPitch = Math.max(0.75, Math.min(1.28, camPitch + (mouseY - panLast[1]) * 0.005));
       panLast = [mouseX, mouseY];
-    } else if (lmbPanMode === false && moved) {    // otherwise → box-select
+    } else if (lmbPanMode === "box" && moved) {     // otherwise → box-select
       selBox = { x1: Math.min(dragStart[0], mouseX), y1: Math.min(dragStart[1], mouseY),
                  x2: Math.max(dragStart[0], mouseX), y2: Math.max(dragStart[1], mouseY) };
     }
@@ -3378,9 +3378,9 @@ canvas.addEventListener("mousedown", ev => {
     const onOwn = !!(pk && pk.owner === 0);
     lmbHadSel = anySel;
     lmbPanned = false;
-    // with NOTHING selected and empty ground under the cursor, a drag PANS the map;
-    // otherwise a drag box-selects (Shift always forces box-select)
-    lmbPanMode = ev.shiftKey ? false : (!anySel && !onOwn);
+    // with NOTHING selected and empty ground under the cursor, a drag ORBITS the view
+    // (changes the viewing angle); otherwise a drag box-selects. Shift forces box.
+    lmbPanMode = ev.shiftKey ? "box" : ((!anySel && !onOwn) ? "orbit" : "box");
   }
 });
 window.addEventListener("mouseup", ev => {
@@ -3400,7 +3400,7 @@ window.addEventListener("mouseup", ev => {
   if (ev.button !== 0 || !running || touchGuard()) return;
   if (!dragStart) return;
   if (lmbPanned) { dragStart = null; selBox = null; lmbPanned = false; return; }   // was a long-press pan
-  const wasBox = lmbPanMode === false && selBox && (selBox.x2 - selBox.x1 > 6 || selBox.y2 - selBox.y1 > 6);
+  const wasBox = lmbPanMode === "box" && selBox && (selBox.x2 - selBox.x1 > 6 || selBox.y2 - selBox.y1 > 6);
   if (wasBox) {
     if (!ev.shiftKey) for (const e of ents) e.sel = false;   // Shift adds to the selection
     for (const e of ents) {
@@ -3786,7 +3786,7 @@ function applyLang() {
     document.getElementById("i-desc").textContent = "An interactive browser preview: a compact skirmish against the Serpent Order, using the real unit stats from the game's data files. Harvest veridium, build your base, repel the waves — and destroy the enemy base.";
     document.getElementById("i-note").textContent = "This is a JavaScript demo — not the full Unity WebGL build. The full game is built in the Unity Editor via Tiberium Dusk → Build → WebGL.";
     document.getElementById("i-controls").innerHTML =
-      "<li><b>Left click</b> — select a unit; with units selected, click ground/enemy to <b>move / attack</b></li><li><b>Left-drag</b> — box-select; with nothing selected, drag empty ground to <b>pan</b> (Shift forces box-select)</li><li><b>Right click</b> — move / attack; <b>right-drag</b> — pan the map</li><li><b>Radar</b> — click to look; with units selected, click sends them there</li><li><b>WASD / arrows / middle-drag</b> — pan camera, <b>wheel</b> — zoom, <b>Q/E / Ctrl+left-drag</b> — free orbit, <b>R/F</b> — tilt</li><li><b>Sidebar</b> — build; when a structure is <b>ready</b>, click it then click the map to mark a spot and click again to confirm (or drag it onto the map). ▶ collapses it</li><li><b>Mobile</b> — tap: select/order, double-tap: deselect, long-press+drag: pan, quick-drag: group select, pinch: zoom, twist two fingers: rotate, slide two fingers up/down: tilt</li>";
+      "<li><b>Left click</b> — select a unit; with units selected, click ground/enemy to <b>move / attack</b></li><li><b>Left-drag</b> — box-select; with nothing selected, drag empty ground to <b>change the viewing angle</b> (Shift forces box-select)</li><li><b>Right click</b> — move / attack; <b>right-drag</b> — pan the map</li><li><b>Radar</b> — click to look; with units selected, click sends them there</li><li><b>WASD / arrows / middle-drag</b> — pan camera, <b>wheel</b> — zoom, <b>Q/E / Ctrl+left-drag</b> — free orbit, <b>R/F</b> — tilt</li><li><b>Sidebar</b> — build; when a structure is <b>ready</b>, click it then click the map to mark a spot and click again to confirm (or drag it onto the map). ▶ collapses it</li><li><b>Mobile</b> — tap: select/order, double-tap: deselect, long-press+drag: pan, quick-drag: group select, pinch: zoom, twist two fingers: rotate, slide two fingers up/down: tilt</li>";
     document.getElementById("startbtn").textContent = "START BATTLE";
   } else {
     document.querySelector("#introcard h1").textContent = "דמדומי טיבריום";
@@ -3794,7 +3794,7 @@ function applyLang() {
     document.getElementById("i-desc").textContent = "תצוגה מקדימה אינטראקטיבית בדפדפן: סקירמיש מוקטן נגד מסדר הנחש, עם נתוני היחידות האמיתיים מקובצי המשחק. קצרו ורידיום, בנו בסיס, הדפו גלים — והשמידו את בסיס האויב.";
     document.getElementById("i-note").textContent = "זו הדגמת JavaScript — לא בניית ה־Unity WebGL המלאה. את המשחק המלא בונים ב־Unity Editor דרך התפריט Tiberium Dusk ← Build ← WebGL.";
     document.getElementById("i-controls").innerHTML =
-      "<li><b>קליק שמאלי</b> — בחירת יחידה; כשיחידות מסומנות, קליק על הקרקע/אויב שולח אותן (<b>תנועה/תקיפה</b>)</li><li><b>גרירה שמאלית</b> — בחירת קבוצה; כשאין בחירה, גרירה על שטח ריק <b>מזיזה את המפה</b> (Shift מכריח בחירה)</li><li><b>קליק ימני</b> — תנועה / תקיפה; <b>גרירה ימנית</b> — סיור במפה</li><li><b>ראדאר</b> — קליק כדי להתבונן; כשיחידות מסומנות, קליק שולח אותן לשם</li><li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום, <b>Q/E / Ctrl+שמאלי</b> — סיבוב חופשי, <b>R/F</b> — הטיה</li><li><b>סרגל צד</b> — בנייה; כשמבנה <b>מוכן</b>, לחצו עליו ואז לחצו על המפה לסמן מיקום, ולחצו שוב לאישור (או גררו אל המפה). ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, הקשה כפולה: ביטול סימון, לחיצה ארוכה+גרירה: סיור, גרירה מהירה: בחירת קבוצה, צביטה: זום, סיבוב שתי אצבעות: סיבוב המפה, החלקת שתי אצבעות מעלה/מטה: הטיה</li>";
+      "<li><b>קליק שמאלי</b> — בחירת יחידה; כשיחידות מסומנות, קליק על הקרקע/אויב שולח אותן (<b>תנועה/תקיפה</b>)</li><li><b>גרירה שמאלית</b> — בחירת קבוצה; כשאין בחירה, גרירה על שטח ריק <b>משנה את זווית המבט</b> (Shift מכריח בחירה)</li><li><b>קליק ימני</b> — תנועה / תקיפה; <b>גרירה ימנית</b> — סיור/הזזת המפה</li><li><b>ראדאר</b> — קליק כדי להתבונן; כשיחידות מסומנות, קליק שולח אותן לשם</li><li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום, <b>Q/E / Ctrl+שמאלי</b> — סיבוב חופשי, <b>R/F</b> — הטיה</li><li><b>סרגל צד</b> — בנייה; כשמבנה <b>מוכן</b>, לחצו עליו ואז לחצו על המפה לסמן מיקום, ולחצו שוב לאישור (או גררו אל המפה). ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, הקשה כפולה: ביטול סימון, לחיצה ארוכה+גרירה: סיור, גרירה מהירה: בחירת קבוצה, צביטה: זום, סיבוב שתי אצבעות: סיבוב המפה, החלקת שתי אצבעות מעלה/מטה: הטיה</li>";
     document.getElementById("startbtn").textContent = "התחל קרב";
   }
   syncSettingsUI(rtl);
