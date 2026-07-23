@@ -172,6 +172,31 @@ function updateCamera() {
   sun.shadow.camera.updateProjectionMatrix();
 }
 
+/* ---------- edge-scroll: push the mouse to a screen edge to pan the camera
+   (classic RTS). Respects the top bar, bottom bar and the right sidebar so
+   the playfield edges — not the panels — are what trigger the scroll. ---------- */
+let edgePanOn = false;
+canvas.addEventListener("mousemove", () => { edgePanOn = true; });
+canvas.addEventListener("mouseleave", () => { edgePanOn = false; });
+function edgeScroll(dt) {
+  if (IS_MOBILE || !edgePanOn || typeof running === "undefined" || !running || over) return;
+  const M = 22;                                   // edge trigger band (px)
+  const collapsed = document.body.classList.contains("sb-collapsed");
+  const sbW = collapsed ? 0 : (vw <= 760 ? 178 : 216);
+  const top = 42, bot = 34;                        // top/bottom HUD bars
+  const rightEdge = vw - sbW;
+  let ex = 0, ey = 0;
+  if (mouseX < M) ex = -1; else if (mouseX > rightEdge - M && mouseX <= rightEdge) ex = 1;
+  if (mouseY < top + M && mouseY > top - 4) ey = -1; else if (mouseY > vh - bot - M) ey = 1;
+  if (!ex && !ey) return;
+  const pan = 24 * dt / Math.max(zoom, 0.7);
+  const cy = Math.cos(camYaw), sy = Math.sin(camYaw);
+  if (ey < 0) { camX -= cy * pan; camY -= sy * pan; }        // up = camera-forward
+  else if (ey > 0) { camX += cy * pan; camY += sy * pan; }   // down
+  if (ex < 0) { camX -= sy * pan; camY += cy * pan; }        // left
+  else if (ex > 0) { camX += sy * pan; camY -= cy * pan; }   // right
+}
+
 /* ---------- projection (same contract as the old 2D code) ---------- */
 const _v3 = new THREE.Vector3();
 function toScreen(x, y, z) {
@@ -1080,6 +1105,7 @@ function draw() {
       waterMesh.geometry.computeVertexNormals();
     }
   }
+  edgeScroll(dt);
   updateCamera();
   syncEnts(dt);
   syncCorpses();
