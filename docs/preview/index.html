@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: opaque-fog + zoom-limit + longpress-select + hover-reticle --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: pay-as-you-build + cost-power + swap-controls + attack-flash --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -1501,7 +1501,7 @@ const STRUCTS = {
 const BUILD_STRUCTS = ["dm_power_plant", "dm_barracks", "nx_refinery", "nx_silo", "dm_factory",
                        "dm_wall", "dm_gate", "dm_helipad", "dm_service_depot", "dm_guard_tower", "dm_radar",
                        "dm_rocket_tower", "dm_aa_tower", "dm_tech_center", "nx_emp_cannon", "dm_ion_uplink",
-                       "dm_firestorm_gen", "dm_fs_emitter", "dm_bridge"];
+                       "dm_firestorm_gen", "dm_fs_emitter"];
 // extra tech requirements (id -> required structure)
 const REQUIRES = { dm_rocket_tower: "dm_radar", dm_mammoth: "dm_tech_center", dm_hover_mlrs: "dm_tech_center",
   dm_disruptor: "dm_tech_center", dm_sensor: "dm_radar", dm_jumptrooper: "dm_radar", dm_railhero: "dm_tech_center",
@@ -1520,7 +1520,7 @@ function creditCap() {
   return Infinity;
 }
 function hasRadar() {
-  return ents.some(e => !e.dead && e.owner === 0 && e.kind === "struct" && STRUCTS[e.type].radar);
+  return ents.some(e => !e.dead && e.owner === 0 && e.kind === "struct" && STRUCTS[e.type].radar && !e.unpowered);
 }
 const INFANTRY_UNITS = ["dm_rifle", "dm_grenadier", "dm_rocket", "dm_heavy", "dm_engineer", "dm_medic", "dm_jumptrooper", "dm_phantom", "dm_railhero"];
 const VEHICLE_UNITS  = ["nx_harvester", "nx_mcv", "dm_apc", "dm_wolverine", "dm_mbt_walker", "dm_artillery", "dm_sensor", "dm_hover_mlrs", "dm_disruptor", "dm_mammoth"];
@@ -1930,8 +1930,7 @@ function cancelOne(q, type) {
   for (let k = list.length - 1; k >= 0; k--) if (!type || list[k].type === type) { i = k; break; }
   if (i < 0) return;
   const job = list[i];
-  const spec = q === "structure" ? STRUCTS[job.type] : UNITS[job.type];
-  credits += spec.cost;
+  credits += job.paid || 0;   // refund only what was actually spent so far
   if (q === "structure" && job.done && placing === job.type) placing = null;
   list.splice(i, 1);
   eva(T("cancelled")); sfx("warn");
@@ -1958,11 +1957,30 @@ function sellStruct(e) {
   buildButtons(); updateSelInfo();
   eva(L[lang].sold(refund)); sfx("done");
 }
+// Power demand scales with total building cost: one power plant (100) covers
+// ~$6000 of buildings (demand = cost / 60). When plants can't cover it, the
+// NEWEST buildings drop offline first (marked e.unpowered → faded gray).
 function updatePower() {
-  powerOut = 0; powerUse = 0;
-  for (const e of ents) if (!e.dead && e.kind === "struct" && e.owner === 0) {
-    const p = STRUCTS[e.type].power;
-    if (p > 0) powerOut += p; else powerUse -= p;
+  powerOut = 0;
+  const consumers = [];
+  for (const e of ents) {
+    if (e.dead || e.kind !== "struct" || e.owner !== 0) continue;
+    const s = STRUCTS[e.type];
+    if (s.bridge) { e.unpowered = false; continue; }        // neutral bridges use no power
+    if (s.power > 0) { powerOut += s.power; e.unpowered = false; }   // plants are always on
+    else consumers.push(e);
+  }
+  let demandTotal = 0;
+  for (const e of consumers) { e.unpowered = false; demandTotal += STRUCTS[e.type].cost / 60; }
+  powerUse = Math.round(demandTotal);
+  powerOut = Math.round(powerOut);
+  // cut power from the NEWEST buildings first until demand fits the supply
+  consumers.sort((a, b) => b.id - a.id);                     // newest (highest id) first
+  let over = demandTotal - powerOut;
+  for (const e of consumers) {
+    if (over <= 0.001) break;
+    e.unpowered = true;
+    over -= STRUCTS[e.type].cost / 60;
   }
 }
 
@@ -2028,15 +2046,21 @@ function orderMove(e, x, y, target) {
 /* ============================== Simulation ============================== */
 function step(dt) {
   tSec += dt;
-  // production queues — every queued job in every category advances IN PARALLEL
-  // (each was paid for up front, so the treasury is the only limiter)
+  // production queues — every queued job advances IN PARALLEL, PAY-AS-YOU-BUILD:
+  // credits are spent gradually as a job progresses. When the treasury runs dry
+  // the job simply STALLS at its current progress until money comes in again.
   const slow = powerUse > powerOut ? 0.45 : 1;
   for (const q of ["structure", "infantry", "vehicle", "aircraft"]) {
     const list = queues[q];
     for (let j = list.length - 1; j >= 0; j--) {
       const job = list[j];
-      job.t += dt * slow;
-      if (job.t < job.dur) continue;
+      const spec = q === "structure" ? STRUCTS[job.type] : UNITS[job.type];
+      job.paid = job.paid || 0;
+      const want = (spec.cost / job.dur) * dt * slow;        // credits due this tick
+      const pay = Math.min(want, credits, spec.cost - job.paid);
+      if (pay > 0) { credits -= pay; job.paid += pay; }
+      job.t = job.paid / spec.cost * job.dur;                // progress tracks money spent
+      if (job.paid < spec.cost - 0.01) continue;             // not fully paid → keep building (or stalled)
       if (q === "structure") {
         job.done = true;                     // finished structures wait for placement
         if (!placing) { placing = job.type; eva(T("placement")); sfx("done"); }
@@ -2045,8 +2069,9 @@ function step(dt) {
         if (!src) src = ents.find(e => !e.dead && e.owner === 0 && e.kind === "struct" &&
                                        PRODUCER_OF[q].includes(e.type));
         if (src) {
-          const u = spawnUnit(job.type, src.x + (rnd() - 0.5) * 0.8, src.y + src.fh / 2 + 0.7, 0);
-          orderMove(u, src.x + (rnd() - 0.5) * 3, src.y + src.fh / 2 + 2 + rnd() * 1.5);
+          // exit from the FRONT of the building (structures face -Y in the world)
+          const u = spawnUnit(job.type, src.x + (rnd() - 0.5) * 0.8, src.y - src.fh / 2 - 0.7, 0);
+          orderMove(u, src.x + (rnd() - 0.5) * 3, src.y - src.fh / 2 - 2 - rnd() * 1.5);
           eva(T("unitready")); sfx("done");
         }
         list.splice(j, 1);                    // job done, drop it
@@ -2385,7 +2410,8 @@ function combatAI(e, b, dt) {
   if (!b.weapon) return;
   const w = WEAPONS[b.weapon];
   // validate explicit target
-  if (e.target && (e.target.dead || !canHit(w, e.target))) e.target = null;
+  if (e.target && (e.target.dead || !canHit(w, e.target) ||
+      (e.target.kind === "struct" && STRUCTS[e.target.type].bridge))) e.target = null;   // drop bridge targets
   // acquire
   if (!e.target) {
     let best = null, bd = 1e9;
@@ -2444,7 +2470,7 @@ function structAI(e, dt) {
     }
   }
   if (!b.weapon) return;
-  if (e.owner === 0 && powerUse > powerOut) return;  // towers offline on low power
+  if (e.owner === 0 && e.unpowered) return;  // this building has no power → offline
   const w = WEAPONS[b.weapon];
   if (e.target && (e.target.dead || !canHit(w, e.target) || Math.hypot(e.target.x - e.x, e.target.y - e.y) > w.range)) e.target = null;
   if (!e.target) {
@@ -2554,7 +2580,10 @@ function hit(t, dmg, byOwner, vs) {
   t.hp -= dmg * versus(t, vs);
   spark(t.x, t.y);
   rings.push({ x: t.x, y: t.y, t: 0, max: 0.3 });
-  if (t.owner === 0 && byOwner === 1 && atkWarnCd <= 0) { eva(T("underattack")); sfx("warn"); atkWarnCd = 12; }
+  if (t.owner === 0 && byOwner === 1) {
+    if (t.kind === "struct") t.hitFlash = 1.5;   // pulse the building red ~3 times
+    if (atkWarnCd <= 0) { eva(T("underattack")); sfx("warn"); atkWarnCd = 12; }
+  }
   if (t.hp <= 0) killEnt(t);
 }
 
@@ -2573,9 +2602,9 @@ function spawnWave() {
   }
   // air raids join in from wave 4 — build AA batteries!
   if (waveNum >= 4) for (let i = 0; i < (waveNum > 7 ? 2 : 1); i++) comp.push("so_harpy");
-  // pick a player target (pre-deploy: hunt the units instead)
-  let targets = ents.filter(e => !e.dead && e.owner === 0 && e.kind === "struct");
-  if (!targets.length) targets = ents.filter(e => !e.dead && e.owner === 0);
+  // pick a player target (never a neutral bridge; pre-deploy: hunt the units)
+  let targets = ents.filter(e => !e.dead && e.owner === 0 && e.kind === "struct" && !STRUCTS[e.type].bridge);
+  if (!targets.length) targets = ents.filter(e => !e.dead && e.owner === 0 && e.kind === "unit");
   const tgt = targets.length ? targets[(rnd() * targets.length) | 0] : null;
   for (let i = 0; i < comp.length; i++) {
     const u = spawnUnit(comp[i], sx + (rnd() - 0.5) * 3, sy + (rnd() - 0.5) * 3, 1);
@@ -2719,10 +2748,10 @@ function makeBuildButton(type, q) {
     if (type === "nx_harvester" && !hasStruct("nx_refinery")) { eva(T("needs_nx_refinery")); sfx("warn"); return; }
     if (REQUIRES[type] && !hasStruct(REQUIRES[type])) { eva(T("needs_" + REQUIRES[type])); sfx("warn"); return; }
     if (heroBlocked(type)) { eva(T("herolimit")); sfx("warn"); return; }
-    if (credits < spec.cost) { eva(T("lowfunds")); sfx("warn"); return; }
-    credits -= spec.cost;
+    // pay-as-you-build: no up-front charge — the job draws credits as it
+    // progresses and stalls when the treasury is empty
     const srcId = (sbView.mode === "building" && BUILDING_QUEUE[sbView.type] === q) ? sbView.id : 0;
-    list.push({ type, t: 0, dur: Math.max(2, spec.cost / 300), done: false, srcId });
+    list.push({ type, t: 0, dur: Math.max(2, spec.cost / 300), done: false, paid: 0, srcId });
     sfx("click");
   });
   const qc = document.createElement("span");
@@ -2872,11 +2901,10 @@ function refreshButtons() {
     prog.style.width = Math.min(100, p * 100) + "%";
     const qty = btn.querySelector(".qty");
     if (qty) qty.textContent = mine.length > 1 ? "×" + mine.length : "";
-    const cost = (q === "structure" ? STRUCTS[type] : UNITS[type]).cost;
     const gateMissing = !hasProducer(q) ||
                         (type === "nx_harvester" && !hasStruct("nx_refinery")) ||
                         (REQUIRES[type] && !hasStruct(REQUIRES[type])) || heroBlocked(type);
-    btn.disabled = (credits < cost) || gateMissing;   // parallel: other types no longer block
+    btn.disabled = gateMissing;   // pay-as-you-build: low funds just stalls, doesn't block queuing
   });
   // live labels for the focused building's upgrade buttons
   document.querySelectorAll(".sb-upg").forEach(ub => {
@@ -2913,13 +2941,13 @@ function refreshButtons() {
 /* ============================== Input ============================== */
 let mouseX = 0, mouseY = 0, dragStart = null, panning = false, panLast = null;
 let orbitDrag = null, rbtn = null, suppressCtxUntil = 0;
-let lmbBox = false, lmbPanned = false, lmbHadSel = false, lmbDownTime = 0;   // left-button drag: box-select vs. grab-pan
+let lmbPanned = false, lmbHadSel = false, lmbDownTime = 0, lmbPanMode = null;   // drag mode: false=box-select, true=pan
 const keys = {};
 canvas.addEventListener("mousemove", ev => {
   mouseX = ev.clientX; mouseY = ev.clientY;
   if (orbitDrag) {
     camYaw -= (ev.clientX - orbitDrag.x) * 0.008;
-    camPitch = Math.max(0.52, Math.min(1.28, camPitch + (ev.clientY - orbitDrag.y) * 0.005));
+    camPitch = Math.max(0.75, Math.min(1.28, camPitch + (ev.clientY - orbitDrag.y) * 0.005));
     orbitDrag = { x: ev.clientX, y: ev.clientY };
     return;
   }
@@ -2927,7 +2955,7 @@ canvas.addEventListener("mousemove", ev => {
     if (Math.abs(ev.clientX - rbtn.x) + Math.abs(ev.clientY - rbtn.y) > 6) rbtn.moved = true;
     if (rbtn.moved) {
       camYaw -= (ev.clientX - rbtn.x) * 0.008;
-      camPitch = Math.max(0.52, Math.min(1.28, camPitch + (ev.clientY - rbtn.y) * 0.005));
+      camPitch = Math.max(0.75, Math.min(1.28, camPitch + (ev.clientY - rbtn.y) * 0.005));
       rbtn.x = ev.clientX; rbtn.y = ev.clientY;
     }
     return;
@@ -2939,16 +2967,17 @@ canvas.addEventListener("mousemove", ev => {
   }
   if (dragStart) {
     const moved = Math.abs(mouseX - dragStart[0]) + Math.abs(mouseY - dragStart[1]) > 6;
-    // long-press (held ~250ms) before dragging → box-select even on empty ground
-    if (!lmbBox && !lmbPanned && performance.now() - lmbDownTime > 250) lmbBox = true;
-    if (lmbBox) {
-      selBox = { x1: Math.min(dragStart[0], mouseX), y1: Math.min(dragStart[1], mouseY),
-                 x2: Math.max(dragStart[0], mouseX), y2: Math.max(dragStart[1], mouseY) };
-    } else if (moved && panLast) {           // nothing selected → grab-drag pans the map
+    // decide on first movement: a QUICK drag box-selects, a LONG-PRESS (held
+    // ~250ms) then drag pans the map
+    if (moved && lmbPanMode === null) lmbPanMode = performance.now() - lmbDownTime > 250;
+    if (lmbPanMode === true && panLast) {          // long-press → pan
       lmbPanned = true;
       const w1 = toWorld(panLast[0], panLast[1]), w2 = toWorld(mouseX, mouseY);
       camX -= w2[0] - w1[0]; camY -= w2[1] - w1[1];
       panLast = [mouseX, mouseY];
+    } else if (lmbPanMode === false) {             // quick drag → box-select
+      selBox = { x1: Math.min(dragStart[0], mouseX), y1: Math.min(dragStart[1], mouseY),
+                 x2: Math.max(dragStart[0], mouseX), y2: Math.max(dragStart[1], mouseY) };
     }
   }
 });
@@ -2969,10 +2998,9 @@ canvas.addEventListener("mousedown", ev => {
     panLast = [ev.clientX, ev.clientY];
     lmbDownTime = performance.now();
     lmbHadSel = ents.some(e => e.sel && e.owner === 0 && e.kind === "unit");
-    // box-select if units are up, Shift held, or the button is HELD (long-press);
-    // a quick drag on empty ground pans instead
-    lmbBox = lmbHadSel || ev.shiftKey;
     lmbPanned = false;
+    // a quick drag box-selects; a long-press then drag pans. Shift forces box.
+    lmbPanMode = ev.shiftKey ? false : null;
   }
 });
 window.addEventListener("mouseup", ev => {
@@ -2985,8 +3013,8 @@ window.addEventListener("mouseup", ev => {
   if (ev.button === 0 && orbitDrag) { orbitDrag = null; return; }
   if (ev.button !== 0 || !running || touchGuard()) return;
   if (!dragStart) return;
-  if (lmbPanned) { dragStart = null; selBox = null; lmbPanned = false; return; }   // was a grab-pan
-  const wasBox = lmbBox && selBox && (selBox.x2 - selBox.x1 > 6 || selBox.y2 - selBox.y1 > 6);
+  if (lmbPanned) { dragStart = null; selBox = null; lmbPanned = false; return; }   // was a long-press pan
+  const wasBox = lmbPanMode === false && selBox && (selBox.x2 - selBox.x1 > 6 || selBox.y2 - selBox.y1 > 6);
   if (wasBox) {
     if (!ev.shiftKey) for (const e of ents) e.sel = false;   // Shift adds to the selection
     for (const e of ents) {
@@ -3148,7 +3176,7 @@ canvas.addEventListener("touchmove", ev => {
     dAng = Math.atan2(Math.sin(dAng), Math.cos(dAng));   // shortest-arc wrap
     camYaw = pinchState.yaw0 + dAng;
     const cy = (ev.touches[0].clientY + ev.touches[1].clientY) / 2;
-    camPitch = Math.max(0.52, Math.min(1.28, pinchState.pitch0 + (pinchState.cy - cy) * 0.0042));
+    camPitch = Math.max(0.75, Math.min(1.28, pinchState.pitch0 + (pinchState.cy - cy) * 0.0042));
   }
 }, { passive: false });
 canvas.addEventListener("touchend", ev => {
@@ -3972,11 +4000,15 @@ function updateFog() {
 
 /* ---------- entity view objects ---------- */
 const views = new Map();     // ent id -> view record
+// shared faded-gray material used to tint powered-down buildings
+const GRAY_MAT = new THREE.MeshStandardMaterial({ color: 0x44443f, roughness: 1, metalness: 0 });
 const selRingGeo = new THREE.RingGeometry(0.68, 0.8, 24);
 function makeSelRing(color) {
+  // depthTest:false → the selection ring is never hidden by terrain or other
+  // objects; it always draws on top so the marking stays fully visible
   const m = new THREE.Mesh(selRingGeo, new THREE.MeshBasicMaterial({
-    color, transparent: true, opacity: 0.85, depthWrite: false }));
-  m.renderOrder = 6;
+    color, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }));
+  m.renderOrder = 12;
   return m;
 }
 function glowSprite(color, scale, opacity) {
@@ -4041,7 +4073,8 @@ function makeStructView(e) {
 
 function entHidden(e) {
   const cx = Math.min(MAP - 1, e.x | 0), cy = Math.min(MAP - 1, e.y | 0);
-  if (e.owner === 1 && !visible[idx(cx, cy)]) return true;
+  // enemies are shown anywhere EXPLORED (so you can see them coming), not just
+  // in live sight — but stealth units stay cloaked until detected
   if (typeof stealthHidden === "function" && stealthHidden(e)) return true;
   if (!explored[idx(cx, cy)]) return true;
   return false;
@@ -4067,11 +4100,21 @@ function syncEnts(dt) {
         c: Math.random() < 0.3 ? "#6a6152" : "#2b2b28", s: 3 });
     if (e.kind === "struct") {
       v.wrap.position.set(e.x, e.y, STRUCTS[e.type].bridge ? 0 : heightAt(e.x, e.y));
+      if (e.hitFlash > 0) e.hitFlash = Math.max(0, e.hitFlash - dt);   // "under attack" red pulse timer
+      // faded gray when this building has no power (see updatePower)
+      if (v.unpow !== !!e.unpowered) {
+        v.unpow = !!e.unpowered;
+        v.wrap.traverse(o => {
+          if (!o.isMesh || !o.material || !o.material.isMeshStandardMaterial) return;
+          if (!o.userData.pm) o.userData.pm = o.material;
+          o.material = v.unpow ? GRAY_MAT : o.userData.pm;
+        });
+      }
       if (v.spin) {
         if (v.type === "dm_gate") {   // barrier slides down into the ground when open
           const tz = e.gateOpen ? -0.62 : 0;
           v.spin.position.z += (tz - v.spin.position.z) * Math.min(1, dt * 5);
-        } else v.spin.rotation.z += dt * 0.7;
+        } else if (!e.unpowered) v.spin.rotation.z += dt * 0.7;   // dead buildings stop spinning
       }
       v.ring.visible = !!e.sel;
       continue;
@@ -4411,6 +4454,17 @@ function drawHud() {
       hudctx.font = "17px sans-serif";
       hudctx.fillText("🔧", sx - 8, sy);
     }
+    // subtle red pulse (~3 flashes) when a base building is under attack
+    if (isStruct && e.hitFlash > 0) {
+      const pulse = Math.abs(Math.sin(e.hitFlash * Math.PI * 4));
+      const [sx, sy] = toScreen(e.x, e.y, gz + 0.3);
+      const rad = Math.max(e.fw, e.fh) * 22 * Math.min(zoom, 1.7);
+      hudctx.strokeStyle = "rgba(255,46,58," + (0.25 + pulse * 0.6).toFixed(2) + ")";
+      hudctx.lineWidth = 3;
+      hudctx.beginPath(); hudctx.arc(sx, sy, rad, 0, Math.PI * 2); hudctx.stroke();
+      hudctx.fillStyle = "rgba(255,46,58," + (pulse * 0.12).toFixed(2) + ")";
+      hudctx.fill();
+    }
     // RED attack reticle: on any enemy our units are targeting, or the one hovered
     if (marked.has(e) || e === hovered) {
       const [sx, sy] = toScreen(e.x, e.y, gz + (isStruct ? 0.3 : 0.2));
@@ -4569,7 +4623,7 @@ function frame(now) {
     if (keys["q"]) camYaw += dt * 1.5;
     if (keys["e"]) camYaw -= dt * 1.5;
     if (keys["r"]) camPitch = Math.min(1.28, camPitch + dt * 0.9);
-    if (keys["f"]) camPitch = Math.max(0.52, camPitch - dt * 0.9);
+    if (keys["f"]) camPitch = Math.max(0.75, camPitch - dt * 0.9);
     camX = Math.max(0, Math.min(MAP, camX));
     camY = Math.max(0, Math.min(MAP, camY));
     step(dt);

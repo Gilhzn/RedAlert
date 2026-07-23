@@ -604,11 +604,15 @@ function updateFog() {
 
 /* ---------- entity view objects ---------- */
 const views = new Map();     // ent id -> view record
+// shared faded-gray material used to tint powered-down buildings
+const GRAY_MAT = new THREE.MeshStandardMaterial({ color: 0x44443f, roughness: 1, metalness: 0 });
 const selRingGeo = new THREE.RingGeometry(0.68, 0.8, 24);
 function makeSelRing(color) {
+  // depthTest:false → the selection ring is never hidden by terrain or other
+  // objects; it always draws on top so the marking stays fully visible
   const m = new THREE.Mesh(selRingGeo, new THREE.MeshBasicMaterial({
-    color, transparent: true, opacity: 0.85, depthWrite: false }));
-  m.renderOrder = 6;
+    color, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }));
+  m.renderOrder = 12;
   return m;
 }
 function glowSprite(color, scale, opacity) {
@@ -673,7 +677,8 @@ function makeStructView(e) {
 
 function entHidden(e) {
   const cx = Math.min(MAP - 1, e.x | 0), cy = Math.min(MAP - 1, e.y | 0);
-  if (e.owner === 1 && !visible[idx(cx, cy)]) return true;
+  // enemies are shown anywhere EXPLORED (so you can see them coming), not just
+  // in live sight — but stealth units stay cloaked until detected
   if (typeof stealthHidden === "function" && stealthHidden(e)) return true;
   if (!explored[idx(cx, cy)]) return true;
   return false;
@@ -699,11 +704,21 @@ function syncEnts(dt) {
         c: Math.random() < 0.3 ? "#6a6152" : "#2b2b28", s: 3 });
     if (e.kind === "struct") {
       v.wrap.position.set(e.x, e.y, STRUCTS[e.type].bridge ? 0 : heightAt(e.x, e.y));
+      if (e.hitFlash > 0) e.hitFlash = Math.max(0, e.hitFlash - dt);   // "under attack" red pulse timer
+      // faded gray when this building has no power (see updatePower)
+      if (v.unpow !== !!e.unpowered) {
+        v.unpow = !!e.unpowered;
+        v.wrap.traverse(o => {
+          if (!o.isMesh || !o.material || !o.material.isMeshStandardMaterial) return;
+          if (!o.userData.pm) o.userData.pm = o.material;
+          o.material = v.unpow ? GRAY_MAT : o.userData.pm;
+        });
+      }
       if (v.spin) {
         if (v.type === "dm_gate") {   // barrier slides down into the ground when open
           const tz = e.gateOpen ? -0.62 : 0;
           v.spin.position.z += (tz - v.spin.position.z) * Math.min(1, dt * 5);
-        } else v.spin.rotation.z += dt * 0.7;
+        } else if (!e.unpowered) v.spin.rotation.z += dt * 0.7;   // dead buildings stop spinning
       }
       v.ring.visible = !!e.sel;
       continue;
@@ -1042,6 +1057,17 @@ function drawHud() {
       const [sx, sy] = toScreen(e.x, e.y, Math.max(e.fw, e.fh) * 0.75 + gz);
       hudctx.font = "17px sans-serif";
       hudctx.fillText("🔧", sx - 8, sy);
+    }
+    // subtle red pulse (~3 flashes) when a base building is under attack
+    if (isStruct && e.hitFlash > 0) {
+      const pulse = Math.abs(Math.sin(e.hitFlash * Math.PI * 4));
+      const [sx, sy] = toScreen(e.x, e.y, gz + 0.3);
+      const rad = Math.max(e.fw, e.fh) * 22 * Math.min(zoom, 1.7);
+      hudctx.strokeStyle = "rgba(255,46,58," + (0.25 + pulse * 0.6).toFixed(2) + ")";
+      hudctx.lineWidth = 3;
+      hudctx.beginPath(); hudctx.arc(sx, sy, rad, 0, Math.PI * 2); hudctx.stroke();
+      hudctx.fillStyle = "rgba(255,46,58," + (pulse * 0.12).toFixed(2) + ")";
+      hudctx.fill();
     }
     // RED attack reticle: on any enemy our units are targeting, or the one hovered
     if (marked.has(e) || e === hovered) {
