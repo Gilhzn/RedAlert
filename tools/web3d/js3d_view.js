@@ -379,13 +379,16 @@ function buildWorld() {
   // props are collected as build recipes and rebuilt as ONE merged mesh
   // per material whenever new terrain is scouted (fog-aware + fast)
   propDefs = [];
+  // rocky mountains: the heightfield already raises them; crown them with
+  // boulders (bigger on taller cells) for craggy detail
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     if (terrain[idx(x, y)] !== 1) continue;
-    const h = 0.22 + ((x * 7 + y * 13) % 5) * 0.05;
-    propDefs.push({ mesa: h, x: x + 0.5, y: y + 0.5, cell: idx(x, y) });
+    if ((x * 5 + y * 7) % 2 !== 0) continue;                          // thin out for perf
+    const hc = height[idx(x, y)];
     propDefs.push({ kind: "rock", v: (x * 3 + y) % 8,
-      fit: 0.8 + ((x + y) % 3) * 0.15,
-      x: x + 0.5, y: y + 0.5, z: h, cell: idx(x, y) });
+      fit: 0.7 + Math.min(1.4, hc * 0.4) + ((x + y) % 3) * 0.12,
+      x: x + 0.4 + ((x * 7 + y) % 4) * 0.06, y: y + 0.4 + ((y * 7 + x) % 4) * 0.06,
+      z: 0, cell: idx(x, y) });
   }
   for (const pr of decor) {
     const kind = pr.flora ? (pr.v % 3 === 0 ? "bush" : "cactus") : "rock";
@@ -475,8 +478,8 @@ function updateFog() {
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const i = idx(x, y), o = i * 4;
     if (explored[i]) count++;
-    img.data[o] = 5; img.data[o + 1] = 4; img.data[o + 2] = 3;
-    img.data[o + 3] = !explored[i] ? 252 : (!visible[i] ? 110 : 0);
+    img.data[o] = 0; img.data[o + 1] = 0; img.data[o + 2] = 0;   // pure black shroud
+    img.data[o + 3] = !explored[i] ? 255 : (!visible[i] ? 140 : 0);
   }
   exploredCount = count;
   fctx.putImageData(img, 0, 0);

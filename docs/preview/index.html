@@ -1,8 +1,7 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body>
-<title>Tiberium Dusk — תצוגה מקדימה</title>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: fog-shroud + radar-reveals-whole-map --></head>
+<body><title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
   :root {
     --ground: #050806;
@@ -2115,23 +2114,23 @@ function step(dt) {
   // reveals a MUCH larger area of the map (as explored terrain), and each
   // radar upgrade widens that reveal further.
   visible.fill(0);
+  let radarActive = false;
   for (const e of ents) {
     if (e.owner !== 0 || e.dead) continue;
     const b = e.kind === "unit" ? UNITS[e.type] : STRUCTS[e.type];
-    const s = (b.sight || 3) + 1;                 // live vision radius (shows units)
+    let s = (b.sight || 3) + 1;                    // live vision radius (shows units)
+    if (b.radar) s += (e.sightBonus || 0);         // radar upgrades widen live vision
     const cx = e.x | 0, cy = e.y | 0;
     for (let y = cy - s; y <= cy + s; y++) for (let x = cx - s; x <= cx + s; x++)
       if (inMap(x, y) && (x - cx) ** 2 + (y - cy) ** 2 <= s * s) {
         visible[idx(x, y)] = 1; explored[idx(x, y)] = 1;
       }
-    // radar sweep: reveal terrain (explored) across a big radius
-    if (b.radar) {
-      const rr = 16 + (e.sightBonus || 0);        // grows with upgrades
-      for (let y = cy - rr; y <= cy + rr; y++) for (let x = cx - rr; x <= cx + rr; x++)
-        if (inMap(x, y) && (x - cx) ** 2 + (y - cy) ** 2 <= rr * rr)
-          explored[idx(x, y)] = 1;
-    }
+    if (b.radar) radarActive = true;
   }
+  // A Radar Center reveals the ENTIRE map as explored terrain. Until you
+  // build one, only ground your soldiers/vehicles have visited is known —
+  // everything else stays black on both the battlefield and the minimap.
+  if (radarActive) explored.fill(1);
 
   // victory / defeat: lose the conyard AND the MCV — the war is over
   const eStr = ents.some(e => e.owner === 1 && e.kind === "struct");
@@ -3672,8 +3671,8 @@ function updateFog() {
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const i = idx(x, y), o = i * 4;
     if (explored[i]) count++;
-    img.data[o] = 5; img.data[o + 1] = 4; img.data[o + 2] = 3;
-    img.data[o + 3] = !explored[i] ? 252 : (!visible[i] ? 110 : 0);
+    img.data[o] = 0; img.data[o + 1] = 0; img.data[o + 2] = 0;   // pure black shroud
+    img.data[o + 3] = !explored[i] ? 255 : (!visible[i] ? 140 : 0);
   }
   exploredCount = count;
   fctx.putImageData(img, 0, 0);
