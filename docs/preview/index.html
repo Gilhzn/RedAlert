@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: mobile-topbar-fit --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: main-menu-progression --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -277,6 +277,151 @@
   #endcard h1.win { color: var(--veridium); }
   #endcard h1.lose { color: var(--crimson); text-shadow: 0 0 14px rgba(216,64,74,0.5); }
   .hidden { display: none !important; }
+
+  /* ============================ MAIN MENU ============================ */
+  #menu { position: fixed; inset: 0; z-index: 32; display: flex; flex-direction: column;
+    color: var(--phosphor); font-family: var(--mono);
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background:
+      radial-gradient(ellipse 120% 90% at 50% 38%, transparent 26%, rgba(6,11,8,0.82) 82%),
+      linear-gradient(180deg, rgba(8,14,10,0.55), rgba(6,11,8,0.6)); }
+  #menu.hidden { display: none !important; }
+  #menu::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,0.22) 2px 3px); opacity: 0.5; }
+  body.menu-open #topbar, body.menu-open #sidebar, body.menu-open #sbtab,
+  body.menu-open #botbar, body.menu-open #superbar, body.menu-open #toasts { display: none !important; }
+  #menu-inner { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column;
+    align-items: center; width: 100%; max-width: 960px; margin: 0 auto;
+    padding: clamp(14px, 3.4vh, 40px) 22px 12px; overflow-y: auto; }
+
+  #menu-logo { text-align: center; margin-bottom: clamp(14px, 3vh, 34px); animation: menuLogoIn .9s var(--ease) both; }
+  #menu-logo h1 { font-size: clamp(34px, 8vw, 74px); font-weight: 900; letter-spacing: clamp(3px, 1.2vw, 8px);
+    color: var(--phosphor); text-shadow: 0 0 18px rgba(55,232,110,0.55), 0 0 44px rgba(55,232,110,0.28);
+    line-height: 1; }
+  #menu-logo .sub { margin-top: 10px; font-size: clamp(11px, 2.6vw, 15px); letter-spacing: clamp(2px, 1vw, 4px);
+    color: var(--gold); text-transform: uppercase; }
+  #menu-logo .sub b { color: var(--phos-dim); font-weight: normal; }
+  @keyframes menuLogoIn { from { opacity: 0; transform: translateY(-14px) scaleY(.8); filter: blur(3px); } }
+
+  #menu-body { display: grid; grid-template-columns: minmax(230px, 300px) minmax(280px, 1fr);
+    gap: 18px; width: 100%; flex: 1; align-content: start; }
+  #menu-nav { display: flex; flex-direction: column; gap: 9px; }
+  .mbtn { position: relative; text-align: start; font-family: var(--mono); font-size: 18px; font-weight: 700;
+    letter-spacing: 1px; color: rgba(55,232,110,0.82); background: transparent;
+    border: 1px solid transparent; border-inline-start: 3px solid rgba(201,162,75,0.45);
+    padding: 13px 16px; cursor: pointer; transition: all .16s ease-out; border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+  .mbtn::before { content: "▹"; margin-inline-end: 10px; opacity: 0; transition: opacity .16s, transform .16s;
+    display: inline-block; transform: translateX(-6px); color: var(--phosphor); }
+  .mbtn:hover, .mbtn:focus-visible { color: var(--phosphor); background: rgba(55,232,110,0.09);
+    border-inline-start-color: var(--phosphor); text-shadow: 0 0 8px rgba(55,232,110,0.6);
+    box-shadow: 0 0 16px rgba(55,232,110,0.16); outline: none; }
+  .mbtn:hover::before, .mbtn:focus-visible::before, .mbtn.on::before { opacity: 1; transform: translateX(0); }
+  .mbtn.on { color: var(--phosphor); background: rgba(201,162,75,0.12); border-inline-start-color: var(--gold); }
+  .mbtn.hero { font-size: 21px; color: var(--amber); border: 1px solid rgba(255,201,77,0.55);
+    border-inline-start-width: 3px; background: rgba(255,201,77,0.06); overflow: hidden; }
+  .mbtn.hero::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255,201,77,0.22), transparent);
+    transform: translateX(-160%); animation: heroSweep 4s ease-in-out infinite; }
+  @keyframes heroSweep { 0%,100% { transform: translateX(-160%); } 55% { transform: translateX(320%); } }
+  .mbtn.hero:hover { background: rgba(255,201,77,0.13); box-shadow: 0 0 20px rgba(255,201,77,0.25); color: #ffe6a6; }
+  .mbtn[disabled] { color: rgba(55,232,110,0.3); border-inline-start-style: dashed; cursor: default;
+    background: transparent; box-shadow: none; text-shadow: none; }
+  .mbtn .badge { float: inline-end; font-size: 10px; letter-spacing: 1px; color: var(--gold);
+    border: 1px solid rgba(201,162,75,0.5); border-radius: 20px; padding: 2px 8px; margin-top: 1px; }
+  .mbtn:nth-child(1){ animation: navIn .4s var(--ease) both .10s; }
+  .mbtn:nth-child(2){ animation: navIn .4s var(--ease) both .16s; }
+  .mbtn:nth-child(3){ animation: navIn .4s var(--ease) both .22s; }
+  .mbtn:nth-child(4){ animation: navIn .4s var(--ease) both .28s; }
+  .mbtn:nth-child(5){ animation: navIn .4s var(--ease) both .34s; }
+  .mbtn:nth-child(6){ animation: navIn .4s var(--ease) both .40s; }
+  .mbtn:nth-child(7){ animation: navIn .4s var(--ease) both .46s; }
+  @keyframes navIn { from { opacity: 0; transform: translateX(-16px); } }
+
+  #menu-ctx { position: relative; background: rgba(10,18,13,0.72); border: 1px solid rgba(55,232,110,0.35);
+    border-radius: var(--r-sm); padding: 20px 22px; min-height: 260px;
+    box-shadow: 0 0 24px rgba(55,232,110,0.08), inset 0 0 44px rgba(0,0,0,0.55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+  #menu-ctx::before, #menu-ctx::after { content: ""; position: absolute; width: 14px; height: 14px; border: 2px solid var(--gold); opacity: 0.6; }
+  #menu-ctx::before { top: 6px; inset-inline-start: 6px; border-inline-end: none; border-bottom: none; }
+  #menu-ctx::after { bottom: 6px; inset-inline-end: 6px; border-inline-start: none; border-top: none; }
+  .ctx-pane { animation: ctxIn .22s ease-out both; }
+  @keyframes ctxIn { from { opacity: 0; transform: translateX(10px); } }
+  .ctx-h { font-size: 19px; letter-spacing: 2px; color: var(--phosphor); text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(55,232,110,0.4); margin-bottom: 4px; }
+  .ctx-sub { font-size: 12.5px; color: #9dbfa8; line-height: 1.7; margin-bottom: 16px; }
+  .ctx-lbl { font-size: 11px; letter-spacing: 2px; color: var(--phos-dim); text-transform: uppercase; margin: 16px 0 7px; }
+  .ctx-row { display: flex; flex-wrap: wrap; gap: 7px; }
+  .seg-btn { font-family: var(--mono); font-size: 13px; color: rgba(55,232,110,0.8);
+    background: rgba(12,22,16,0.6); border: 1px solid var(--phos-faint); border-radius: var(--r-sm);
+    padding: 8px 12px; cursor: pointer; transition: all .14s; }
+  .seg-btn:hover { color: var(--phosphor); border-color: var(--phos-dim); }
+  .seg-btn.on { color: #071009; background: var(--phosphor); border-color: var(--phosphor); font-weight: 700;
+    box-shadow: 0 0 12px rgba(55,232,110,0.4); }
+  .seg-btn.d0.on { background: #49ff7a; border-color: #49ff7a; }
+  .seg-btn.d1.on { background: #9be04f; border-color: #9be04f; }
+  .seg-btn.d2.on { background: var(--amber); border-color: var(--amber); }
+  .seg-btn.d3.on { background: #ff8d3c; border-color: #ff8d3c; }
+  .seg-btn.d4.on { background: var(--crimson); border-color: var(--crimson); color: #fff; }
+  .ctx-go { margin-top: 22px; width: 100%; padding: 14px; font-size: 17px; letter-spacing: 3px;
+    color: var(--amber); background: rgba(255,201,77,0.08); border: 1px solid var(--amber); border-radius: var(--r-sm);
+    cursor: pointer; transition: all .15s; }
+  .ctx-go:hover { background: rgba(255,201,77,0.16); box-shadow: 0 0 18px rgba(255,201,77,0.3); }
+  .ctx-go.sec { color: var(--phosphor); border-color: var(--phos-dim); background: rgba(55,232,110,0.05); font-size: 14px; letter-spacing: 2px; padding: 11px; margin-top: 10px; }
+  .ctx-go.sec:hover { background: rgba(55,232,110,0.12); box-shadow: 0 0 14px rgba(55,232,110,0.2); }
+  .ctx-list { list-style: none; font-size: 12.5px; line-height: 1.65; color: #9dbfa8; }
+  .ctx-list li { padding: 5px 0; border-bottom: 1px solid rgba(55,232,110,0.08); }
+  .ctx-list li b { color: var(--phosphor); font-weight: normal; }
+
+  /* achievements grid */
+  .ach-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (min-width: 620px) { .ach-grid { grid-template-columns: 1fr 1fr 1fr; } }
+  .ach { display: flex; gap: 9px; align-items: center; padding: 8px 9px; border-radius: var(--r-sm);
+    background: rgba(12,22,16,0.5); border: 1px solid var(--phos-faint); }
+  .ach.got { border-color: rgba(201,162,75,0.5); background: rgba(201,162,75,0.08); }
+  .ach .medal { font-size: 20px; filter: grayscale(1) brightness(.6); flex: none; }
+  .ach.got .medal { filter: none; }
+  .ach .an { font-size: 12px; color: var(--phosphor); }
+  .ach .ad { font-size: 10px; color: var(--phos-dim); line-height: 1.4; }
+  .ach:not(.got) .an { color: var(--phos-dim); }
+
+  /* leaderboard table */
+  .lb { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .lb th { text-align: start; color: var(--phos-dim); font-weight: normal; letter-spacing: 1px;
+    font-size: 10.5px; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid rgba(55,232,110,0.2); }
+  .lb td { padding: 8px; border-bottom: 1px solid rgba(55,232,110,0.07); color: #b7d6c3; }
+  .lb tr:first-child td { color: var(--amber); }
+  .lb .rk { color: var(--gold); }
+  .lb-empty { color: var(--phos-dim); font-size: 12.5px; padding: 20px 4px; text-align: center; }
+
+  /* rank strip */
+  #menu-rankstrip { display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 10px 4px 0; margin-top: 6px; }
+  .rk-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gold); }
+  .rk-badge .chev { color: var(--phosphor); font-size: 15px; }
+  .rk-bar { flex: 1; height: 6px; background: rgba(12,22,16,0.8); border: 1px solid var(--phos-faint);
+    border-radius: 4px; overflow: hidden; }
+  .rk-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #2fae5a, var(--phosphor));
+    box-shadow: 0 0 8px rgba(55,232,110,0.5); transition: width .5s var(--ease); }
+  .rk-xp { font-size: 11px; color: var(--phos-dim); }
+
+  #menu-foot { position: relative; z-index: 2; display: flex; justify-content: center; gap: 14px;
+    align-items: center; padding: 8px 16px 12px; font-size: 11px; color: var(--phos-dim); letter-spacing: 1px; }
+  #menu-foot .dot { color: var(--veridium); }
+
+  #end-rewards { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  #end-rewards .xp { font-size: 13px; color: var(--amber); letter-spacing: 1px; }
+  #end-rewards .rankup { font-size: 14px; color: var(--veridium); letter-spacing: 1px; text-shadow: 0 0 10px rgba(73,255,122,0.4); }
+  #end-rewards .unlock { font-size: 12px; color: var(--gold); }
+  #end-rewards .unlock b { color: var(--phosphor); font-weight: normal; }
+
+  @media (max-width: 760px) {
+    #menu-inner { padding: 12px 14px 8px; }
+    #menu-body { grid-template-columns: 1fr; gap: 12px; }
+    #menu-nav { gap: 7px; }
+    .mbtn { font-size: 17px; padding: 15px 15px; min-height: 52px; border-radius: var(--r-sm); }
+    .mbtn.hero { font-size: 19px; }
+    #menu-ctx { min-height: 0; padding: 16px 16px; }
+    .ach-grid { grid-template-columns: 1fr 1fr; }
+  }
 </style>
 
 <canvas id="game"></canvas>
@@ -351,27 +496,28 @@
   <span id="evalog"></span>
 </div>
 
-<div class="overlay" id="intro">
-  <div class="card" dir="rtl" id="introcard">
-    <h1>דמדומי טיבריום</h1>
-    <div class="en-title">TIBERIUM DUSK</div>
-    <p id="i-desc">תצוגה מקדימה אינטראקטיבית בדפדפן: סקירמיש מוקטן נגד מסדר הנחש, עם נתוני היחידות האמיתיים מקובצי המשחק. קצרו ורידיום, בנו בסיס, הדפו גלים — והשמידו את בסיס האויב.</p>
-    <div class="note" id="i-note">זו הדגמת JavaScript — לא בניית ה־Unity WebGL המלאה. את המשחק המלא בונים ב־Unity Editor דרך התפריט Tiberium Dusk ← Build ← WebGL.</div>
-    <ul id="i-controls">
-      <li><b>כפתור שמאלי = יחידות</b> — גרירה יוצרת מלבן ובוחרת; כשיחידות מסומנות, קליק על המפה שולח אותן (הסימון נשאר)</li>
-      <li><b>כפתור ימני = מצלמה</b> — קליק ימני מבטל את הסימון; גרירה ימנית קדימה/אחורה מסיירת במפה, לצדדים משנה זווית; Shift+גרירה ימנית מזיזה חופשי</li>
-      <li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום, <b>Q/E / Ctrl+שמאלי</b> — סיבוב חופשי, <b>R/F</b> — הטיה</li>
-      <li><b>סרגל צד</b> — בנייה (מבנים ממוקמים בקליק על המפה); ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, לחיצה ארוכה+גרירה: בחירת קבוצה, גרירה: מצלמה, צביטה: זום, סיבוב שתי אצבעות: סיבוב המפה, החלקת שתי אצבעות מעלה/מטה: הטיה</li>
-    </ul>
-    <button class="go" id="startbtn">התחל קרב</button>
+<div class="overlay" id="menu">
+  <div id="menu-inner">
+    <div id="menu-logo">
+      <h1 id="menu-title">TIBERIUM DUSK</h1>
+      <div class="sub" id="menu-tagline"></div>
+    </div>
+    <div id="menu-body">
+      <nav id="menu-nav"></nav>
+      <section id="menu-ctx"></section>
+    </div>
+    <div id="menu-rankstrip"></div>
   </div>
+  <div id="menu-foot"><span id="menu-foot-txt"></span></div>
 </div>
 
 <div class="overlay hidden" id="endcard">
   <div class="card" dir="rtl">
     <h1 id="end-title"></h1>
     <p id="end-desc"></p>
+    <div id="end-rewards"></div>
     <button class="go" id="againbtn">קרב חוזר</button>
+    <button class="go sec-btn2" id="tomenubtn" style="margin-top:10px;font-size:13px;letter-spacing:2px;color:var(--phos-dim);border-color:var(--phos-faint);">תפריט ראשי</button>
   </div>
 </div>
 
@@ -1796,6 +1942,7 @@ function makeWorld() {
   peaceUntil = (aiDiff <= 1) ? 120 : 0;
   waveTimer = (aiDiff <= 1) ? 120 : Math.round(56 * DIFFS[aiDiff].waveEvery);
   waveNum = 0; over = false; tSec = 0; fieldTimer = 6;
+  if (typeof freshMatchStats === "function") matchStats = freshMatchStats();   // reset per-match progression counters
 
   const homeClear = (x, y) => (x < 13 && y > MAP - 14) || (x > MAP - 14 && y < 13);
   // ---- value-noise field (seeded), for natural dunes & organic shapes ----
@@ -2058,6 +2205,8 @@ function spawnUnit(type, x, y, owner) {
   const e = { id: nextId++, kind: "unit", type, owner, team: spawnTeam == null ? owner : spawnTeam, x, y, hp, maxhp: hp,
     sel: false, path: null, tx: null, ty: null, target: null, cd: 0, face: rnd() * 6.28,
     bails: 0, hstate: "seek", anim: rnd() * 10 };
+  // progression: count only units the PLAYER produces during a live match
+  if (owner === 0 && running && matchStats) { matchStats.unitsBuilt++; if (b.weapon && !b.harvester) matchStats.offBuilt++; }
   ents.push(e); return e;
 }
 function spawnStruct(type, gx, gy, owner) {
@@ -2104,7 +2253,7 @@ function killEnt(e) {
     if (STRUCTS[e.type].gate) delete gateAt[idx(e.gx, e.gy)];
     boom(e.x, e.y, 1.6, e.owner);
     corpses.push({ type: "ruin", x: e.x, y: e.y, fw: e.fw, fh: e.fh, t: 0, life: 30 });
-    if (e.owner === 0) buildButtons();   // losing a producer locks sections again
+    if (e.owner === 0) { buildButtons(); if (running && matchStats && !STRUCTS[e.type].bridge) matchStats.structLost++; }   // losing a producer locks sections again
     for (let i = 0; i < 16; i++)
       particles.push({ x: e.x + (rnd() - 0.5) * e.fw, y: e.y + (rnd() - 0.5) * e.fh,
         vx: (rnd() - 0.5) * 0.4, vy: (rnd() - 0.5) * 0.4, g: -0.35,
@@ -2301,6 +2450,18 @@ function orderMove(e, x, y, target) {
 /* ============================== Simulation ============================== */
 function step(dt) {
   tSec += dt;
+  // progression: sample the player's army size ~once a second for the swarm /
+  // comeback achievements (peak concurrent units, and the low point after a peak)
+  if (matchStats) {
+    matchStats.sampleAcc += dt;
+    if (matchStats.sampleAcc >= 1) {
+      matchStats.sampleAcc = 0;
+      let army = 0;
+      for (const e of ents) if (!e.dead && e.owner === 0 && e.kind === "unit") army++;
+      if (army > matchStats.peakUnits) matchStats.peakUnits = army;
+      if (matchStats.peakUnits >= 8) matchStats.lowArmy = matchStats.lowArmy == null ? army : Math.min(matchStats.lowArmy, army);
+    }
+  }
   // veridium supply: as fields get mined down, fresh deposits form out in the
   // field (never inside a base) so harvesters always have somewhere to go
   fieldTimer -= dt;
@@ -2647,7 +2808,7 @@ function harvesterAI(e, dt) {
       e.ht = 0;
       if (e.bails > 0) {
         e.bails--;
-        if (e.owner === 0) { credits = Math.min(creditCap(), credits + (e.bailKind === 9 ? 40 : 25)); }
+        if (e.owner === 0) { const amt = e.bailKind === 9 ? 40 : 25; credits = Math.min(creditCap(), credits + amt); if (matchStats) matchStats.harvested += amt; }
       } else { e.hstate = "seek"; if (e.owner === 0) { eva(T("harvest")); } }
     }
   } else if (e.hstate === "idle") { if (((tSec | 0) % 4) === 0) e.hstate = "seek"; }
@@ -3926,24 +4087,7 @@ function applyLang() {
   document.getElementById("botbar").dir = rtl ? "rtl" : "ltr";
   document.getElementById("lang-he").classList.toggle("on", rtl);
   document.getElementById("lang-en").classList.toggle("on", !rtl);
-  document.getElementById("introcard").dir = rtl ? "rtl" : "ltr";
-  if (!rtl) {
-    document.querySelector("#introcard h1").textContent = "TIBERIUM DUSK";
-    document.querySelector("#introcard .en-title").textContent = "דמדומי טיבריום";
-    document.getElementById("i-desc").textContent = "An interactive browser preview: a compact skirmish against the Serpent Order, using the real unit stats from the game's data files. Harvest veridium, build your base, repel the waves — and destroy the enemy base.";
-    document.getElementById("i-note").textContent = "This is a JavaScript demo — not the full Unity WebGL build. The full game is built in the Unity Editor via Tiberium Dusk → Build → WebGL.";
-    document.getElementById("i-controls").innerHTML =
-      "<li><b>Left button = units</b> — <b>drag</b> to box-select; click a unit to select it. With units selected, click the map to <b>send them</b> (the selection stays — keep giving orders)</li><li><b>Right button = camera</b> — <b>right-click</b> clears the selection; <b>right-drag forward/back</b> tours across the map, <b>left/right</b> changes the viewing angle; <b>Shift+right-drag</b> slides the camera freely</li><li><b>Radar</b> — click to look; with units selected, click sends them there</li><li><b>WASD / arrows / middle-drag</b> — pan camera, <b>wheel</b> — zoom, <b>Q/E / Ctrl+left-drag</b> — free orbit, <b>R/F</b> — tilt</li><li><b>Sidebar</b> — build; when a structure is <b>ready</b>, click it then click the map to mark a spot and click again to confirm (or drag it onto the map). ▶ collapses it</li><li><b>Mobile</b> — tap: select/order, double-tap: deselect, <b>long-press+drag: box-select units</b>, drag: pan the map, pinch: zoom, twist two fingers: rotate, slide two fingers up/down: tilt</li>";
-    document.getElementById("startbtn").textContent = "START BATTLE";
-  } else {
-    document.querySelector("#introcard h1").textContent = "דמדומי טיבריום";
-    document.querySelector("#introcard .en-title").textContent = "TIBERIUM DUSK";
-    document.getElementById("i-desc").textContent = "תצוגה מקדימה אינטראקטיבית בדפדפן: סקירמיש מוקטן נגד מסדר הנחש, עם נתוני היחידות האמיתיים מקובצי המשחק. קצרו ורידיום, בנו בסיס, הדפו גלים — והשמידו את בסיס האויב.";
-    document.getElementById("i-note").textContent = "זו הדגמת JavaScript — לא בניית ה־Unity WebGL המלאה. את המשחק המלא בונים ב־Unity Editor דרך התפריט Tiberium Dusk ← Build ← WebGL.";
-    document.getElementById("i-controls").innerHTML =
-      "<li><b>כפתור שמאלי = יחידות</b> — <b>גרירה</b> יוצרת מלבן ובוחרת; קליק על יחידה בוחר אותה. כשיחידות מסומנות, קליק על המפה <b>שולח אותן</b> (הסימון נשאר — אפשר להמשיך לתת פקודות)</li><li><b>כפתור ימני = מצלמה</b> — <b>קליק ימני</b> מבטל את הסימון; <b>גרירה ימנית קדימה/אחורה</b> מסיירת במפה, <b>לצדדים</b> משנה את זווית המבט; <b>Shift+גרירה ימנית</b> מזיזה את המצלמה חופשי</li><li><b>ראדאר</b> — קליק כדי להתבונן; כשיחידות מסומנות, קליק שולח אותן לשם</li><li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום, <b>Q/E / Ctrl+שמאלי</b> — סיבוב חופשי, <b>R/F</b> — הטיה</li><li><b>סרגל צד</b> — בנייה; כשמבנה <b>מוכן</b>, לחצו עליו ואז לחצו על המפה לסמן מיקום, ולחצו שוב לאישור (או גררו אל המפה). ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, הקשה כפולה: ביטול סימון, <b>לחיצה ארוכה+גרירה: סימון קבוצת יחידות</b>, גרירה: סיור/הזזת המפה, צביטה: זום, סיבוב שתי אצבעות: סיבוב המפה, החלקת שתי אצבעות מעלה/מטה: הטיה</li>";
-    document.getElementById("startbtn").textContent = "התחל קרב";
-  }
+  if (typeof renderMenu === "function") renderMenu();
   syncSettingsUI(rtl);
   buildButtons();
   updateSelInfo();
@@ -4044,6 +4188,7 @@ applyMute();
 function endGame(win) {
   if (over) return;
   over = true; running = false;
+  const rw = (typeof recordMatch === "function") ? recordMatch(win) : null;   // update profile/achievements/leaderboard
   const card = document.getElementById("endcard");
   card.classList.remove("hidden");
   const h = document.getElementById("end-title");
@@ -4051,20 +4196,331 @@ function endGame(win) {
   h.className = win ? "win" : "lose";
   document.getElementById("end-desc").textContent = T(win ? "windesc" : "losedesc");
   document.getElementById("againbtn").textContent = T("again");
+  document.getElementById("tomenubtn").textContent = MT("mainmenu");
+  const rewBox = document.getElementById("end-rewards");
+  if (rewBox && rw) {
+    let html = "<div class='xp'>+" + rw.xpGained + " XP" + (rw.creditsGained ? "  ·  +" + rw.creditsGained + " ◈" : "") + "</div>";
+    if (rw.rankUp) html += "<div class='rankup'>" + MT("rankup") + " — " + rankName(rw.rank) + "</div>";
+    for (const a of (rw.unlocked || [])) html += "<div class='unlock'>🎖 " + MT("unlocked") + " <b>" + achName(a) + "</b></div>";
+    rewBox.innerHTML = html;
+  } else if (rewBox) rewBox.innerHTML = "";
   card.querySelector(".card").dir = lang === "he" ? "rtl" : "ltr";
   sfx(win ? "done" : "warn");
 }
 document.getElementById("againbtn").addEventListener("click", () => {
   document.getElementById("endcard").classList.add("hidden");
-  makeWorld(); running = true;
+  launchMatch(curMode);           // rematch with the same mode/settings
 });
-document.getElementById("startbtn").addEventListener("click", () => {
+document.getElementById("tomenubtn").addEventListener("click", () => {
+  document.getElementById("endcard").classList.add("hidden");
+  openMenu();
+});
+
+/* ==================== Progression + Main Menu ==================== */
+const BUILD_TAG = "v0.9";
+// persistent store, namespaced td.v1.* — every read is fault-tolerant so a
+// corrupt or absent key can never white-screen the game.
+const TDK = "td.v1.";
+function tdLoad(key, def) { try { const v = localStorage.getItem(TDK + key); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
+function tdSave(key, val) { try { localStorage.setItem(TDK + key, JSON.stringify(val)); } catch (e) {} }
+
+let profile = tdLoad("profile", { callsign: "", createdAt: 0, xp: 0, credits: 0 });
+let pstats  = tdLoad("stats",   { gamesPlayed: 0, wins: 0, unitsBuilt: 0, tiberiumHarvested: 0, fastestWinSec: null, maxWinStreak: 0, curStreak: 0 });
+let pach    = tdLoad("achievements", {});
+let pscores = tdLoad("scores",  { skirmish: [], daily: {} });
+let pdaily  = tdLoad("daily",   { lastPlayed: "", streak: 0, bestStreak: 0 });
+if (!profile.createdAt) { profile.createdAt = 1; tdSave("profile", profile); }
+
+const RANKS = [
+  { xp: 0,     he: "טוראי",                 en: "Recruit" },
+  { xp: 100,   he: "רב-טוראי",              en: "Trooper" },
+  { xp: 250,   he: "זָקיף",                  en: "Sentinel" },
+  { xp: 500,   he: "חלוץ",                   en: "Vanguard" },
+  { xp: 900,   he: "מְשַׁקֵּם",               en: "Reclaimer" },
+  { xp: 1500,  he: "שומר-האֵפר",             en: "Ashwarden" },
+  { xp: 2400,  he: "סרן יד-הברזל",           en: "Ironhand Captain" },
+  { xp: 3800,  he: "שובר-הדמדומים",          en: "Duskbreaker" },
+  { xp: 6000,  he: "מרשל הטיבריום",          en: "Tiberium Marshal" },
+  { xp: 10000, he: "מצביא הארצות השרופות",   en: "Warlord of the Ashlands" },
+];
+function rankIndex(xp) { let i = 0; for (let k = 0; k < RANKS.length; k++) if (xp >= RANKS[k].xp) i = k; return i; }
+function rankName(i) { const r = RANKS[Math.max(0, Math.min(RANKS.length - 1, i))]; return (lang === "he") ? r.he : r.en; }
+
+const ACHS = [
+  { id: "first_blood",    m: "🩸", he: ["דם ראשון", "נצחו קרב כלשהו"],                      en: ["First Blood", "Win any match"] },
+  { id: "blitz",          m: "⚡", he: ["מלחמת בזק", "נצחו בפחות מ-6 דקות"],                en: ["Lightning War", "Win in under 6:00"] },
+  { id: "survivor",       m: "🛡️", he: ["מחזיקים את הקו", "נצחו כשהמפקדה מתחת ל-20%"],       en: ["Hold the Line", "Win with HQ under 20% HP"] },
+  { id: "untouchable",    m: "💎", he: ["בלתי-פגיע", "נצחו בלי לאבד אף מבנה"],               en: ["Untouchable", "Win losing zero structures"] },
+  { id: "swarm",          m: "🐝", he: ["דוקטרינת נחיל", "החזיקו 50 יחידות בקרב אחד"],       en: ["Swarm Doctrine", "Field 50 units in one match"] },
+  { id: "harvester_baron",m: "⛏️", he: ["ברון הקציר", "קצרו 10,000 ורידיום (מצטבר)"],        en: ["Harvester Baron", "Harvest 10,000 tiberium (lifetime)"] },
+  { id: "pacifist",       m: "🕊️", he: ["ניצחון כלכלי", "נצחו בלי לבנות יחידות התקפיות"],    en: ["Economic Victory", "Win building no offensive units"] },
+  { id: "streak_5",       m: "🔥", he: ["רצף ברזל", "נצחו 5 קרבות ברצף"],                    en: ["Iron Streak", "Win 5 in a row"] },
+  { id: "veteran",        m: "🎖️", he: ["ותיק", "שחקו 25 קרבות"],                            en: ["Veteran", "Play 25 matches"] },
+  { id: "comeback",       m: "🜂", he: ["עוף החול", "נצחו אחרי שירדתם מתחת ל-10% צבא"],      en: ["Phoenix", "Win after dropping below 10% army"] },
+  { id: "night_owl",      m: "🌙", he: ["מבצע לילה", "סיימו קרב בין 00:00 ל-04:00"],         en: ["Night Ops", "Finish a match 00:00–04:00"] },
+  { id: "daily_solver",   m: "🧩", he: ["שובר החידה", "נצחו באתגר היומי"],                   en: ["Puzzle Breaker", "Win a daily challenge"] },
+  { id: "daily_7",        m: "📅", he: ["שבוע של דמדומים", "רצף 7 ימים באתגר היומי"],        en: ["Week of Dusk", "7-day daily streak"] },
+  { id: "warlord",        m: "👑", he: ["מצביא", "הגיעו לדרגה המקסימלית"],                    en: ["Warlord", "Reach the top rank"] },
+  { id: "completionist",  m: "🏆", he: ["ארסנל מלא", "פתחו את כל שאר ההישגים"],              en: ["Full Arsenal", "Unlock every other achievement"] },
+];
+function achName(id) { const a = ACHS.find(x => x.id === id); return a ? (lang === "he" ? a.he : a.en)[0] : id; }
+function achDesc(id) { const a = ACHS.find(x => x.id === id); return a ? (lang === "he" ? a.he : a.en)[1] : ""; }
+
+// per-match live counters, reset by makeWorld
+function freshMatchStats() { return { unitsBuilt: 0, offBuilt: 0, structLost: 0, harvested: 0, peakUnits: 0, lowArmy: null, sampleAcc: 0 }; }
+let matchStats = freshMatchStats();
+let curMode = "skirmish";
+let menuIdle = false, menuT = 0, baseYaw = null;
+
+function dailyKey(d) { d = d || new Date(); return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0"); }
+function dailySeed(d) { d = d || new Date(); const k = d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+  let h = 1779033703 ^ k; h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return (h ^= h >>> 16) >>> 0; }
+function updateDailyStreak() { const today = dailyKey(); if (pdaily.lastPlayed === today) return;
+  const y = new Date(); y.setUTCDate(y.getUTCDate() - 1); const yest = dailyKey(y);
+  pdaily.streak = (pdaily.lastPlayed === yest) ? pdaily.streak + 1 : 1;
+  pdaily.lastPlayed = today; pdaily.bestStreak = Math.max(pdaily.bestStreak, pdaily.streak); tdSave("daily", pdaily); }
+
+function recordMatch(win) {
+  const timeSec = Math.round(tSec);
+  const ms = matchStats || freshMatchStats();
+  pstats.gamesPlayed++;
+  if (win) { pstats.wins++; pstats.curStreak++; pstats.maxWinStreak = Math.max(pstats.maxWinStreak, pstats.curStreak);
+             if (pstats.fastestWinSec == null || timeSec < pstats.fastestWinSec) pstats.fastestWinSec = timeSec; }
+  else pstats.curStreak = 0;
+  pstats.unitsBuilt += ms.unitsBuilt || 0;
+  pstats.tiberiumHarvested += ms.harvested || 0;
+  tdSave("stats", pstats);
+
+  let hqFrac = 0; const hq = ents.find(e => !e.dead && e.owner === 0 && (e.type === "nx_conyard" || e.type === "nx_mcv"));
+  if (hq) hqFrac = hq.hp / hq.maxhp;
+  const hour = (new Date()).getHours();
+
+  let xp = win ? 50 : 15, cr = win ? 60 : 15;
+  const unlocked = [];
+  const give = id => { if (!pach[id]) { pach[id] = 1; unlocked.push(id); } };
+  if (win) give("first_blood");
+  if (win && timeSec < 360) give("blitz");
+  if (win && hqFrac > 0 && hqFrac < 0.20) give("survivor");
+  if (win && (ms.structLost || 0) === 0) give("untouchable");
+  if ((ms.peakUnits || 0) >= 50) give("swarm");
+  if (pstats.tiberiumHarvested >= 10000) give("harvester_baron");
+  if (win && (ms.offBuilt || 0) === 0) give("pacifist");
+  if (pstats.curStreak >= 5) give("streak_5");
+  if (pstats.gamesPlayed >= 25) give("veteran");
+  if (win && (ms.peakUnits || 0) >= 8 && ms.lowArmy != null && ms.lowArmy <= Math.max(1, (ms.peakUnits || 0) * 0.15)) give("comeback");
+  if (hour < 4) give("night_owl");
+  if (curMode === "daily" && win) give("daily_solver");
+  if (win && curMode === "daily" && pdaily.streak + 1 >= 7) give("daily_7");
+  if (rankIndex(profile.xp) >= RANKS.length - 1) give("warlord");
+  for (const id of unlocked) { xp += 30; cr += 40; if (typeof eva === "function") eva((lang === "he" ? "הישג: " : "Achievement: ") + achName(id), "good"); }
+  tdSave("achievements", pach);
+  const others = ACHS.filter(a => a.id !== "completionist");
+  if (others.every(a => pach[a.id]) && !pach["completionist"]) { pach["completionist"] = 1; unlocked.push("completionist"); tdSave("achievements", pach); }
+
+  const before = rankIndex(profile.xp);
+  profile.xp += xp; profile.credits += cr;
+  const after = rankIndex(profile.xp);
+  tdSave("profile", profile);
+
+  const score = Math.round((ms.harvested || 0) + (ms.unitsBuilt || 0) * 40 + (win ? Math.max(0, 12000 - timeSec * 8) : 0));
+  if (win || score > 0) {
+    const rec = { score, timeSec, win, date: dailyKey(), mode: curMode };
+    pscores.skirmish.push(rec);
+    pscores.skirmish.sort((a, b) => b.score - a.score);
+    pscores.skirmish = pscores.skirmish.slice(0, 20);
+    if (curMode === "daily") pscores.daily[dailyKey()] = rec;
+    tdSave("scores", pscores);
+  }
+  if (curMode === "daily" && win) updateDailyStreak();
+  return { xpGained: xp, creditsGained: cr, rankUp: after > before, rank: after, unlocked };
+}
+
+function reloadPrefs() {
+  try { const d = parseInt(localStorage.getItem("td_diff")); if (d >= 0 && d < 5) aiDiff = d;
+        const n = parseInt(localStorage.getItem("td_enemies")); if (n >= 1 && n <= 3) numEnemies = n; } catch (e) {}
+}
+function launchMatch(mode) {
+  curMode = mode || "skirmish";
   if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
-  document.getElementById("intro").classList.add("hidden");
-  makeWorld();          // rebuild with the current settings (opponents / difficulty peace timer)
-  running = true; sfx("done");
-  eva(T("deploy_hint"));
-});
+  if (curMode === "daily") {
+    const s = dailySeed();
+    seed = s >>> 0;
+    aiDiff = 1 + (s % 3);            // deterministic daily difficulty (medium..very-hard)
+    numEnemies = 1 + ((s >>> 5) % 2); // 1 or 2 opponents, same for everyone that day
+  } else {
+    reloadPrefs();
+    seed = (Math.floor(Math.random() * 0x7fffffff)) >>> 0;   // a fresh, varied map each skirmish
+  }
+  closeMenu();
+  if (baseYaw !== null && typeof camYaw !== "undefined") camYaw = baseYaw;   // undo any menu-drift angle
+  document.getElementById("endcard").classList.add("hidden");
+  makeWorld();
+  running = true; over = false; sfx("done");
+  if (typeof eva === "function") eva(T("deploy_hint"));
+}
+
+/* ---- menu text (he/en) ---- */
+const MENUTXT = {
+  he: { tagline: "מלחמת דמדומים · RTS תלת-מימדי", quickplay: "▶ משחק מהיר", skirmish: "התכתשות",
+        multiplayer: "רב-משתתפים", leaderboard: "טבלת שיאים", achievements: "הישגים", howto: "איך משחקים",
+        settings: "הגדרות", soon: "בקרוב", start: "פרוס כוחות", daily: "🗓️ אתגר יומי",
+        difficulty: "דרגת קושי", opponents: "יריבים", play_h: "משחק מהיר", play_sub: "קרב סקירמיש מיידי מול המחשב בהגדרות הנוכחיות. בהצלחה, מפקד.",
+        sk_sub: "הגדירו את הקרב שלכם: דרגת קושי ומספר יריבים. היריבים נלחמים גם זה בזה.",
+        mp_h: "רב-משתתפים", mp_sub: "קרבות מקוונים חיים מול שחקנים אמיתיים — 1 מול 1, ובהמשך 2 מול 2 וכולם-נגד-כולם. הארכיטקטורה מוכנה (lockstep מעל Cloudflare); נדליק זאת בקרוב.",
+        mp_status: "⌁ לא מקוון — בפיתוח", lb_h: "טבלת שיאים", lb_empty: "עדיין אין שיאים — נצחו קרב כדי להיכנס לטבלה.",
+        lb_score: "ניקוד", lb_time: "זמן", lb_date: "תאריך", lb_mode: "מצב", ach_h: "הישגים",
+        howto_h: "איך משחקים", settings_h: "הגדרות", opensettings: "פתחו הגדרות מלאות",
+        rank: "דרגה", xpto: "עד הדרגה הבאה", maxrank: "דרגה מרבית הושגה", stat_games: "קרבות",
+        stat_wins: "נצחונות", stat_streak: "רצף", callsign: "כינוי", callsign_ph: "הזינו כינוי",
+        mainmenu: "תפריט ראשי", rankup: "עלייה בדרגה!", unlocked: "נפתח:", of: "מתוך",
+        diffs: ["קל", "בינוני", "קשה", "קשה מאוד", "אכזרי"], build: "גרסה",
+        daily_streak: "רצף יומי", best: "שיא" },
+  en: { tagline: "Tiberium Dusk · 3D Real-Time Strategy", quickplay: "▶ QUICK PLAY", skirmish: "SKIRMISH",
+        multiplayer: "MULTIPLAYER", leaderboard: "LEADERBOARD", achievements: "ACHIEVEMENTS", howto: "HOW TO PLAY",
+        settings: "SETTINGS", soon: "SOON", start: "DEPLOY FORCES", daily: "🗓️ DAILY CHALLENGE",
+        difficulty: "DIFFICULTY", opponents: "OPPONENTS", play_h: "QUICK PLAY", play_sub: "An instant skirmish against the AI with your current settings. Good hunting, Commander.",
+        sk_sub: "Set up your battle: difficulty and number of opponents. Opponents also fight each other.",
+        mp_h: "MULTIPLAYER", mp_sub: "Live online battles against real players — 1v1, then 2v2 and free-for-all. The architecture is ready (lockstep over Cloudflare); we're switching it on soon.",
+        mp_status: "⌁ OFFLINE — IN DEVELOPMENT", lb_h: "LEADERBOARD", lb_empty: "No records yet — win a battle to make the board.",
+        lb_score: "SCORE", lb_time: "TIME", lb_date: "DATE", lb_mode: "MODE", ach_h: "ACHIEVEMENTS",
+        howto_h: "HOW TO PLAY", settings_h: "SETTINGS", opensettings: "Open full settings",
+        rank: "RANK", xpto: "to next rank", maxrank: "Max rank reached", stat_games: "Battles",
+        stat_wins: "Wins", stat_streak: "Streak", callsign: "Callsign", callsign_ph: "Enter callsign",
+        mainmenu: "MAIN MENU", rankup: "RANK UP!", unlocked: "Unlocked:", of: "of",
+        diffs: ["Easy", "Medium", "Hard", "Very Hard", "Insane"], build: "build",
+        daily_streak: "Daily streak", best: "best" },
+};
+function MT(k) { const t = MENUTXT[lang] || MENUTXT.en; return (k in t) ? t[k] : (MENUTXT.en[k] != null ? MENUTXT.en[k] : k); }
+
+const HOWTO = {
+  he: ["<b>כפתור שמאלי = יחידות</b> — גרירה בוחרת קבוצה; קליק על יחידה בוחר. עם בחירה, קליק על המפה שולח (הבחירה נשארת)",
+       "<b>כפתור ימני = מצלמה</b> — קליק ימני מבטל בחירה; גרירה קדימה/אחורה מסיירת, לצדדים משנה זווית; Shift+גרירה מזיזה חופשי",
+       "<b>ראדאר</b> — קליק כדי להתבונן; עם בחירה, קליק שולח לשם",
+       "<b>WASD / חיצים / גלגלת</b> — הזזה, זום; <b>Q/E</b> סיבוב, <b>R/F</b> הטיה",
+       "<b>מובייל</b> — הקשה: בחירה/פקודה; לחיצה ארוכה+גרירה: בחירת קבוצה; גרירה: מצלמה; צביטה: זום",
+       "<b>מטרה</b> — קצרו ורידיום, בנו בסיס, הדפו גלים, השמידו את כל בסיסי האויב"],
+  en: ["<b>Left button = units</b> — drag to box-select; click a unit to select. With a selection, click the map to send (selection stays)",
+       "<b>Right button = camera</b> — right-click clears selection; drag forward/back tours, sideways changes angle; Shift+drag pans freely",
+       "<b>Radar</b> — click to look; with a selection, click sends them there",
+       "<b>WASD / arrows / wheel</b> — pan, zoom; <b>Q/E</b> rotate, <b>R/F</b> tilt",
+       "<b>Mobile</b> — tap: select/order; long-press+drag: box-select; drag: pan; pinch: zoom",
+       "<b>Goal</b> — harvest veridium, build a base, repel the waves, destroy every enemy base"],
+};
+
+let menuPane = "skirmish";
+function navDef() {
+  return [
+    { id: "play",         hero: true },
+    { id: "skirmish" },
+    { id: "multiplayer",  badge: MT("soon") },
+    { id: "leaderboard" },
+    { id: "achievements" },
+    { id: "howto" },
+    { id: "settings" },
+  ];
+}
+function renderMenu() {
+  const menu = document.getElementById("menu");
+  if (!menu) return;
+  menu.dir = lang === "he" ? "rtl" : "ltr";
+  document.getElementById("menu-tagline").innerHTML = MT("tagline");
+  // nav rail
+  const nav = document.getElementById("menu-nav");
+  nav.innerHTML = "";
+  for (const n of navDef()) {
+    const b = document.createElement("button");
+    b.className = "mbtn" + (n.hero ? " hero" : "") + (menuPane === n.id ? " on" : "");
+    b.textContent = MT(n.id === "play" ? "quickplay" : n.id);
+    if (n.badge) { const s = document.createElement("span"); s.className = "badge"; s.textContent = n.badge; b.appendChild(s); }
+    b.addEventListener("click", () => {
+      if (n.id === "play") { launchMatch("skirmish"); return; }
+      menuPane = n.id; sfx("click"); renderMenu();
+    });
+    nav.appendChild(b);
+  }
+  renderPane();
+  renderRankStrip();
+  const bstr = (typeof BUILD_TAG !== "undefined") ? BUILD_TAG : "";
+  document.getElementById("menu-foot-txt").innerHTML = MT("build") + " " + bstr + " &nbsp;·&nbsp; <span class='dot'>◈</span> Tiberium Dusk";
+}
+function renderPane() {
+  const ctx = document.getElementById("menu-ctx");
+  const p = menuPane;
+  let h = "<div class='ctx-pane'>";
+  if (p === "skirmish") {
+    h += "<div class='ctx-h'>" + MT("skirmish") + "</div><div class='ctx-sub'>" + MT("sk_sub") + "</div>";
+    h += "<div class='ctx-lbl'>" + MT("difficulty") + "</div><div class='ctx-row' id='pane-diff'>";
+    for (let i = 0; i < 5; i++) h += "<button class='seg-btn d" + i + (aiDiff === i ? " on" : "") + "' data-d='" + i + "'>" + MT("diffs")[i] + "</button>";
+    h += "</div>";
+    h += "<div class='ctx-lbl'>" + MT("opponents") + "</div><div class='ctx-row' id='pane-en'>";
+    for (let i = 1; i <= 3; i++) h += "<button class='seg-btn" + (numEnemies === i ? " on" : "") + "' data-e='" + i + "'>" + i + "</button>";
+    h += "</div>";
+    h += "<button class='ctx-go' id='pane-start'>" + MT("start") + "</button>";
+    h += "<button class='ctx-go sec' id='pane-daily'>" + MT("daily") + "  ·  " + MT("daily_streak") + " " + (pdaily.streak || 0) + "</button>";
+  } else if (p === "multiplayer") {
+    h += "<div class='ctx-h'>" + MT("mp_h") + "</div><div class='ctx-sub'>" + MT("mp_sub") + "</div>";
+    h += "<div class='ctx-lbl'>" + MT("mp_status") + "</div>";
+  } else if (p === "leaderboard") {
+    h += "<div class='ctx-h'>" + MT("lb_h") + "</div>";
+    const rows = (pscores.skirmish || []).slice(0, 10);
+    if (!rows.length) h += "<div class='lb-empty'>" + MT("lb_empty") + "</div>";
+    else {
+      h += "<table class='lb'><tr><th>#</th><th>" + MT("lb_score") + "</th><th>" + MT("lb_time") + "</th><th>" + MT("lb_mode") + "</th><th>" + MT("lb_date") + "</th></tr>";
+      rows.forEach((r, i) => { h += "<tr><td class='rk'>" + (i + 1) + "</td><td>" + r.score.toLocaleString() + "</td><td>" + fmtTime(r.timeSec) + "</td><td>" + (r.mode === "daily" ? "🗓️" : "⚔️") + "</td><td>" + r.date + "</td></tr>"; });
+      h += "</table>";
+    }
+  } else if (p === "achievements") {
+    const got = ACHS.filter(a => pach[a.id]).length;
+    h += "<div class='ctx-h'>" + MT("ach_h") + " <span style='color:var(--gold);font-size:14px'>" + got + " " + MT("of") + " " + ACHS.length + "</span></div>";
+    h += "<div class='ach-grid'>";
+    for (const a of ACHS) h += "<div class='ach" + (pach[a.id] ? " got" : "") + "'><span class='medal'>" + a.m + "</span><div><div class='an'>" + achName(a.id) + "</div><div class='ad'>" + achDesc(a.id) + "</div></div></div>";
+    h += "</div>";
+  } else if (p === "howto") {
+    h += "<div class='ctx-h'>" + MT("howto_h") + "</div><ul class='ctx-list'>";
+    for (const line of (HOWTO[lang] || HOWTO.en)) h += "<li>" + line + "</li>";
+    h += "</ul>";
+  } else if (p === "settings") {
+    h += "<div class='ctx-h'>" + MT("settings_h") + "</div><div class='ctx-sub'>" + MT("play_sub") + "</div>";
+    h += "<button class='ctx-go' id='pane-settings'>⚙ " + MT("opensettings") + "</button>";
+  }
+  h += "</div>";
+  ctx.innerHTML = h;
+  // wire pane controls
+  if (p === "skirmish") {
+    ctx.querySelectorAll("#pane-diff button").forEach(b => b.addEventListener("click", () => {
+      aiDiff = +b.dataset.d; try { localStorage.setItem("td_diff", String(aiDiff)); } catch (e) {}
+      if (typeof syncSettingsUI === "function") syncSettingsUI(lang === "he"); sfx("click"); renderPane();
+    }));
+    ctx.querySelectorAll("#pane-en button").forEach(b => b.addEventListener("click", () => {
+      numEnemies = +b.dataset.e; try { localStorage.setItem("td_enemies", String(numEnemies)); } catch (e) {}
+      sfx("click"); renderPane();
+    }));
+    ctx.querySelector("#pane-start").addEventListener("click", () => launchMatch("skirmish"));
+    ctx.querySelector("#pane-daily").addEventListener("click", () => launchMatch("daily"));
+  } else if (p === "settings") {
+    ctx.querySelector("#pane-settings").addEventListener("click", () => { if (typeof openSettings === "function") openSettings(); });
+  }
+}
+function fmtTime(s) { s = Math.max(0, s | 0); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+function renderRankStrip() {
+  const el = document.getElementById("menu-rankstrip");
+  const ri = rankIndex(profile.xp);
+  const cur = RANKS[ri], nxt = RANKS[ri + 1];
+  let pct = 100, xpTxt = MT("maxrank");
+  if (nxt) { const span = nxt.xp - cur.xp; pct = Math.round(((profile.xp - cur.xp) / span) * 100); xpTxt = (profile.xp - cur.xp) + " / " + span + " XP " + MT("xpto"); }
+  el.innerHTML =
+    "<div class='rk-badge'><span class='chev'>▰</span> " + MT("rank") + " " + (ri + 1) + " · " + rankName(ri) + "</div>" +
+    "<div class='rk-bar'><i style='width:" + Math.max(3, Math.min(100, pct)) + "%'></i></div>" +
+    "<div class='rk-xp'>" + xpTxt + " &nbsp;·&nbsp; " + MT("stat_wins") + " " + pstats.wins + "/" + pstats.gamesPlayed + "</div>";
+}
+function openMenu() { reloadPrefs(); menuIdle = true; menuT = 0;
+  if (baseYaw === null && typeof camYaw !== "undefined") baseYaw = camYaw;   // remember the game's default view angle
+  camX = 64; camY = 66; zoom = 0.62;
+  try { if (explored) explored.fill(1); } catch (e) {}   // light up the whole world as a cinematic backdrop
+  document.body.classList.add("menu-open");
+  document.getElementById("menu").classList.remove("hidden"); renderMenu(); }
+function closeMenu() { menuIdle = false; document.body.classList.remove("menu-open");
+  document.getElementById("menu").classList.add("hidden"); }
 
 /* Tiberium Dusk — real-time 3D view (Three.js r128, Z-up).
    Replaces the 2D sprite renderer: provides toScreen/toWorld/draw()/iconFor
@@ -5320,6 +5776,7 @@ window.addEventListener("resize", resize);
 resize();
 makeWorld();
 applyLang();
+openMenu();          // land on the main menu with the cinematic battlefield behind it
 
 let last = performance.now();
 function frame(now) {
@@ -5350,6 +5807,13 @@ function frame(now) {
     camY = Math.max(0, Math.min(MAP, camY));
     step(dt);
     if (evaTimer > 0) { evaTimer -= dt; if (evaTimer <= 0) document.getElementById("evalog").textContent = ""; }
+  } else if (menuIdle) {
+    // cinematic idle drift behind the main menu — a slow dolly + orbit over the field
+    menuT += dt;
+    camX = 64 + Math.cos(menuT * 0.05) * 20;
+    camY = 66 + Math.sin(menuT * 0.04) * 13;
+    if (typeof camYaw !== "undefined") camYaw += dt * 0.03;
+    zoom = 0.6 + Math.sin(menuT * 0.06) * 0.05;
   }
   const cShown = Math.floor(credits), cEl = document.getElementById("credits");
   cEl.textContent = cShown + " ∞";
