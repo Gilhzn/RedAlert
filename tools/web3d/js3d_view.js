@@ -214,10 +214,16 @@ function rebuildProps() {
   builtExplored = exploredCount;
 }
 let builtWorldVersion = -1;
+// fog is authored at cell resolution (fogSrc) then upsampled + blurred onto a
+// larger canvas so the shroud boundary is a soft feather, never jagged pixels
+const fogSrc = document.createElement("canvas");
+fogSrc.width = fogSrc.height = MAP;
 const fogCanvas = document.createElement("canvas");
-fogCanvas.width = fogCanvas.height = MAP;
+fogCanvas.width = fogCanvas.height = Math.min(1024, MAP * 6);
 const fogTex = new THREE.CanvasTexture(fogCanvas);
 fogTex.magFilter = THREE.LinearFilter;
+fogTex.minFilter = THREE.LinearFilter;
+fogTex.generateMipmaps = false;
 let fogMesh = null, fogTimer = 0;
 
 const T_COLORS = [0x5a4c31, 0x4a3d27, 0x4e4129, 0x1d5a72];
@@ -352,15 +358,29 @@ function buildWorld() {
   terr.receiveShadow = true;
   worldGroup.add(terr);
 
-  // water surface: subdivided so waves ripple smoothly (not one flat quad)
-  const wpos = [], wuv = [], widx = [];
+  // water surface: a real body of water — depth-graded colour (bright teal at
+  // the shallows, deep navy in the middle), subdivided so waves ripple smoothly
+  const waterShore = (x, y) => {              // cells out to the nearest shore (capped)
+    for (let r = 1; r <= 5; r++)
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const nx = x + dx, ny = y + dy;
+        if (!inMap(nx, ny) || terrain[idx(nx, ny)] !== 3) return r;   // map edge counts as shore
+      }
+    return 6;
+  };
+  const wpos = [], wuv = [], wcol = [], widx = [];
   const WSUB = 2; let wv = 0;
+  const cShallow = new THREE.Color(0x3ba7c6), cDeep = new THREE.Color(0x0a2c4c), _wc = new THREE.Color();
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     if (terrain[idx(x, y)] !== 3) continue;
+    const depth = Math.min(1, (waterShore(x, y) - 1) / 4);           // 0 at shore → 1 deep
+    _wc.copy(cShallow).lerp(cDeep, depth);
     const base = wv;
     for (let sy = 0; sy <= WSUB; sy++) for (let sx = 0; sx <= WSUB; sx++) {
       wpos.push(x + sx / WSUB, y + sy / WSUB, -0.06);
       wuv.push((x + sx / WSUB) * 0.5, (y + sy / WSUB) * 0.5);
+      wcol.push(_wc.r, _wc.g, _wc.b);
       wv++;
     }
     const r = WSUB + 1;
@@ -374,10 +394,11 @@ function buildWorld() {
     const wg = new THREE.BufferGeometry();
     wg.setAttribute("position", new THREE.Float32BufferAttribute(wpos.slice(), 3));
     wg.setAttribute("uv", new THREE.Float32BufferAttribute(wuv, 2));
+    wg.setAttribute("color", new THREE.Float32BufferAttribute(wcol, 3));
     wg.setIndex(widx); wg.computeVertexNormals();
-    waterMat = new THREE.MeshStandardMaterial({ color: 0x1f6f9a, roughness: 0.08,
-      metalness: 0.6, transparent: true, opacity: 0.86, emissive: 0x0c3348, emissiveIntensity: 0.45,
-      bumpMap: waterBump, bumpScale: 0.09, envMapIntensity: 1.2 });
+    waterMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.05,
+      metalness: 0.55, transparent: true, opacity: 0.9, emissive: 0x0a3350, emissiveIntensity: 0.4,
+      bumpMap: waterBump, bumpScale: 0.12, envMapIntensity: 1.5 });
     waterMesh = new THREE.Mesh(wg, waterMat);
     worldGroup.add(waterMesh);
   } else { waterMesh = null; waterGeoBase = null; }
@@ -415,11 +436,19 @@ function buildWorld() {
   // desert ringed by distant mountains, with a large lake off to one side.
   buildSurroundings();
 
-  // fog-of-war overlay decal
+  // fog-of-war overlay: a grid that DRAPES over the terrain relief, so the
+  // shroud reads as unseen land/hills — not a flat black pit punched in the map
   if (fogMesh) scene.remove(fogMesh);
   const fmat = new THREE.MeshBasicMaterial({ map: fogTex, transparent: true, depthWrite: false });
-  fogMesh = new THREE.Mesh(new THREE.PlaneGeometry(MAP, MAP), fmat);
-  fogMesh.position.set(MAP / 2, MAP / 2, 0.05);
+  const fgeo = new THREE.PlaneGeometry(MAP, MAP, MAP, MAP);
+  const fp = fgeo.attributes.position;
+  for (let i = 0; i < fp.count; i++) {
+    const wx = fp.getX(i) + MAP / 2, wy = fp.getY(i) + MAP / 2;
+    fp.setZ(i, heightAt(wx, wy) + 0.08);
+  }
+  fp.needsUpdate = true; fgeo.computeVertexNormals();
+  fogMesh = new THREE.Mesh(fgeo, fmat);
+  fogMesh.position.set(MAP / 2, MAP / 2, 0);
   fogMesh.renderOrder = 5;
   scene.add(fogMesh);
   fogTex.center.set(0.5, 0.5); fogTex.rotation = 0; fogTex.flipY = false;
@@ -479,17 +508,28 @@ function rebuildCrystals() {
 }
 
 function updateFog() {
-  const fctx = fogCanvas.getContext("2d");
-  const img = fctx.createImageData(MAP, MAP);
+  // author the tri-state shroud at cell resolution: unexplored (opaque),
+  // explored-but-unseen (dim haze), currently-visible (clear)
+  const sctx = fogSrc.getContext("2d");
+  const img = sctx.createImageData(MAP, MAP);
   let count = 0;
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const i = idx(x, y), o = i * 4;
     if (explored[i]) count++;
-    img.data[o] = 0; img.data[o + 1] = 0; img.data[o + 2] = 0;   // pure black shroud
-    img.data[o + 3] = !explored[i] ? 255 : (!visible[i] ? 140 : 0);
+    img.data[o] = 8; img.data[o + 1] = 13; img.data[o + 2] = 20;   // dark navy shroud (not a black void)
+    img.data[o + 3] = !explored[i] ? 255 : (!visible[i] ? 125 : 0);
   }
   exploredCount = count;
-  fctx.putImageData(img, 0, 0);
+  sctx.putImageData(img, 0, 0);
+  // upsample + blur onto the display canvas → a soft feathered edge, no jaggies
+  const fctx = fogCanvas.getContext("2d");
+  const D = fogCanvas.width;
+  fctx.clearRect(0, 0, D, D);
+  fctx.imageSmoothingEnabled = true;
+  fctx.imageSmoothingQuality = "high";
+  fctx.filter = "blur(" + (D / MAP * 0.85).toFixed(2) + "px)";     // feather ~1 cell wide
+  fctx.drawImage(fogSrc, 0, 0, D, D);
+  fctx.filter = "none";
   fogTex.needsUpdate = true;
 }
 
