@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: multi-opponents-peace-timer --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: free-for-all-opponents --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -1932,8 +1932,9 @@ function makeWorld() {
 
   // ---- enemy opponents: numEnemies (1-3) full bases scattered around the map,
   //      away from the player's corner and from the centre, spaced from one another ----
-  const enemyBase = (cx, cy) => {
+  const enemyBase = (cx, cy, team) => {
     cx = Math.max(6, Math.min(MAP - 7, cx | 0)); cy = Math.max(4, Math.min(MAP - 8, cy | 0));
+    spawnTeam = team;   // every structure/unit of this base fights under its own banner
     // clear the footprint of crystals so the base doesn't sit on a deposit
     for (let dy = -1; dy <= 6; dy++) for (let dx = -5; dx <= 5; dx++)
       if (inMap(cx + dx, cy + dy)) crystal[idx(cx + dx, cy + dy)] = 0;
@@ -1945,6 +1946,7 @@ function makeWorld() {
     spawnStruct("so_laser_turret", cx + 3, cy + 5, 1);
     spawnUnit("so_tick_tank", cx + 1, cy + 4, 1);
     spawnUnit("so_rifle", cx + 3, cy + 4, 1);
+    spawnTeam = null;
   };
   const clearSpot = (tx, ty) => {          // nearest spot where a base footprint sits on solid ground
     for (let rad = 0; rad < 34; rad++) for (let a = 0; a < 12; a++) {
@@ -1971,7 +1973,7 @@ function makeWorld() {
     chosen.push(clearSpot(ax, ay));
   }
   if (!chosen.length) chosen.push(clearSpot(MAP - 10, 8));                    // always at least one opponent
-  for (const [bx, by] of chosen) enemyBase(bx, by);
+  chosen.forEach(([bx, by], i) => enemyBase(bx, by, i + 1));                  // teams 1..N — hostile to the player and to each other
 
   // ---- scenic river bridges: pre-built crossings that span the water, like
   // the promo renders. Each is one or more walkable decks tiling the river's
@@ -2012,6 +2014,13 @@ function makeWorld() {
 }
 
 let nextId = 1;
+// combat allegiance: player is team 0, each enemy base gets its own team (1,2,3…)
+// so opponents fight each other as well as the player. `owner` (0 player / 1 enemy)
+// still governs economy, UI, build tree and the victory check — team only decides
+// friend-or-foe in targeting. When spawnTeam is null a new entity inherits its owner.
+let spawnTeam = null;
+// distinct radar tints per opponent so a free-for-all reads clearly on the minimap
+const ENEMY_TINTS = ["#ff5a64", "#ff9d3c", "#c877ff"];
 // nearest passable cell centre to (x,y) — used to keep units off structures
 function nearestFree(x, y, allowWater) {
   const ok = (cx, cy) => inMap(cx, cy) &&
@@ -2035,14 +2044,14 @@ function spawnUnit(type, x, y, owner) {
   // never spawn inside a structure/wall — pop out to the nearest free cell
   if (!b.flying) [x, y] = nearestFree(x, y, b.amphib);
   const hp = Math.round(b.hp * (owner === 0 ? 1 + armLvl * 0.2 : 1));
-  const e = { id: nextId++, kind: "unit", type, owner, x, y, hp, maxhp: hp,
+  const e = { id: nextId++, kind: "unit", type, owner, team: spawnTeam == null ? owner : spawnTeam, x, y, hp, maxhp: hp,
     sel: false, path: null, tx: null, ty: null, target: null, cd: 0, face: rnd() * 6.28,
     bails: 0, hstate: "seek", anim: rnd() * 10 };
   ents.push(e); return e;
 }
 function spawnStruct(type, gx, gy, owner) {
   const b = STRUCTS[type];
-  const e = { id: nextId++, kind: "struct", type, owner, gx, gy, fw: b.fw, fh: b.fh,
+  const e = { id: nextId++, kind: "struct", type, owner, team: spawnTeam == null ? owner : spawnTeam, gx, gy, fw: b.fw, fh: b.fh,
     x: gx + b.fw / 2, y: gy + b.fh / 2, hp: b.hp, maxhp: b.hp, sel: false, cd: 0, target: null };
   for (let y = gy; y < gy + b.fh; y++) for (let x = gx; x < gx + b.fw; x++)
     if (inMap(x, y)) blocked[idx(x, y)] = 1;
@@ -2693,7 +2702,7 @@ function engineerAI(e, dt) {
   const t = e.captureTarget;
   if (!t || t.dead || t.owner === 0) { e.captureTarget = null; return; }
   if (Math.hypot(t.x - e.x, t.y - e.y) < Math.max(t.fw, t.fh) / 2 + 0.8) {
-    t.owner = 0; t.sel = false;
+    t.owner = 0; t.team = 0; t.sel = false;   // captured for the player — switch banner too
     updatePower();
     eva(T("captured"), "good"); sfx("done");
     spark(t.x, t.y);
@@ -2705,7 +2714,7 @@ function medicAI(e, b, dt) {
   if (e.cd > 0) return;
   let best = null, bd = 1e9;
   for (const o of ents) {
-    if (o.dead || o.owner !== e.owner || o.kind !== "unit" || o === e) continue;
+    if (o.dead || o.team !== e.team || o.kind !== "unit" || o === e) continue;
     if (!UNITS[o.type].infantry || o.hp >= o.maxhp) continue;
     const d = Math.hypot(o.x - e.x, o.y - e.y);
     if (d < bd) { bd = d; best = o; }
@@ -2738,11 +2747,12 @@ function canHit(w, o) {
   if (w.noAir && fly) return false;
   return true;
 }
-// the AI's strategic objective: the nearest player building, else nearest unit
+// the AI's strategic objective: the nearest rival building (any hostile team —
+// the player OR another opponent), else the nearest rival unit
 function pickAiObjective(e) {
   let best = null, bd = 1e9, bestU = null, bud = 1e9;
   for (const o of ents) {
-    if (o.dead || o.owner !== 0) continue;
+    if (o.dead || o.team === e.team) continue;
     const d = (o.x - e.x) ** 2 + (o.y - e.y) ** 2;
     if (o.kind === "struct" && !STRUCTS[o.type].bridge) { if (d < bd) { bd = d; best = o; } }
     else if (o.kind === "unit") { if (d < bud) { bud = d; bestU = o; } }
@@ -2766,9 +2776,9 @@ function combatAI(e, b, dt) {
     let best = e.target;
     let bd = e.target ? Math.hypot(e.target.x - e.x, e.target.y - e.y) - (e.target.kind === "unit" ? 1.5 : 0) : 1e9;
     for (const o of ents) {
-      if (o.dead || o.owner === 1) continue;
+      if (o.dead || o.team === e.team) continue;   // a rival opponent is fair game, not just the player
       if (o.kind === "struct" && STRUCTS[o.type].bridge) continue;
-      if (!canHit(w, o) || hiddenFrom(o, 1)) continue;
+      if (!canHit(w, o) || hiddenFrom(o, e.owner)) continue;
       const d = Math.hypot(o.x - e.x, o.y - e.y);
       if (d > aggro) continue;
       const score = d - (o.kind === "unit" ? 1.5 : 0);   // a passing unit outranks a distant building
@@ -2786,7 +2796,7 @@ function combatAI(e, b, dt) {
     // ---- player units auto-defend only when idle, within a tight radius ----
     let best = null, bd = 1e9;
     for (const o of ents) {
-      if (o.dead || o.owner === e.owner) continue;
+      if (o.dead || o.team === e.team) continue;
       if (o.kind === "struct" && STRUCTS[o.type].bridge) continue;   // never fire on neutral bridges
       if (!canHit(w, o)) continue;
       if (!visible[idx(o.x | 0, o.y | 0)]) continue;
@@ -2846,7 +2856,7 @@ function structAI(e, dt) {
   if (!e.target) {
     let bd = 1e9;
     for (const o of ents) {
-      if (o.dead || o.owner === e.owner || o.kind === "struct") continue;
+      if (o.dead || o.team === e.team || o.kind === "struct") continue;
       if (!canHit(w, o)) continue;
       if (e.owner === 0 && !visible[idx(o.x | 0, o.y | 0)]) continue;
       const d = Math.hypot(o.x - e.x, o.y - e.y);
@@ -2887,7 +2897,7 @@ function fire(e, t, w, wid) {
       ex2 = e.x + Math.cos(fa) * w.range; ey2 = e.y + Math.sin(fa) * w.range;
       const dx2 = ex2 - e.x, dy2 = ey2 - e.y, len2 = dx2 * dx2 + dy2 * dy2;
       for (const o of ents) {
-        if (o.dead || o.owner === e.owner) continue;
+        if (o.dead || o.team === e.team) continue;
         const tt = Math.max(0, Math.min(1, ((o.x - e.x) * dx2 + (o.y - e.y) * dy2) / len2));
         const px3 = e.x + dx2 * tt, py3 = e.y + dy2 * tt;
         if (Math.hypot(o.x - px3, o.y - py3) < 0.55) hit(o, dmg, e.owner, w.vs);
@@ -2906,7 +2916,7 @@ function fire(e, t, w, wid) {
     const d0 = Math.hypot(t.x - ox, t.y - oy);
     for (let s = 0; s < shots; s++)
       projectiles.push({ x: ox + (rnd() - 0.5) * 0.2, y: oy + (rnd() - 0.5) * 0.2, target: t,
-        dmg: dmg, speed: w.speed, owner: e.owner, c: w.tracer, vs: w.vs, trail: [],
+        dmg: dmg, speed: w.speed, owner: e.owner, team: e.team, c: w.tracer, vs: w.vs, trail: [],
         splash: w.splash, arc: w.arc, sx0: ox, sy0: oy, dist0: Math.max(0.6, d0),
         smoke: wid === "rocket" || !!w.burst, delay: s * 0.13 });
   }
@@ -2916,7 +2926,7 @@ function impact(p, t) {
     boom(t.x, t.y, 0.7, p.owner);
     for (const o of ents) {
       if (o.dead) continue;
-      if (o.owner === p.owner && o !== t) continue;   // no friendly splash
+      if (o.team === p.team && o !== t) continue;   // no friendly splash
       if (o.kind === "unit" && UNITS[o.type].flying && o !== t) continue;
       const d = Math.hypot(o.x - t.x, o.y - t.y);
       if (d <= p.splash + 0.4) hit(o, p.dmg * Math.max(0.35, 1 - d / (p.splash + 0.6)), p.owner, p.vs);
@@ -2968,6 +2978,7 @@ function spawnWave() {
   const facs = ents.filter(e => !e.dead && e.owner === 1 && e.type === "so_factory");
   const fac = facs.length ? facs[(rnd() * facs.length) | 0] : null;   // a random opponent base musters each wave
   const sx = fac ? fac.x : MAP - 6, sy = fac ? fac.y + 2 : 6;
+  const wTeam = fac ? fac.team : 1;   // this wave belongs to the mustering base's team
   const comp = [];
   const n = Math.max(2, Math.round(Math.min(2 + waveNum, 8) * D.waveScale));
   for (let i = 0; i < n; i++) {
@@ -2978,19 +2989,28 @@ function spawnWave() {
   }
   // air raids join in from wave 4 — build AA batteries!
   if (waveNum >= 4) for (let i = 0; i < (waveNum > 7 ? 2 : 1); i++) comp.push("so_harpy");
-  // pick a player target (never a neutral bridge; pre-deploy: hunt the units)
-  let targets = ents.filter(e => !e.dead && e.owner === 0 && e.kind === "struct" && !STRUCTS[e.type].bridge);
-  if (!targets.length) targets = ents.filter(e => !e.dead && e.owner === 0 && e.kind === "unit");
+  // pick an objective on a HOSTILE team — the player, or (in a multi-opponent match)
+  // a rival base. The player keeps double weight so the human still feels the heat,
+  // while opponents also raid one another for a genuine free-for-all.
+  const foeTeams = [...new Set(ents.filter(e => !e.dead && e.team !== wTeam &&
+    e.kind === "struct" && !STRUCTS[e.type].bridge).map(e => e.team))];
+  const pool = foeTeams.slice();
+  if (foeTeams.includes(0)) pool.push(0);   // bias muster toward the human player
+  const tgtTeam = pool.length ? pool[(rnd() * pool.length) | 0] : 0;
+  let targets = ents.filter(e => !e.dead && e.team === tgtTeam && e.kind === "struct" && !STRUCTS[e.type].bridge);
+  if (!targets.length) targets = ents.filter(e => !e.dead && e.team === tgtTeam && e.kind === "unit");
   const tgt = targets.length ? targets[(rnd() * targets.length) | 0] : null;
+  spawnTeam = wTeam;   // muster under this base's banner
   for (let i = 0; i < comp.length; i++) {
     const u = spawnUnit(comp[i], sx + (rnd() - 0.5) * 3, sy + (rnd() - 0.5) * 3, 1);
-    // the objective is the base, but combatAI lets them engage threats on the way there
+    // the objective is the target base, but combatAI lets them engage threats on the way there
     if (tgt) { u.marchTarget = tgt; orderMove(u, tgt.x, tgt.y); }
   }
+  spawnTeam = null;
   // you only get the "wave inbound" warning if your radar actually sees them
   // mustering — i.e. the wave's origin sits inside your radar-revealed area
   const ox = sx | 0, oy = sy | 0;
-  if (notifyOn && hasRadar() && inMap(ox, oy) && explored[idx(ox, oy)]) { eva(T("wave"), "warn"); sfx("warn"); }
+  if (tgtTeam === 0 && notifyOn && hasRadar() && inMap(ox, oy) && explored[idx(ox, oy)]) { eva(T("wave"), "warn"); sfx("warn"); }
 }
 
 /* ============================== FX / audio ============================== */
@@ -3091,7 +3111,7 @@ function drawMinimap() {
     if (e.dead) continue;
     if (!radarOn && !(e.owner === 0 && e.kind === "struct")) continue;
     if (e.owner === 1 && !visible[idx(Math.min(MAP-1, e.x|0), Math.min(MAP-1, e.y|0))]) continue;
-    mmctx.fillStyle = e.owner === 0 ? "#f2d98a" : "#ff5a64";
+    mmctx.fillStyle = e.owner === 0 ? "#f2d98a" : ENEMY_TINTS[((e.team || 1) - 1) % ENEMY_TINTS.length];
     const sz = e.kind === "struct" ? Math.max(2, e.fw * s) : Math.max(2.4, s * 1.3);
     const sh = e.kind === "struct" ? Math.max(2, e.fh * s) : sz;
     mmctx.fillRect((e.x - (e.kind === "struct" ? e.fw / 2 : 0.5)) * s, (e.y - (e.kind === "struct" ? e.fh / 2 : 0.5)) * s, sz, sh);
@@ -5341,6 +5361,3 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 </script>
-
-</body>
-</html>
