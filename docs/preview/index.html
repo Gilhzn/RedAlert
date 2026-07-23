@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: concentrated-veridium-mines --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: fix-keyboard-left-right-pan --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -5171,16 +5171,11 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (running && !over) {
-    const pan = 17 * dt / Math.max(zoom, 0.7);
-    const cy = Math.cos(camYaw), sy = Math.sin(camYaw);
-    if (keys["w"] || keys["arrowup"]) { camX -= cy * pan; camY -= sy * pan; }
-    if (keys["s"] || keys["arrowdown"]) { camX += cy * pan; camY += sy * pan; }
-    if (keys["a"] || keys["arrowleft"]) { camX -= sy * pan; camY += cy * pan; }
-    if (keys["d"] || keys["arrowright"]) { camX += sy * pan; camY -= cy * pan; }
-    if (keys["q"]) camYaw += dt * 1.5;
-    if (keys["e"]) camYaw -= dt * 1.5;
-    if (keys["r"]) camPitch = Math.min(1.28, camPitch + dt * 0.9);
-    if (keys["f"]) camPitch = Math.max(0.75, camPitch - dt * 0.9);
+    const pan = 12 * dt / Math.max(zoom, 0.7);
+    if (keys["w"] || keys["arrowup"]) camY -= pan, camX -= pan;
+    if (keys["s"] || keys["arrowdown"]) camY += pan, camX += pan;
+    if (keys["a"] || keys["arrowleft"]) camX += pan, camY -= pan;
+    if (keys["d"] || keys["arrowright"]) camX -= pan, camY += pan;
     camX = Math.max(0, Math.min(MAP, camX));
     camY = Math.max(0, Math.min(MAP, camY));
     step(dt);
