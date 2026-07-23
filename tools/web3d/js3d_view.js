@@ -277,17 +277,23 @@ function buildWorld() {
   // deterministic grass meadows: dirt cells that are near water or fall in
   // a few seeded patches read as green grassland (view-only, no sim effect)
   const grassCell = new Uint8Array(MAP * MAP);
-  const near = (x, y, t) => {
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++)
-      if (inMap(x + dx, y + dy) && terrain[idx(x + dx, y + dy)] === t) return true;
-    return false;
+  // distance (in cells, capped) to the nearest water tile — drives a lush,
+  // graded green belt that hugs the river and lakes
+  const waterDist = (x, y, rad) => {
+    for (let r = 1; r <= rad; r++)
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;   // ring only
+        if (inMap(x + dx, y + dy) && terrain[idx(x + dx, y + dy)] === 3) return r;
+      }
+    return 99;
   };
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const t = terrain[idx(x, y)];
     if (t !== 0 && t !== 2) continue;
-    const oasis = near(x, y, 3);                                  // grass hugs water
+    const wd = waterDist(x, y, 3);
+    const oasis = wd <= 2;                                        // wide green belt hugging the water
     const patch = (Math.sin(x * 0.28) + Math.cos(y * 0.24) + Math.sin((x + y) * 0.13)) > 1.55;
-    if (oasis || patch) grassCell[idx(x, y)] = 1;
+    if (oasis || patch) grassCell[idx(x, y)] = oasis && wd === 1 ? 2 : 1;   // 2 = lush bank, 1 = meadow
   }
 
   // ---- per-cell base colour (soil/grass/rock/water-bed), later blended ----
@@ -295,7 +301,7 @@ function buildWorld() {
   const cc = new THREE.Color();
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const i = idx(x, y), t = terrain[i], hc = height[i];
-    let hex = grassCell[i] ? 0x527f34 : T_COLORS[t];
+    let hex = grassCell[i] === 2 ? 0x4f8f2e : grassCell[i] ? 0x527f34 : T_COLORS[t];   // lush bank / meadow / soil
     if (t === 3) hex = 0x24485a;                    // submerged bed (water drawn on top)
     else if (hc > 1.6) hex = 0x6d6455;              // rocky peaks
     else if (hc > 0.7) hex = grassCell[i] ? 0x5b6a3a : 0x5f5334;   // upper slopes
@@ -319,7 +325,7 @@ function buildWorld() {
     + Math.sin((x + y) * 1.1)) * 0.5;
 
   // ---- SMOOTH high-detail terrain: subdivided mesh, blended heights+colours ----
-  const SUB = 3, GN = MAP * SUB, out3 = [0, 0, 0];
+  const SUB = MAP >= 96 ? 2 : 3, GN = MAP * SUB, out3 = [0, 0, 0];   // coarser subdiv on big maps (perf)
   const pos = [], col = [], uvs = [], idxA = [];
   for (let iy = 0; iy <= GN; iy++) for (let ix = 0; ix <= GN; ix++) {
     const wx = ix / SUB, wy = iy / SUB;
@@ -463,7 +469,8 @@ function rebuildCrystals() {
   crysGlow = new THREE.Group();
   for (const [list, color] of [[g, 0x2fae57], [b, 0x2b7fb3]]) {
     for (const [x, y] of list) {
-      const s = glowSprite(color, 1.25, 0.13);
+      if ((x * 7 + y * 5) % 3 !== 0) continue;   // thin the halos (~1/3) — keeps the glow field cheap on big maps
+      const s = glowSprite(color, 1.6, 0.16);
       s.position.set(x + 0.5, y + 0.5, 0.4);
       crysGlow.add(s);
     }

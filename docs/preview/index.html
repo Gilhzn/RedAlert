@@ -1,7 +1,8 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: fog-shroud + radar-reveals-whole-map --></head>
-<body><title>Tiberium Dusk — תצוגה מקדימה</title>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: map128 + meadows + bridges + heroic-models --></head>
+<body>
+<title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
   :root {
     --ground: #050806;
@@ -363,11 +364,13 @@ var UNIT_BUILDERS = (function () {
       H.box(root, 0, -0.5, 0.58, 0.6, 0.2, 0.14, dark);
       turretH = 0.56; barL = 0.85; ts = 1.3;
     }
+    const accent = fac === "dm" ? 0xd7a838 : 0xc0303a;   // faction team-colour band
     const tur = H.group(root);
     tur.position.set(0, 0, turretH);
     H.rod(tur, 0, 0, 0.02, 0.26 * ts, 0.10, dark, { rx: 0 });
     H.box(tur, 0, -0.02, 0.10, 0.44 * ts, 0.46 * ts, 0.16, armor);
     H.box(tur, 0, 0.1 * ts, 0.20, 0.3 * ts, 0.24 * ts, 0.07, dark);
+    H.box(tur, 0, -0.22 * ts, 0.15, 0.34 * ts, 0.05, 0.09, accent);   // rear turret team stripe
     if (tier === "heavy") {
       for (const s of [-1, 1]) {
         H.rod(tur, s * 0.11, 0.30 + barL / 2, 0.12, 0.045, barL, C.GUNMETAL, { rx: 90 });
@@ -385,6 +388,8 @@ var UNIT_BUILDERS = (function () {
     const C = H.C;
     const armor = faction === "dm" ? C.DM_ARMOR : C.SO_ARMOR;
     const dark = faction === "dm" ? C.DM_DARK : C.SO_DARK;
+    // bright faction accent for a clear team-colour read from the iso camera
+    const accent = faction === "dm" ? 0xd7a838 : 0xc0303a;
     const heavy = kind === "heavy";
     const w = heavy ? 1.15 : 1.0;
     const la = pose === 1 ? 22 : 6;
@@ -394,13 +399,15 @@ var UNIT_BUILDERS = (function () {
     H.box(g, -0.10 * w, lo * 2.4, 0.045, 0.15 * w, 0.22, 0.09, C.BOOTS);
     H.box(g, 0.10 * w, -lo * 2.4, 0.045, 0.15 * w, 0.22, 0.09, C.BOOTS);
     H.box(g, 0, 0, 0.40, 0.40 * w, 0.24, 0.10, dark);
-    H.box(g, 0, 0, 0.62, 0.44 * w, 0.27 * w, 0.34, armor);
-    H.box(g, -0.26 * w, 0, 0.76, 0.14, 0.20, 0.12, armor);
-    H.box(g, 0.26 * w, 0, 0.76, 0.14, 0.20, 0.12, armor);
-    H.ball(g, 0, 0, 0.92, 0.115, C.SKIN);
+    H.box(g, 0, 0, 0.62, 0.46 * w, 0.29 * w, 0.36, armor);              // torso (a touch bulkier)
+    H.box(g, 0, 0.15, 0.66, 0.30 * w, 0.05, 0.20, accent);             // chest team-colour plate
+    H.box(g, -0.27 * w, 0, 0.77, 0.16, 0.22, 0.15, accent);           // team-colour shoulder pads
+    H.box(g, 0.27 * w, 0, 0.77, 0.16, 0.22, 0.15, accent);
+    H.ball(g, 0, 0, 0.93, 0.13, C.SKIN);                              // heroic head (bigger)
     const helmet = kind === "engineer" ? C.YELLOW : kind === "medic" ? C.WHITE : armor;
-    H.ball(g, 0, 0, 0.97, 0.135, helmet, { squash: 0.75 });
-    H.box(g, 0, 0.10, 0.92, 0.16, 0.06, 0.05, dark);
+    H.ball(g, 0, 0, 0.99, 0.155, helmet, { squash: 0.78 });          // bigger helmet reads from above
+    H.box(g, 0, 0, 1.10, 0.09, 0.24, 0.05, accent);                   // helmet team crest (reads top-down)
+    H.box(g, 0, 0.13, 0.93, 0.18, 0.06, 0.06, dark);                  // visor
     if (kind === "rocket") {
       H.rod(g, -0.30 * w, 0.05, 0.72, 0.05, 0.34, armor, { rx: 70 });
       H.rod(g, 0.24 * w, 0.10, 0.80, 0.05, 0.30, armor, { rx: 95 });
@@ -425,8 +432,9 @@ var UNIT_BUILDERS = (function () {
         H.rod(g, 0.02, 0.60, 0.62, 0.05, 0.16, C.BOOTS, { rx: 90 });
         H.box(g, 0.02, 0.12, 0.52, 0.16, 0.18, 0.16, C.GUNMETAL);
       } else {
-        H.box(g, 0.02, 0.30, 0.66, 0.07, 0.46, 0.10, C.GUNMETAL);
-        H.rod(g, 0.02, 0.56, 0.68, 0.025, 0.16, C.BOOTS, { rx: 90 });
+        H.box(g, 0.02, 0.30, 0.66, 0.09, 0.50, 0.12, C.GUNMETAL);     // chunkier rifle reads at a glance
+        H.rod(g, 0.02, 0.58, 0.68, 0.03, 0.18, C.BOOTS, { rx: 90 });
+        H.box(g, 0.02, 0.14, 0.60, 0.05, 0.14, 0.10, dark);           // magazine
       }
     }
     return g;
@@ -588,10 +596,10 @@ var UNIT_BUILDERS = (function () {
 
   // ---- infantry ----
   const INFANTRY = {
-    dm_rifle: ["rifle", "dm", 0.42], dm_rocket: ["rocket", "dm", 0.42],
-    dm_heavy: ["heavy", "dm", 0.5], dm_engineer: ["engineer", "dm", 0.42],
-    dm_medic: ["medic", "dm", 0.42], so_rifle: ["rifle", "so", 0.42],
-    so_rocket: ["rocket", "so", 0.42],
+    dm_rifle: ["rifle", "dm", 0.50], dm_rocket: ["rocket", "dm", 0.50],
+    dm_heavy: ["heavy", "dm", 0.58], dm_engineer: ["engineer", "dm", 0.50],
+    dm_medic: ["medic", "dm", 0.50], so_rifle: ["rifle", "so", 0.50],
+    so_rocket: ["rocket", "so", 0.50],
   };
   for (const id of Object.keys(INFANTRY)) {
     const [kind, fac, fit] = INFANTRY[id];
@@ -606,7 +614,7 @@ var UNIT_BUILDERS = (function () {
     H.rod(root, 0.10, -0.20, 0.62, 0.055, 0.34, C.GUNMETAL);
     H.rod(root, -0.10, -0.20, 0.42, 0.035, 0.08, C.RED);
     H.rod(root, 0.10, -0.20, 0.42, 0.035, 0.08, C.RED);
-    return { root, turret: null, fit: 0.42 };
+    return { root, turret: null, fit: 0.50 };
   };
 
   // soldier_variant("hero") — railgun hero
@@ -615,7 +623,7 @@ var UNIT_BUILDERS = (function () {
     H.rod(root, 0.05, 0.30, 0.70, 0.05, 0.55, C.BLUEGREY, { rx: 90 });
     H.box(root, 0.05, 0.50, 0.70, 0.10, 0.12, 0.10, C.RED);
     H.box(root, -0.28, 0, 0.80, 0.18, 0.24, 0.16, C.DM_DARK);
-    return { root, turret: null, fit: 0.42 };
+    return { root, turret: null, fit: 0.50 };
   };
 
   // grenadier — rifle base + disc launcher tube + back rack
@@ -625,7 +633,7 @@ var UNIT_BUILDERS = (function () {
     H.rod(root, 0.05, 0.50, 0.66, 0.09, 0.06, C.DM_DARK, { rx: 90, v: 12 });   // muzzle ring
     for (let i = 0; i < 3; i++)                                                // disc rack
       H.rod(root, 0, -0.17 - i * 0.045, 0.62, 0.11, 0.03, C.BLUEGREY, { rx: 90, v: 12 });
-    return { root, turret: null, fit: 0.42 };
+    return { root, turret: null, fit: 0.50 };
   };
 
   // ---- nx_harvester: original design (python used an external KayKit model).
@@ -1461,7 +1469,7 @@ function hasStruct(type) {
 }
 
 /* ============================== World ============================== */
-const MAP = 64;
+const MAP = 128;                        // 4× the original playable area (was 64)
 const TW = 52, TH = 26;                 // iso tile size
 let seed = 1337;
 const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
@@ -1497,6 +1505,7 @@ function heightAt(x, y) {
 
 function makeWorld() {
   seed = 1337 + (waveNum || 0);
+  const S = MAP / 64;                    // feature-size scale (keeps the big map grand, not sparse)
   terrain = new Uint8Array(MAP * MAP);
   crystal = new Uint8Array(MAP * MAP);   // 0 none, 1..4 green density, 9 blue
   blocked = new Uint8Array(MAP * MAP);
@@ -1540,17 +1549,18 @@ function makeWorld() {
   // ---- a river snaking across the map + two lakes (water; bridges help) ----
   // Natural fords (dry crossings) keep both sides reachable on foot; bridges
   // are a convenience / defensive chokepoint rather than a hard wall.
-  const riverY = x => MAP * 0.5 + Math.sin(x * 0.13) * MAP * 0.16 + Math.cos(x * 0.05) * MAP * 0.06;
-  const fords = [Math.round(MAP * 0.32), Math.round(MAP * 0.66)];
+  const riverY = x => MAP * 0.5 + Math.sin(x * 0.13 / S) * MAP * 0.16 + Math.cos(x * 0.05 / S) * MAP * 0.06;
+  const fords = [Math.round(MAP * 0.22), Math.round(MAP * 0.5), Math.round(MAP * 0.78)];
   for (let x = 0; x < MAP; x++) {
-    if (fords.some(fx => Math.abs(x - fx) <= 2)) continue;    // leave a crossing gap
-    const cy2 = riverY(x), half = 1.6 + vnoise(x, cy2) * 1.4;
+    if (fords.some(fx => Math.abs(x - fx) <= 2 * S)) continue;    // leave a crossing gap
+    const cy2 = riverY(x), half = (1.6 + vnoise(x, cy2) * 1.4) * (0.6 + 0.4 * S);
     for (let y = Math.floor(cy2 - half); y <= Math.ceil(cy2 + half); y++) {
       if (!inMap(x, y) || homeClear(x, y)) continue;
       terrain[idx(x, y)] = 3; blocked[idx(x, y)] = 1; height[idx(x, y)] = 0;
     }
   }
-  for (const [lx, ly, lr] of [[MAP * 0.22, MAP * 0.3, 5.5], [MAP * 0.8, MAP * 0.7, 6]]) {
+  for (const [lx, ly, lr] of [[MAP * 0.22, MAP * 0.3, 5.5 * S], [MAP * 0.8, MAP * 0.7, 6 * S],
+                              [MAP * 0.5, MAP * 0.82, 4.5 * S]]) {
     for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
       if (homeClear(x, y)) continue;
       const d = Math.hypot(x - lx, y - ly) / lr;
@@ -1562,12 +1572,13 @@ function makeWorld() {
 
   // ---- tall impassable rock MOUNTAINS (noise-shaped ranges) ----
   const ranges = [[MAP * 0.28, MAP * 0.2, MAP * 0.5, MAP * 0.12],
-                  [MAP * 0.75, MAP * 0.85, MAP * 0.55, MAP * 0.9]];
+                  [MAP * 0.75, MAP * 0.85, MAP * 0.55, MAP * 0.9],
+                  [MAP * 0.1, MAP * 0.62, MAP * 0.24, MAP * 0.5]];
   for (const [ax, ay, bx, by] of ranges) {
-    const steps = 40;
+    const steps = 40 * S;
     for (let s = 0; s <= steps; s++) {
       const t = s / steps, mx = ax + (bx - ax) * t, my = ay + (by - ay) * t;
-      const w = 2.6 + vnoise(mx * 2, my * 2) * 2.2;
+      const w = (2.6 + vnoise(mx * 2, my * 2) * 2.2) * S;
       for (let y = Math.floor(my - w); y <= Math.ceil(my + w); y++)
         for (let x = Math.floor(mx - w); x <= Math.ceil(mx + w); x++) {
           if (!inMap(x, y) || homeClear(x, y) || terrain[idx(x, y)] === 3) continue;
@@ -1582,8 +1593,9 @@ function makeWorld() {
   }
 
   // ---- walkable hills: climbable high ground (irregular, noise-perturbed) ----
-  const hills = [[MAP * 0.5, MAP * 0.5, 10, 2.2], [MAP * 0.32, MAP * 0.6, 7, 1.6],
-                 [MAP * 0.68, MAP * 0.4, 7, 1.7], [MAP * 0.6, MAP * 0.72, 6, 1.4]];
+  const hills = [[MAP * 0.5, MAP * 0.5, 10 * S, 2.2], [MAP * 0.32, MAP * 0.6, 7 * S, 1.6],
+                 [MAP * 0.68, MAP * 0.4, 7 * S, 1.7], [MAP * 0.6, MAP * 0.72, 6 * S, 1.4],
+                 [MAP * 0.4, MAP * 0.3, 6 * S, 1.5], [MAP * 0.5, MAP * 0.5, 4 * S, 2.6]];
   for (const [hx, hy, hr, hh] of hills) {
     for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
       if (terrain[idx(x, y)] === 3 || blocked[idx(x, y)] || homeClear(x, y)) continue;
@@ -1598,7 +1610,7 @@ function makeWorld() {
 
   // crystal fields — placed on clear ground away from the river/mountains;
   // if a chosen centre lands on bad terrain, nudge it to the nearest clear cell
-  const F = (fx, fy, r, kind) => [Math.round(MAP * fx), Math.round(MAP * fy), r, kind];
+  const F = (fx, fy, r, kind) => [Math.round(MAP * fx), Math.round(MAP * fy), Math.round(r * S), kind];
   const clearCentre = (cx, cy) => {
     if (inMap(cx, cy) && !blocked[idx(cx, cy)]) return [cx, cy];
     for (let rad = 1; rad < 10; rad++)
@@ -1614,7 +1626,13 @@ function makeWorld() {
                   F(.4, .86, 6, 1), F(.6, .14, 6, 9),
                   F(.5, .76, 6, 1), F(.5, .24, 6, 1),
                   F(.18, .55, 5, 9), F(.82, .45, 5, 1),
-                  F(.34, .62, 5, 1), F(.66, .38, 5, 1)];
+                  F(.34, .62, 5, 1), F(.66, .38, 5, 1),
+                  // extra fields spread across the enlarged map
+                  F(.08, .88, 5, 1), F(.92, .12, 5, 1),
+                  F(.26, .28, 5, 1), F(.74, .72, 5, 9),
+                  F(.5, .5, 6, 9), F(.14, .14, 5, 1),
+                  F(.86, .86, 5, 1), F(.38, .46, 5, 1),
+                  F(.62, .54, 5, 1), F(.24, .44, 4, 9)];
   for (const [fx, fy, r, kind] of fields) {
     const [cx, cy] = clearCentre(fx, fy);
     for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
@@ -1648,6 +1666,20 @@ function makeWorld() {
   spawnStruct("so_obelisk", (MAP * 0.5 | 0) - 5, (MAP * 0.5 | 0) + 3, 1);
   spawnUnit("so_scout_buggy", (MAP * 0.5 | 0) + 2, (MAP * 0.5 | 0) + 2, 1);
   spawnUnit("so_rifle", (MAP * 0.5 | 0) - 2, (MAP * 0.5 | 0) - 2, 1);
+
+  // ---- scenic river bridges: pre-built crossings that span the water, like
+  // the promo renders. Each is one or more walkable decks tiling the river's
+  // full width at a chosen column, giving both a landmark and a crossing. ----
+  const bridgeXs = [Math.round(MAP * 0.38), Math.round(MAP * 0.62)];
+  for (const bxc of bridgeXs) {
+    const yc = Math.round(riverY(bxc));
+    if (!inMap(bxc, yc) || terrain[idx(bxc, yc)] !== 3) continue;   // only where there's water
+    let y0 = yc, y1 = yc;
+    while (inMap(bxc, y0 - 1) && terrain[idx(bxc, y0 - 1)] === 3) y0--;
+    while (inMap(bxc, y1 + 1) && terrain[idx(bxc, y1 + 1)] === 3) y1++;
+    for (let gy = y0 - 1; gy <= y1 - 1; gy += 3)                    // 3-cell decks tile the span
+      if (inMap(bxc, gy) && inMap(bxc, gy + 2)) spawnStruct("dm_bridge", bxc, gy, 0);
+  }
 
   // map decoration: containers/cargo scattered deterministically on free ground
   decor = [];
@@ -2552,7 +2584,7 @@ function canPlace(type, gx, gy) {
   for (const e of ents) {
     if (e.dead || e.owner !== 0 || e.kind !== "struct") continue;
     const s = STRUCTS[e.type];
-    if (s.wall || s.gate || s.fsem) continue;   // fortifications don't extend reach
+    if (s.wall || s.gate || s.fsem || s.bridge) continue;   // fortifications/bridges don't extend reach
     if (gx < e.gx + e.fw + 4 && gx + b.fw > e.gx - 4 && gy < e.gy + e.fh + 4 && gy + b.fh > e.gy - 4) return true;
   }
   return false;
@@ -3470,17 +3502,23 @@ function buildWorld() {
   // deterministic grass meadows: dirt cells that are near water or fall in
   // a few seeded patches read as green grassland (view-only, no sim effect)
   const grassCell = new Uint8Array(MAP * MAP);
-  const near = (x, y, t) => {
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++)
-      if (inMap(x + dx, y + dy) && terrain[idx(x + dx, y + dy)] === t) return true;
-    return false;
+  // distance (in cells, capped) to the nearest water tile — drives a lush,
+  // graded green belt that hugs the river and lakes
+  const waterDist = (x, y, rad) => {
+    for (let r = 1; r <= rad; r++)
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;   // ring only
+        if (inMap(x + dx, y + dy) && terrain[idx(x + dx, y + dy)] === 3) return r;
+      }
+    return 99;
   };
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const t = terrain[idx(x, y)];
     if (t !== 0 && t !== 2) continue;
-    const oasis = near(x, y, 3);                                  // grass hugs water
+    const wd = waterDist(x, y, 3);
+    const oasis = wd <= 2;                                        // wide green belt hugging the water
     const patch = (Math.sin(x * 0.28) + Math.cos(y * 0.24) + Math.sin((x + y) * 0.13)) > 1.55;
-    if (oasis || patch) grassCell[idx(x, y)] = 1;
+    if (oasis || patch) grassCell[idx(x, y)] = oasis && wd === 1 ? 2 : 1;   // 2 = lush bank, 1 = meadow
   }
 
   // ---- per-cell base colour (soil/grass/rock/water-bed), later blended ----
@@ -3488,7 +3526,7 @@ function buildWorld() {
   const cc = new THREE.Color();
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const i = idx(x, y), t = terrain[i], hc = height[i];
-    let hex = grassCell[i] ? 0x527f34 : T_COLORS[t];
+    let hex = grassCell[i] === 2 ? 0x4f8f2e : grassCell[i] ? 0x527f34 : T_COLORS[t];   // lush bank / meadow / soil
     if (t === 3) hex = 0x24485a;                    // submerged bed (water drawn on top)
     else if (hc > 1.6) hex = 0x6d6455;              // rocky peaks
     else if (hc > 0.7) hex = grassCell[i] ? 0x5b6a3a : 0x5f5334;   // upper slopes
@@ -3512,7 +3550,7 @@ function buildWorld() {
     + Math.sin((x + y) * 1.1)) * 0.5;
 
   // ---- SMOOTH high-detail terrain: subdivided mesh, blended heights+colours ----
-  const SUB = 3, GN = MAP * SUB, out3 = [0, 0, 0];
+  const SUB = MAP >= 96 ? 2 : 3, GN = MAP * SUB, out3 = [0, 0, 0];   // coarser subdiv on big maps (perf)
   const pos = [], col = [], uvs = [], idxA = [];
   for (let iy = 0; iy <= GN; iy++) for (let ix = 0; ix <= GN; ix++) {
     const wx = ix / SUB, wy = iy / SUB;
@@ -3656,7 +3694,8 @@ function rebuildCrystals() {
   crysGlow = new THREE.Group();
   for (const [list, color] of [[g, 0x2fae57], [b, 0x2b7fb3]]) {
     for (const [x, y] of list) {
-      const s = glowSprite(color, 1.25, 0.13);
+      if ((x * 7 + y * 5) % 3 !== 0) continue;   // thin the halos (~1/3) — keeps the glow field cheap on big maps
+      const s = glowSprite(color, 1.6, 0.16);
       s.position.set(x + 0.5, y + 0.5, 0.4);
       crysGlow.add(s);
     }
@@ -4290,6 +4329,3 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 </script>
-
-</body>
-</html>

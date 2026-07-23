@@ -44,11 +44,13 @@ var UNIT_BUILDERS = (function () {
       H.box(root, 0, -0.5, 0.58, 0.6, 0.2, 0.14, dark);
       turretH = 0.56; barL = 0.85; ts = 1.3;
     }
+    const accent = fac === "dm" ? 0xd7a838 : 0xc0303a;   // faction team-colour band
     const tur = H.group(root);
     tur.position.set(0, 0, turretH);
     H.rod(tur, 0, 0, 0.02, 0.26 * ts, 0.10, dark, { rx: 0 });
     H.box(tur, 0, -0.02, 0.10, 0.44 * ts, 0.46 * ts, 0.16, armor);
     H.box(tur, 0, 0.1 * ts, 0.20, 0.3 * ts, 0.24 * ts, 0.07, dark);
+    H.box(tur, 0, -0.22 * ts, 0.15, 0.34 * ts, 0.05, 0.09, accent);   // rear turret team stripe
     if (tier === "heavy") {
       for (const s of [-1, 1]) {
         H.rod(tur, s * 0.11, 0.30 + barL / 2, 0.12, 0.045, barL, C.GUNMETAL, { rx: 90 });
@@ -66,6 +68,8 @@ var UNIT_BUILDERS = (function () {
     const C = H.C;
     const armor = faction === "dm" ? C.DM_ARMOR : C.SO_ARMOR;
     const dark = faction === "dm" ? C.DM_DARK : C.SO_DARK;
+    // bright faction accent for a clear team-colour read from the iso camera
+    const accent = faction === "dm" ? 0xd7a838 : 0xc0303a;
     const heavy = kind === "heavy";
     const w = heavy ? 1.15 : 1.0;
     const la = pose === 1 ? 22 : 6;
@@ -75,13 +79,15 @@ var UNIT_BUILDERS = (function () {
     H.box(g, -0.10 * w, lo * 2.4, 0.045, 0.15 * w, 0.22, 0.09, C.BOOTS);
     H.box(g, 0.10 * w, -lo * 2.4, 0.045, 0.15 * w, 0.22, 0.09, C.BOOTS);
     H.box(g, 0, 0, 0.40, 0.40 * w, 0.24, 0.10, dark);
-    H.box(g, 0, 0, 0.62, 0.44 * w, 0.27 * w, 0.34, armor);
-    H.box(g, -0.26 * w, 0, 0.76, 0.14, 0.20, 0.12, armor);
-    H.box(g, 0.26 * w, 0, 0.76, 0.14, 0.20, 0.12, armor);
-    H.ball(g, 0, 0, 0.92, 0.115, C.SKIN);
+    H.box(g, 0, 0, 0.62, 0.46 * w, 0.29 * w, 0.36, armor);              // torso (a touch bulkier)
+    H.box(g, 0, 0.15, 0.66, 0.30 * w, 0.05, 0.20, accent);             // chest team-colour plate
+    H.box(g, -0.27 * w, 0, 0.77, 0.16, 0.22, 0.15, accent);           // team-colour shoulder pads
+    H.box(g, 0.27 * w, 0, 0.77, 0.16, 0.22, 0.15, accent);
+    H.ball(g, 0, 0, 0.93, 0.13, C.SKIN);                              // heroic head (bigger)
     const helmet = kind === "engineer" ? C.YELLOW : kind === "medic" ? C.WHITE : armor;
-    H.ball(g, 0, 0, 0.97, 0.135, helmet, { squash: 0.75 });
-    H.box(g, 0, 0.10, 0.92, 0.16, 0.06, 0.05, dark);
+    H.ball(g, 0, 0, 0.99, 0.155, helmet, { squash: 0.78 });          // bigger helmet reads from above
+    H.box(g, 0, 0, 1.10, 0.09, 0.24, 0.05, accent);                   // helmet team crest (reads top-down)
+    H.box(g, 0, 0.13, 0.93, 0.18, 0.06, 0.06, dark);                  // visor
     if (kind === "rocket") {
       H.rod(g, -0.30 * w, 0.05, 0.72, 0.05, 0.34, armor, { rx: 70 });
       H.rod(g, 0.24 * w, 0.10, 0.80, 0.05, 0.30, armor, { rx: 95 });
@@ -106,8 +112,9 @@ var UNIT_BUILDERS = (function () {
         H.rod(g, 0.02, 0.60, 0.62, 0.05, 0.16, C.BOOTS, { rx: 90 });
         H.box(g, 0.02, 0.12, 0.52, 0.16, 0.18, 0.16, C.GUNMETAL);
       } else {
-        H.box(g, 0.02, 0.30, 0.66, 0.07, 0.46, 0.10, C.GUNMETAL);
-        H.rod(g, 0.02, 0.56, 0.68, 0.025, 0.16, C.BOOTS, { rx: 90 });
+        H.box(g, 0.02, 0.30, 0.66, 0.09, 0.50, 0.12, C.GUNMETAL);     // chunkier rifle reads at a glance
+        H.rod(g, 0.02, 0.58, 0.68, 0.03, 0.18, C.BOOTS, { rx: 90 });
+        H.box(g, 0.02, 0.14, 0.60, 0.05, 0.14, 0.10, dark);           // magazine
       }
     }
     return g;
@@ -269,10 +276,10 @@ var UNIT_BUILDERS = (function () {
 
   // ---- infantry ----
   const INFANTRY = {
-    dm_rifle: ["rifle", "dm", 0.42], dm_rocket: ["rocket", "dm", 0.42],
-    dm_heavy: ["heavy", "dm", 0.5], dm_engineer: ["engineer", "dm", 0.42],
-    dm_medic: ["medic", "dm", 0.42], so_rifle: ["rifle", "so", 0.42],
-    so_rocket: ["rocket", "so", 0.42],
+    dm_rifle: ["rifle", "dm", 0.50], dm_rocket: ["rocket", "dm", 0.50],
+    dm_heavy: ["heavy", "dm", 0.58], dm_engineer: ["engineer", "dm", 0.50],
+    dm_medic: ["medic", "dm", 0.50], so_rifle: ["rifle", "so", 0.50],
+    so_rocket: ["rocket", "so", 0.50],
   };
   for (const id of Object.keys(INFANTRY)) {
     const [kind, fac, fit] = INFANTRY[id];
@@ -287,7 +294,7 @@ var UNIT_BUILDERS = (function () {
     H.rod(root, 0.10, -0.20, 0.62, 0.055, 0.34, C.GUNMETAL);
     H.rod(root, -0.10, -0.20, 0.42, 0.035, 0.08, C.RED);
     H.rod(root, 0.10, -0.20, 0.42, 0.035, 0.08, C.RED);
-    return { root, turret: null, fit: 0.42 };
+    return { root, turret: null, fit: 0.50 };
   };
 
   // soldier_variant("hero") — railgun hero
@@ -296,7 +303,7 @@ var UNIT_BUILDERS = (function () {
     H.rod(root, 0.05, 0.30, 0.70, 0.05, 0.55, C.BLUEGREY, { rx: 90 });
     H.box(root, 0.05, 0.50, 0.70, 0.10, 0.12, 0.10, C.RED);
     H.box(root, -0.28, 0, 0.80, 0.18, 0.24, 0.16, C.DM_DARK);
-    return { root, turret: null, fit: 0.42 };
+    return { root, turret: null, fit: 0.50 };
   };
 
   // grenadier — rifle base + disc launcher tube + back rack
@@ -306,7 +313,7 @@ var UNIT_BUILDERS = (function () {
     H.rod(root, 0.05, 0.50, 0.66, 0.09, 0.06, C.DM_DARK, { rx: 90, v: 12 });   // muzzle ring
     for (let i = 0; i < 3; i++)                                                // disc rack
       H.rod(root, 0, -0.17 - i * 0.045, 0.62, 0.11, 0.03, C.BLUEGREY, { rx: 90, v: 12 });
-    return { root, turret: null, fit: 0.42 };
+    return { root, turret: null, fit: 0.50 };
   };
 
   // ---- nx_harvester: original design (python used an external KayKit model).
