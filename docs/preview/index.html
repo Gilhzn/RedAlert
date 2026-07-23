@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: bright-veridium-zones-screen-pan --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: multi-opponents-peace-timer --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -324,6 +324,11 @@
     <div class="settings-row"><span id="s-diff-lbl">רמת מחשב</span>
       <div class="seg-group" id="s-diff-group">
         <button data-diff="0">קל</button><button data-diff="1" class="on">בינוני</button><button data-diff="2">קשה</button><button data-diff="3">קשה מאוד</button><button data-diff="4">אכזרי</button>
+      </div>
+    </div>
+    <div class="settings-row"><span id="s-enemies-lbl">יריבים</span>
+      <div class="seg-group" id="s-enemies-group">
+        <button data-enemies="1" class="on">1</button><button data-enemies="2">2</button><button data-enemies="3">3</button>
       </div>
     </div>
     <div class="settings-note" id="s-note">בקרוב: טוטוריאל והוראות משחק מלאות.</div>
@@ -1588,6 +1593,8 @@ const DIFFS = [
 ];
 let aiDiff = 1;   // default: normal
 try { const d = parseInt(localStorage.getItem("td_diff")); if (d >= 0 && d < 5) aiDiff = d; } catch (e) {}
+let numEnemies = 1;   // number of opponents (1-3), chosen in settings
+try { const n = parseInt(localStorage.getItem("td_enemies")); if (n >= 1 && n <= 3) numEnemies = n; } catch (e) {}
 // he + en are fully localised; es / zh / hi fall back to en until their strings land
 const T = k => (L[lang] || L.en)[k] ?? L.en[k] ?? k;
 
@@ -1735,6 +1742,7 @@ let camX, camY, zoom, running = false, over = false;
 let camGlide = null;   // when set to [wx,wy], the camera eases toward it (radar "travel there")
 let waveTimer, waveNum, evaTimer = 0, atkWarnCd = 0, selBox = null, tSec = 0, fieldTimer = 6;
 let harvWarnCd = 0, resWarnCd = 0, nearWarnCd = 0;   // throttles for harvester-under-fire / resources-depleted / enemy-near-base notices
+let peaceUntil = 0;   // easy/medium: the enemy holds off attacking until this game-time (seconds)
 let radarOrder = null, radarOrderKey = -1;           // cached cell order (nearest-to-base first) for radar map reveal
 let creditsShown = 0, creditsBumpT = 0;   // HUD credit-counter pulse state
 
@@ -1774,7 +1782,9 @@ function makeWorld() {
   gateAt = {}; gateTimer = 0; fsActive = 0;
   superAim = null; ionStrikes = []; fireballs = [];
   sbView = { mode: "general", id: 0 };
-  waveTimer = 50; waveNum = 0; over = false; tSec = 0; fieldTimer = 6;
+  // easy / medium: the enemy stays peaceful for the first 2 minutes; harder levels press immediately
+  peaceUntil = (aiDiff <= 1) ? 120 : 0;
+  waveTimer = (aiDiff <= 1) ? 120 : 50; waveNum = 0; over = false; tSec = 0; fieldTimer = 6;
 
   const homeClear = (x, y) => (x < 13 && y > MAP - 14) || (x > MAP - 14 && y < 13);
   // ---- value-noise field (seeded), for natural dunes & organic shapes ----
@@ -1920,19 +1930,48 @@ function makeWorld() {
   spawnUnit("dm_rifle", 9.5, MAP - 5.2, 0);
   spawnUnit("dm_rifle", 10.3, MAP - 5.8, 0);
 
-  spawnStruct("so_factory", MAP - 8, 3, 1);
-  spawnStruct("so_power_plant", MAP - 4, 3, 1);
-  spawnStruct("so_power_plant", MAP - 4, 6, 1);
-  spawnStruct("so_laser_turret", MAP - 10, 6, 1);
-  spawnStruct("so_obelisk", MAP - 12, 9, 1);
-  spawnStruct("so_laser_turret", MAP - 5, 9, 1);
-  spawnUnit("so_tick_tank", MAP - 9, 8, 1);
-  spawnUnit("so_rifle", MAP - 7, 8, 1);
-  // forward outpost near the central veridium field
-  spawnStruct("so_laser_turret", (MAP * 0.5 | 0) + 3, (MAP * 0.5 | 0) - 4, 1);
-  spawnStruct("so_obelisk", (MAP * 0.5 | 0) - 5, (MAP * 0.5 | 0) + 3, 1);
-  spawnUnit("so_scout_buggy", (MAP * 0.5 | 0) + 2, (MAP * 0.5 | 0) + 2, 1);
-  spawnUnit("so_rifle", (MAP * 0.5 | 0) - 2, (MAP * 0.5 | 0) - 2, 1);
+  // ---- enemy opponents: numEnemies (1-3) full bases scattered around the map,
+  //      away from the player's corner and from the centre, spaced from one another ----
+  const enemyBase = (cx, cy) => {
+    cx = Math.max(6, Math.min(MAP - 7, cx | 0)); cy = Math.max(4, Math.min(MAP - 8, cy | 0));
+    // clear the footprint of crystals so the base doesn't sit on a deposit
+    for (let dy = -1; dy <= 6; dy++) for (let dx = -5; dx <= 5; dx++)
+      if (inMap(cx + dx, cy + dy)) crystal[idx(cx + dx, cy + dy)] = 0;
+    spawnStruct("so_factory", cx, cy, 1);
+    spawnStruct("so_power_plant", cx + 4, cy, 1);
+    spawnStruct("so_power_plant", cx + 4, cy + 3, 1);
+    spawnStruct("so_laser_turret", cx - 2, cy + 3, 1);
+    spawnStruct("so_obelisk", cx - 4, cy + 5, 1);
+    spawnStruct("so_laser_turret", cx + 3, cy + 5, 1);
+    spawnUnit("so_tick_tank", cx + 1, cy + 4, 1);
+    spawnUnit("so_rifle", cx + 3, cy + 4, 1);
+  };
+  const clearSpot = (tx, ty) => {          // nearest spot where a base footprint sits on solid ground
+    for (let rad = 0; rad < 34; rad++) for (let a = 0; a < 12; a++) {
+      const ang = a / 12 * Math.PI * 2;
+      const x = (tx + Math.cos(ang) * rad) | 0, y = (ty + Math.sin(ang) * rad) | 0;
+      if (x < 6 || y < 4 || x > MAP - 7 || y > MAP - 8) continue;
+      let ok = true;
+      for (let dy = -1; dy <= 5 && ok; dy++) for (let dx = -5; dx <= 5 && ok; dx++) {
+        const i = idx(Math.max(0, Math.min(MAP - 1, x + dx)), Math.max(0, Math.min(MAP - 1, y + dy)));
+        if (blocked[i] || terrain[i] === 3) ok = false;   // no mountains / water under the base
+      }
+      if (ok) return [x, y];
+    }
+    return [Math.max(6, Math.min(MAP - 7, tx | 0)), Math.max(4, Math.min(MAP - 8, ty | 0))];
+  };
+  // candidate anchors around the edges (never the player's bottom-left, never dead centre)
+  const anchors = [[MAP - 10, 8], [12, 10], [MAP - 11, MAP - 13], [(MAP * 0.5 | 0) + 4, 9], [MAP - 10, (MAP * 0.5 | 0) - 2]];
+  for (let i = anchors.length - 1; i > 0; i--) { const j = (rnd() * (i + 1)) | 0; const t = anchors[i]; anchors[i] = anchors[j]; anchors[j] = t; }
+  const pB = [6, MAP - 8], chosen = [];
+  for (const [ax, ay] of anchors) {
+    if (chosen.length >= numEnemies) break;
+    if (Math.hypot(ax - pB[0], ay - pB[1]) < 38) continue;                    // never right next to the player
+    if (chosen.some(c => Math.hypot(ax - c[0], ay - c[1]) < 26)) continue;    // keep bases spaced apart
+    chosen.push(clearSpot(ax, ay));
+  }
+  if (!chosen.length) chosen.push(clearSpot(MAP - 10, 8));                    // always at least one opponent
+  for (const [bx, by] of chosen) enemyBase(bx, by);
 
   // ---- scenic river bridges: pre-built crossings that span the water, like
   // the promo renders. Each is one or more walkable decks tiling the river's
@@ -2720,7 +2759,10 @@ function combatAI(e, b, dt) {
     // ---- smart enemy: like a human, it doesn't walk past a threat. It engages the
     //      closest foe inside its aggro range (widened on higher difficulty),
     //      preferring live units, and otherwise keeps advancing on its objective. ----
-    const aggro = DIFFS[aiDiff].aggro;
+    // easy/medium grace period: the enemy holds — it won't hunt the player yet,
+    // only firing at anything that walks point-blank into its own base (self-defense)
+    const peace = tSec < peaceUntil;
+    const aggro = peace ? 2.5 : DIFFS[aiDiff].aggro;
     let best = e.target;
     let bd = e.target ? Math.hypot(e.target.x - e.x, e.target.y - e.y) - (e.target.kind === "unit" ? 1.5 : 0) : 1e9;
     for (const o of ents) {
@@ -2733,9 +2775,10 @@ function combatAI(e, b, dt) {
       if (score < bd - 0.4) { bd = score; best = o; }
     }
     e.target = best || null;
+    if (peace) e.marchTarget = null;   // no advancing on the player during the grace period
     // committed attackers (given a marchTarget on spawn) keep pressing the objective;
     // base defenders with no objective simply hold and fight what comes into aggro range
-    if (!e.target && e.marchTarget) {
+    if (!peace && !e.target && e.marchTarget) {
       if (e.marchTarget.dead) e.marchTarget = pickAiObjective(e);
       if (e.marchTarget && !e.path) e.path = findPath(e.x, e.y, e.marchTarget.x, e.marchTarget.y, false, 1);
     }
@@ -2922,7 +2965,8 @@ function spawnWave() {
   waveNum++;
   const D = DIFFS[aiDiff];
   waveTimer = Math.max(36, 62 - waveNum * 2) * D.waveEvery;
-  const fac = ents.find(e => !e.dead && e.owner === 1 && e.type === "so_factory");
+  const facs = ents.filter(e => !e.dead && e.owner === 1 && e.type === "so_factory");
+  const fac = facs.length ? facs[(rnd() * facs.length) | 0] : null;   // a random opponent base musters each wave
   const sx = fac ? fac.x : MAP - 6, sy = fac ? fac.y + 2 : 6;
   const comp = [];
   const n = Math.max(2, Math.round(Math.min(2 + waveNum, 8) * D.waveScale));
@@ -3877,12 +3921,12 @@ function applyLang() {
 const SETXT = {
   he: { title: "הגדרות", lang: "שפה", layout: "מיקום סרגל", side: "צד", bottom: "תחתון",
         team: "צבע קבוצה", notify: "התראות משחק", on: "פעיל", off: "כבוי", diff: "רמת מחשב",
-        diffs: ["קל", "בינוני", "קשה", "קשה מאוד", "אכזרי"],
-        note: "בקרוב: טוטוריאל והוראות משחק מלאות." },
+        diffs: ["קל", "בינוני", "קשה", "קשה מאוד", "אכזרי"], enemies: "יריבים",
+        note: "יריבים חלים על משחק חדש." },
   en: { title: "Settings", lang: "Language", layout: "Sidebar side", side: "Side", bottom: "Bottom",
         team: "Team color", notify: "Notifications", on: "On", off: "Off", diff: "AI level",
-        diffs: ["Easy", "Medium", "Hard", "Very Hard", "Insane"],
-        note: "Coming soon: tutorial and full game instructions." },
+        diffs: ["Easy", "Medium", "Hard", "Very Hard", "Insane"], enemies: "Opponents",
+        note: "Opponent count applies to a new match." },
 };
 function syncSettingsUI(rtl) {
   const t = SETXT[lang] || SETXT.en;
@@ -3890,8 +3934,9 @@ function syncSettingsUI(rtl) {
   set("s-title", t.title); set("s-lang-lbl", t.lang); set("s-layout-lbl", t.layout);
   set("s-side", t.side); set("s-bottom", t.bottom); set("s-team-lbl", t.team);
   set("s-notify-lbl", t.notify); set("s-notify-on", t.on); set("s-notify-off", t.off);
-  set("s-diff-lbl", t.diff); set("s-note", t.note);
+  set("s-diff-lbl", t.diff); set("s-enemies-lbl", t.enemies); set("s-note", t.note);
   document.querySelectorAll("#s-diff-group button").forEach(b => { const i = +b.dataset.diff; if (t.diffs[i]) b.textContent = t.diffs[i]; });
+  document.querySelectorAll("#s-enemies-group button").forEach(b => b.classList.toggle("on", +b.dataset.enemies === numEnemies));
   const card = document.querySelector("#settings-modal .settings-card");
   if (card) card.dir = rtl ? "rtl" : "ltr";
   document.querySelectorAll("#s-lang-group button").forEach(b => b.classList.toggle("on", b.dataset.lang === lang));
@@ -3936,6 +3981,14 @@ document.querySelectorAll("#s-diff-group button").forEach(b => b.addEventListene
   try { localStorage.setItem("td_diff", String(aiDiff)); } catch (e) {}
   sfx("click");
 }));
+document.querySelectorAll("#s-enemies-group button").forEach(b => b.addEventListener("click", () => {
+  numEnemies = +b.dataset.enemies;
+  document.querySelectorAll("#s-enemies-group button").forEach(x => x.classList.toggle("on", x === b));
+  try { localStorage.setItem("td_enemies", String(numEnemies)); } catch (e) {}
+  // if we're still on the intro (not yet playing), rebuild so the change is visible at Start
+  if (!running) makeWorld();
+  sfx("click");
+}));
 // restore saved preferences
 try {
   const sl = localStorage.getItem("td_lang"); if (sl && (L[sl] || ["es", "zh", "hi"].includes(sl))) lang = sl;
@@ -3977,6 +4030,7 @@ document.getElementById("againbtn").addEventListener("click", () => {
 document.getElementById("startbtn").addEventListener("click", () => {
   if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
   document.getElementById("intro").classList.add("hidden");
+  makeWorld();          // rebuild with the current settings (opponents / difficulty peace timer)
   running = true; sfx("done");
   eva(T("deploy_hint"));
 });
