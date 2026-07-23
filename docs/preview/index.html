@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: spec-deltas --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: elite-hud --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -17,6 +17,12 @@
     --crimson: #d8404a;
     --amber: #ffc94d;
     --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, "Courier New", monospace;
+    /* design-system tokens */
+    --r: 8px; --r-sm: 6px;
+    --glass: linear-gradient(180deg, rgba(16,28,20,0.96), rgba(9,15,11,0.92));
+    --glow: 0 0 14px rgba(55,232,110,0.35);
+    --panel-sh: 0 6px 22px rgba(0,0,0,0.5), inset 0 1px 0 rgba(120,255,180,0.05);
+    --ease: cubic-bezier(.2,.8,.3,1);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; overflow: hidden; background: var(--ground); }
@@ -35,30 +41,46 @@
   .hud { position: fixed; z-index: 20; }
 
   /* Top command strip */
-  #topbar { top: 0; left: 0; right: 0; height: 42px; display: flex; align-items: stretch;
-    background: linear-gradient(180deg, rgba(10,18,13,0.96), rgba(10,18,13,0.88));
-    border-bottom: 1px solid var(--phos-faint); font-size: 13px; }
-  #topbar .seg { display: flex; align-items: center; gap: 8px; padding: 0 14px;
+  #topbar { top: 0; left: 0; right: 0; height: 46px; display: flex; align-items: stretch;
+    background: var(--glass); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--phos-faint); font-size: 13px;
+    box-shadow: 0 2px 18px rgba(0,0,0,0.45); }
+  #topbar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(55,232,110,0.5), transparent); }
+  #topbar .seg { display: flex; align-items: center; gap: 8px; padding: 0 16px;
     border-inline-end: 1px solid var(--phos-faint); white-space: nowrap; }
-  #topbar .title { color: var(--phosphor); letter-spacing: 2px; font-weight: bold; }
+  #topbar .title { color: var(--phosphor); letter-spacing: 2px; font-weight: bold; text-shadow: 0 0 10px rgba(55,232,110,0.45); }
   #topbar .tag { color: var(--amber); font-size: 11px; }
   .num { font-variant-numeric: tabular-nums; }
-  #credits { color: var(--veridium); font-weight: bold; }
-  #powerwrap { width: 90px; height: 8px; background: #08130c; border: 1px solid var(--phos-faint); }
-  #powerbar { height: 100%; background: var(--phosphor); width: 60%; transition: width .3s; }
-  #powerbar.low { background: var(--crimson); }
+  #credits { color: var(--veridium); font-weight: bold; text-shadow: 0 0 8px rgba(73,255,122,0.4);
+    transition: transform .18s var(--ease); display: inline-block; }
+  #credits.bump { transform: scale(1.18); }
+  #credits::before { content: "\25C8"; margin-inline-end: 5px; color: var(--veridium); opacity: .8; }
+  #powerwrap { width: 104px; height: 10px; border-radius: 5px; background: #08130c;
+    border: 1px solid var(--phos-faint); overflow: hidden; box-shadow: inset 0 0 6px rgba(0,0,0,0.6); }
+  #powerbar { height: 100%; width: 60%; border-radius: 5px; transition: width .4s var(--ease), background .3s;
+    background: linear-gradient(90deg, #2fae5a, var(--phosphor));
+    box-shadow: 0 0 8px rgba(55,232,110,0.55); }
+  #powerbar.low { background: linear-gradient(90deg, #8a2b31, var(--crimson)); box-shadow: 0 0 9px rgba(216,64,74,0.6);
+    animation: powerlow 1.1s ease-in-out infinite; }
+  @keyframes powerlow { 50% { opacity: .55; } }
   .spacer { flex: 1; }
-  button { font-family: var(--mono); background: transparent; color: var(--phos-dim);
-    border: 1px solid var(--phos-faint); padding: 4px 10px; cursor: pointer; font-size: 12px; }
-  button:hover { color: var(--phosphor); border-color: var(--phos-dim); }
+  button { font-family: var(--mono); background: rgba(12,22,16,0.5); color: var(--phos-dim);
+    border: 1px solid var(--phos-faint); border-radius: var(--r-sm); padding: 5px 11px; cursor: pointer;
+    font-size: 12px; transition: color .15s, border-color .15s, background .15s, box-shadow .15s, transform .08s; }
+  button:hover { color: var(--phosphor); border-color: var(--phos-dim); background: rgba(55,232,110,0.08);
+    box-shadow: 0 0 10px rgba(55,232,110,0.14); }
+  button:active { transform: translateY(1px) scale(0.97); }
   button:focus-visible { outline: 1px solid var(--phosphor); outline-offset: 1px; }
-  button.on { color: var(--phosphor); border-color: var(--phosphor); }
+  button.on { color: var(--ground); background: var(--phosphor); border-color: var(--phosphor);
+    box-shadow: 0 0 12px rgba(55,232,110,0.4); font-weight: 700; }
 
   /* Sidebar */
-  #sidebar { top: 42px; bottom: 34px; right: 0; width: 216px; overflow-y: auto;
-    background: rgba(10,18,13,0.93); border-inline-start: 1px solid var(--phos-faint);
-    padding: 10px; display: flex; flex-direction: column; gap: 10px;
-    transition: transform .25s ease; }
+  #sidebar { top: 46px; bottom: 34px; right: 0; width: 220px; overflow-y: auto;
+    background: var(--glass); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border-inline-start: 1px solid var(--phos-faint); box-shadow: -4px 0 22px rgba(0,0,0,0.4);
+    padding: 11px; display: flex; flex-direction: column; gap: 11px;
+    transition: transform .28s var(--ease); }
   body.sb-collapsed #sidebar { transform: translateX(105%); }
   /* ---- settings modal (designed as a military-terminal panel) ---- */
   #settings-modal { position: fixed; inset: 0; z-index: 50;
@@ -131,19 +153,29 @@
     .build-btn .nm { font-size: 9.5px; }
     #botbar { font-size: 11px; padding: 0 8px; gap: 8px; }
   }
-  #minimap { width: 100%; aspect-ratio: 1; background: #000; border: 1px solid var(--phos-faint);
-    cursor: pointer; display: block; }
-  .sb-head { font-size: 10px; letter-spacing: 2px; color: var(--phos-dim); }
-  .build-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  #minimap { width: 100%; aspect-ratio: 1; background: #000; border: 1px solid var(--phos-dim);
+    border-radius: var(--r-sm); cursor: pointer; display: block;
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.7), 0 0 14px rgba(55,232,110,0.12); }
+  .sb-head { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--phos-dim);
+    padding-bottom: 4px; border-bottom: 1px solid rgba(55,232,110,0.1); display: flex; align-items: center; gap: 6px; }
+  .sb-head::before { content: ""; width: 5px; height: 5px; background: var(--phosphor); border-radius: 1px;
+    box-shadow: 0 0 6px rgba(55,232,110,0.7); }
+  .build-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
   .build-btn { position: relative; display: flex; flex-direction: column; align-items: center;
-    gap: 2px; padding: 6px 4px 5px; overflow: hidden; }
+    gap: 2px; padding: 7px 4px 6px; overflow: hidden; border-radius: var(--r-sm);
+    background: rgba(12,22,16,0.55); transition: transform .12s var(--ease), box-shadow .15s, border-color .15s, background .15s; }
+  .build-btn:not(:disabled):hover { transform: translateY(-2px); border-color: var(--phos-dim);
+    background: rgba(55,232,110,0.09); box-shadow: 0 4px 14px rgba(0,0,0,0.4), 0 0 12px rgba(55,232,110,0.18); }
+  .build-btn:not(:disabled):active { transform: translateY(0) scale(0.96); }
   .build-btn .bicon { height: 40px; max-width: 92%; object-fit: contain;
-    pointer-events: none; }
+    pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); transition: transform .12s var(--ease); }
+  .build-btn:not(:disabled):hover .bicon { transform: scale(1.06); }
   .build-btn .nm { color: var(--phosphor); font-size: 10.5px; display: block; text-align: center; }
-  .build-btn .cost { color: var(--gold); font-size: 10px; }
-  .build-btn:disabled { opacity: 0.4; cursor: default; }
+  .build-btn .cost { color: var(--gold); font-size: 10px; text-shadow: 0 0 6px rgba(201,162,75,0.35); }
+  .build-btn:disabled { opacity: 0.38; cursor: default; }
   .build-btn .prog { position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
-    background: rgba(55,232,110,0.18); pointer-events: none; }
+    background: linear-gradient(90deg, rgba(55,232,110,0.28), rgba(55,232,110,0.12));
+    transition: width .25s linear; pointer-events: none; }
   .build-btn.q .nm { color: var(--amber); }
   .build-btn .qcancel { display: none; position: absolute; top: 0; inset-inline-end: 0;
     color: var(--crimson); font-size: 13px; padding: 2px 6px; cursor: pointer; z-index: 2; }
@@ -168,7 +200,7 @@
   #mutebtn { font-size: 14px; padding: 4px 8px; }
 
   /* Superweapon bar */
-  #superbar { top: 48px; left: 10px; display: flex; gap: 6px; z-index: 22; }
+  #superbar { top: 54px; left: 10px; display: flex; gap: 6px; z-index: 22; }
   .super-btn { min-width: 96px; padding: 5px 9px; font-size: 11px;
     background: rgba(10,18,13,0.92); letter-spacing: 1px; }
   .super-btn .pct { color: var(--amber); }
@@ -178,10 +210,27 @@
   .super-btn.armed { background: rgba(122,216,255,0.2); }
   @keyframes superpulse { 50% { box-shadow: 0 0 12px rgba(122,216,255,0.55); } }
 
+  /* Toast notifications */
+  #toasts { position: fixed; top: 58px; left: 50%; transform: translateX(-50%);
+    z-index: 30; display: flex; flex-direction: column; gap: 8px; align-items: center;
+    pointer-events: none; width: max-content; max-width: 90vw; }
+  .toast { display: flex; align-items: center; gap: 9px; padding: 9px 15px; border-radius: 10px;
+    font-size: 12.5px; letter-spacing: .3px; color: var(--phosphor);
+    background: var(--glass); border: 1px solid var(--phos-dim); box-shadow: var(--panel-sh), var(--glow);
+    -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+    animation: toastIn .32s var(--ease), toastOut .4s var(--ease) forwards; animation-delay: 0s, 3.2s; }
+  .toast .ic { font-size: 15px; line-height: 1; }
+  .toast.warn { color: var(--amber); border-color: rgba(255,201,77,0.5); box-shadow: var(--panel-sh), 0 0 14px rgba(255,201,77,0.3); }
+  .toast.alert { color: #ff7a82; border-color: rgba(216,64,74,0.55); box-shadow: var(--panel-sh), 0 0 15px rgba(216,64,74,0.35); }
+  .toast.good { color: var(--veridium); border-color: rgba(73,255,122,0.5); }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(-14px) scale(.94); } to { opacity: 1; transform: none; } }
+  @keyframes toastOut { to { opacity: 0; transform: translateY(-8px) scale(.97); } }
+
   /* Bottom log */
   #botbar { bottom: 0; left: 0; right: 0; height: 34px; display: flex; align-items: center;
     gap: 16px; padding: 0 14px; font-size: 12px;
-    background: rgba(10,18,13,0.93); border-top: 1px solid var(--phos-faint); }
+    background: var(--glass); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border-top: 1px solid var(--phos-faint); box-shadow: 0 -2px 16px rgba(0,0,0,0.35); }
   #selinfo { color: var(--gold); white-space: nowrap; }
   #fixbtn { color: var(--amber); border-color: rgba(255,201,77,0.5); padding: 3px 10px;
     font-size: 11.5px; white-space: nowrap; }
@@ -275,6 +324,7 @@
 </div>
 
 <div id="superbar" class="hud"></div>
+<div id="toasts"></div>
 
 <div id="botbar" class="hud" dir="rtl">
   <span id="selinfo"></span>
@@ -1673,6 +1723,7 @@ let gateAt, gateTimer, fsActive, bridgeCells;
 let camX, camY, zoom, running = false, over = false;
 let waveTimer, waveNum, evaTimer = 0, atkWarnCd = 0, selBox = null, tSec = 0, fieldTimer = 6;
 let harvWarnCd = 0, resWarnCd = 0;   // throttles for harvester-under-fire / resources-depleted notices
+let creditsShown = 0, creditsBumpT = 0;   // HUD credit-counter pulse state
 
 const canvas = document.getElementById("game");
 const mm = document.getElementById("minimap");
@@ -2106,7 +2157,7 @@ function updatePower() {
   }
   // notify the player the moment buildings go dark (rising edge only)
   const anyOff = consumers.some(e => e.unpowered);
-  if (anyOff && !powerWarned) { if (notifyOn && running) { eva(T("poweroff")); sfx("warn"); } powerWarned = true; }
+  if (anyOff && !powerWarned) { if (notifyOn && running) { eva(T("poweroff"), "alert"); sfx("warn"); } powerWarned = true; }
   else if (!anyOff) powerWarned = false;
 }
 
@@ -2205,7 +2256,7 @@ function step(dt) {
           // exit from the FRONT of the building (structures face -Y in the world)
           const u = spawnUnit(job.type, src.x + (rnd() - 0.5) * 0.8, src.y - src.fh / 2 - 0.7, 0);
           orderMove(u, src.x + (rnd() - 0.5) * 3, src.y - src.fh / 2 - 2 - rnd() * 1.5);
-          eva(T("unitready")); sfx("done");
+          eva(T("unitready"), "good"); sfx("done");
         }
         list.splice(j, 1);                    // job done, drop it
       }
@@ -2433,7 +2484,7 @@ function harvesterAI(e, dt) {
     const ax = rf ? rf.gx + rf.fw / 2 : e.x, ay = rf ? rf.gy + rf.fh / 2 : e.y;
     const c = nearestCrystal(ax, ay);
     if (!c) {
-      if (e.owner === 0 && notifyOn && resWarnCd <= 0) { eva(T("resdepleted")); sfx("warn"); resWarnCd = 25; }
+      if (e.owner === 0 && notifyOn && resWarnCd <= 0) { eva(T("resdepleted"), "warn"); sfx("warn"); resWarnCd = 25; }
       e.hstate = e.bails > 0 ? "return" : "idle"; return;
     }
     const [cx, cy] = c;
@@ -2542,7 +2593,7 @@ function engineerAI(e, dt) {
   if (Math.hypot(t.x - e.x, t.y - e.y) < Math.max(t.fw, t.fh) / 2 + 0.8) {
     t.owner = 0; t.sel = false;
     updatePower();
-    eva(T("captured")); sfx("done");
+    eva(T("captured"), "good"); sfx("done");
     spark(t.x, t.y);
     e.dead = true;   // the engineer is consumed by the capture
     buildButtons();  // captured factories unlock production
@@ -2798,8 +2849,8 @@ function hit(t, dmg, byOwner, vs) {
     if (t.kind === "struct") t.hitFlash = 1.5;   // pulse the building red ~3 times
     // a harvester under fire is its own alert — losing economy hurts
     if (t.kind === "unit" && UNITS[t.type] && UNITS[t.type].harvester && harvWarnCd <= 0) {
-      if (notifyOn) { eva(T("harvhit")); sfx("warn"); } harvWarnCd = 15;
-    } else if (atkWarnCd <= 0) { if (notifyOn) { eva(T("underattack")); sfx("warn"); } atkWarnCd = 12; }
+      if (notifyOn) { eva(T("harvhit"), "alert"); sfx("warn"); } harvWarnCd = 15;
+    } else if (atkWarnCd <= 0) { if (notifyOn) { eva(T("underattack"), "alert"); sfx("warn"); } atkWarnCd = 12; }
   }
   if (t.hp <= 0) killEnt(t);
 }
@@ -2829,7 +2880,7 @@ function spawnWave() {
     // the objective is the base, but combatAI lets them engage threats on the way there
     if (tgt) { u.marchTarget = tgt; orderMove(u, tgt.x, tgt.y); }
   }
-  eva(T("wave")); sfx("warn");
+  eva(T("wave"), "warn"); sfx("warn");
 }
 
 /* ============================== FX / audio ============================== */
@@ -2864,10 +2915,25 @@ function sfx(kind) {
   else if (kind === "shot") { o.type = "triangle"; o.frequency.setValueAtTime(300 + Math.random() * 120, t); o.frequency.exponentialRampToValueAtTime(80, t + 0.07); g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.08); o.start(t); o.stop(t + 0.08); }
   else if (kind === "boom") { o.type = "sawtooth"; o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(30, t + 0.4); g.gain.setValueAtTime(0.1, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.45); o.start(t); o.stop(t + 0.45); }
 }
-function eva(msg) {
+function eva(msg, level) {
   const el = document.getElementById("evalog");
   el.innerHTML = "<b>EVA ▸</b> " + msg;
   evaTimer = 6;
+  toast(msg, level || "info");
+}
+let lastToast = "", lastToastAt = -9999;
+function toast(msg, level) {
+  const host = document.getElementById("toasts");
+  if (!host) return;
+  if (msg === lastToast && tSec - lastToastAt < 2.5) return;   // de-dupe rapid repeats
+  lastToast = msg; lastToastAt = tSec;
+  const icons = { info: "◉", warn: "⚠", alert: "✖", good: "✔" };
+  const t = document.createElement("div");
+  t.className = "toast " + (level || "info");
+  t.innerHTML = '<span class="ic">' + (icons[level] || icons.info) + '</span><span>' + msg + "</span>";
+  host.appendChild(t);
+  while (host.children.length > 4) host.removeChild(host.firstChild);
+  setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 3700);
 }
 
 /* ============================== Rendering ============================== */
@@ -2951,7 +3017,7 @@ function placeStructAt(type, gx, gy, ok) {
     if (di >= 0) queues.structure.splice(di, 1);
     placing = null; placingSpot = null; placeLock = null;
     const nx = queues.structure.find(j => j.done);   // another finished one waiting? arm it
-    if (nx) { placing = nx.type; eva(T("placespot")); } else eva(T("placed"));
+    if (nx) { placing = nx.type; eva(T("placespot")); } else eva(T("placed"), "good");
     sfx("done");
     return true;
   }
@@ -5042,7 +5108,13 @@ function frame(now) {
     step(dt);
     if (evaTimer > 0) { evaTimer -= dt; if (evaTimer <= 0) document.getElementById("evalog").textContent = ""; }
   }
-  document.getElementById("credits").textContent = Math.floor(credits) + " ∞";
+  const cShown = Math.floor(credits), cEl = document.getElementById("credits");
+  cEl.textContent = cShown + " ∞";
+  if (cShown > (creditsShown || 0)) {   // income arrived → pulse the counter
+    cEl.classList.add("bump");
+    clearTimeout(creditsBumpT); creditsBumpT = setTimeout(() => cEl.classList.remove("bump"), 190);
+  }
+  creditsShown = cShown;
   const frac = powerOut > 0 ? Math.min(1, powerOut / Math.max(powerUse, 1)) : 0;
   const pb = document.getElementById("powerbar");
   pb.style.width = (powerUse > powerOut ? 30 : 40 + frac * 60) + "%";
