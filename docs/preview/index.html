@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: pay-as-you-build + cost-power + swap-controls + attack-flash --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: drag-to-build --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -1321,7 +1321,8 @@ const L = {
     noProduction: "המבנה הזה לא מייצר יחידות",
     captured: "מבנה אויב נכבש — עכשיו הוא שלכם!",
     cancelled: "הייצור בוטל — האשראי הוחזר",
-    placement: "בחרו מיקום למבנה (קליק ימני לביטול)",
+    placement: "גררו את המבנה מהתפריט אל המפה",
+    building: "בונה במיקום שנבחר...",
     badspot: "אי אפשר לבנות כאן — צריך שטח פנוי ליד הבסיס",
     lowfunds: "אין מספיק אשראי", building: "בבנייה...", ready: "המבנה מוכן",
     unitready: "יחידה מוכנה", underattack: "הבסיס מותקף!",
@@ -1382,7 +1383,8 @@ const L = {
     noProduction: "This structure produces nothing",
     captured: "Enemy structure captured — it is yours now!",
     cancelled: "Production cancelled — credits refunded",
-    placement: "Choose a build location (right-click to cancel)",
+    placement: "Drag the building from the menu onto the map",
+    building: "Building at the chosen spot...",
     badspot: "Cannot build here — needs clear ground near your base",
     lowfunds: "Insufficient credits", building: "Building...", ready: "Structure ready",
     unitready: "Unit ready", underattack: "Base under attack!",
@@ -2062,8 +2064,15 @@ function step(dt) {
       job.t = job.paid / spec.cost * job.dur;                // progress tracks money spent
       if (job.paid < spec.cost - 0.01) continue;             // not fully paid → keep building (or stalled)
       if (q === "structure") {
-        job.done = true;                     // finished structures wait for placement
-        if (!placing) { placing = job.type; eva(T("placement")); sfx("done"); }
+        // drag-placed jobs build up at the spot you dropped them, then appear there
+        if (job.gx != null && canPlace(job.type, job.gx, job.gy)) {
+          spawnStruct(job.type, job.gx, job.gy, 0);
+          list.splice(j, 1);
+          eva(T("ready")); sfx("done");
+        } else {
+          job.done = true;                   // spot lost/invalid → fall back to manual placement
+          if (!placing) { placing = job.type; eva(T("placement")); sfx("done"); }
+        }
       } else {
         let src = job.srcId ? ents.find(e => !e.dead && e.id === job.srcId) : null;
         if (!src) src = ents.find(e => !e.dead && e.owner === 0 && e.kind === "struct" &&
@@ -2701,7 +2710,29 @@ function drawMinimap() {
 }
 
 /* ============================== Build UI ============================== */
-let placingSpot = null;
+let placingSpot = null, dragPlacing = false;
+// begin dragging a structure from the sidebar onto the map (drag-to-build)
+function startDragPlace(type) {
+  if (!running || over) return false;
+  if (!hasProducer("structure")) { sfx("warn"); return false; }
+  if (REQUIRES[type] && !hasStruct(REQUIRES[type])) { eva(T("needs_" + REQUIRES[type])); sfx("warn"); return false; }
+  placing = type; dragPlacing = true; sfx("click");
+  return true;
+}
+// finish a drag: drop the structure where released and start building it there
+function dropDragPlace() {
+  if (!dragPlacing) return;
+  const type = placing;
+  dragPlacing = false; placing = null;
+  if (!type) return;
+  if (placingSpot && placingSpot[2]) {          // valid spot under the cursor
+    const [gx, gy] = placingSpot;
+    queues.structure.push({ type, t: 0, dur: Math.max(2, STRUCTS[type].cost / 300),
+      done: false, paid: 0, srcId: 0, gx, gy });
+    eva(T("building")); sfx("click");
+  } else { eva(T("badspot")); sfx("warn"); }
+  placingSpot = null;
+}
 function canPlace(type, gx, gy) {
   const b = STRUCTS[type];
   if (b.bridge) {
@@ -2736,13 +2767,13 @@ function makeBuildButton(type, q) {
   btn.className = "build-btn"; btn.dataset.type = type; btn.dataset.q = q;
   btn.innerHTML = `<span class="prog"></span><img class="bicon" alt="" src="${iconFor(type, q)}">` +
     `<span class="nm">${T(type)}</span><span class="cost num">$${spec.cost}</span>`;
+  // structures are drag-to-build: press the icon and drag it onto the map
+  if (q === "structure")
+    btn.addEventListener("mousedown", ev => { if (ev.button === 0) { ev.preventDefault(); startDragPlace(type); } });
   btn.addEventListener("click", () => {
     if (!running || over) return;
+    if (q === "structure") { eva(T("placement")); return; }   // drag it, don't click
     const list = queues[q];
-    // a finished structure of this type is waiting → (re)enter placement
-    if (q === "structure" && list.some(j => j.type === type && j.done)) {
-      placing = type; eva(T("placement")); return;
-    }
     // every click queues one more — different types build in parallel
     if (!hasProducer(q)) { sfx("warn"); return; }
     if (type === "nx_harvester" && !hasStruct("nx_refinery")) { eva(T("needs_nx_refinery")); sfx("warn"); return; }
@@ -3004,6 +3035,7 @@ canvas.addEventListener("mousedown", ev => {
   }
 });
 window.addEventListener("mouseup", ev => {
+  if (dragPlacing && ev.button === 0) { dropDragPlace(); return; }   // drag-to-build drop
   if (ev.button === 1) { panning = false; return; }
   if (ev.button === 2) {
     if (rbtn && rbtn.moved) suppressCtxUntil = performance.now() + 250;
