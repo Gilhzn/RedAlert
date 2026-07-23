@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: smooth-water + black-fog + neutral-bridges + click-command + void-edges --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: infantry-roster + phantom + artillery --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -636,6 +636,40 @@ var UNIT_BUILDERS = (function () {
     return { root, turret: null, fit: 0.50 };
   };
 
+  // phantom — stealth trooper with an AT launcher; dark hooded cloak so the
+  // silhouette reads as a covert unit even when decloaked near the enemy
+  B.dm_phantom = (H, pose) => {
+    const C = H.C, root = soldier(H, H.group(), "rocket", "dm", pose ? 1 : 0);
+    // hooded cloak over the shoulders/back (dark, faint cyan trim)
+    H.box(root, 0, -0.06, 0.62, 0.5, 0.34, 0.5, 0x1a2230);        // cloak body
+    H.box(root, 0, -0.02, 0.98, 0.28, 0.28, 0.2, 0x11161f);       // hood
+    H.box(root, 0, 0.12, 1.0, 0.16, 0.05, 0.06, C.CYAN, { e: true }); // visor glow
+    H.box(root, -0.24, -0.2, 0.5, 0.06, 0.04, 0.5, 0x0e2a33);     // cloak seams
+    H.box(root, 0.24, -0.2, 0.5, 0.06, 0.04, 0.5, 0x0e2a33);
+    return { root, turret: null, fit: 0.50 };
+  };
+
+  // artillery — tracked howitzer: long high-elevation barrel on a rotating
+  // mount, fires in a high arc at long range (returned turret aims/recoils)
+  B.dm_artillery = (H) => {
+    const C = H.C, root = H.group();
+    tracks(H, root, 0.40, 1.15, C.TRACK, 0.11);
+    H.box(root, 0, 0, 0.40, 0.68, 1.05, 0.22, C.DM_ARMOR);        // hull
+    H.box(root, 0, -0.42, 0.52, 0.5, 0.3, 0.16, C.DM_DARK);       // rear engine deck
+    for (const s of [-1, 1])                                       // recoil spades
+      H.box(root, s * 0.3, -0.6, 0.34, 0.1, 0.22, 0.1, C.GUNMETAL, { rx: 28 });
+    const tur = H.group(root);
+    tur.position.set(0, 0, 0.52);
+    H.box(tur, 0, -0.06, 0.06, 0.46, 0.5, 0.2, C.DM_DARK);        // gun cradle
+    H.rod(tur, 0, 0.02, 0.16, 0.16, 0.22, C.GUNMETAL, { rx: 0, v: 12 }); // trunnion
+    // long barrel, angled up for the arcing shot
+    H.rod(tur, 0, 0.34, 0.42, 0.07, 1.15, C.GUNMETAL, { rx: 52 });
+    H.rod(tur, 0, 0.62, 0.78, 0.09, 0.16, C.BOOTS, { rx: 52 });   // muzzle brake
+    H.box(tur, 0, -0.24, 0.18, 0.34, 0.22, 0.16, C.DM_ARMOR);     // breech
+    H.box(tur, 0, -0.2, 0.30, 0.2, 0.05, 0.06, C.YELLOW, { e: true }); // aim light
+    return { root, turret: tur, fit: 1.05 };
+  };
+
   // ---- nx_harvester: original design (python used an external KayKit model).
   // Six-wheeled mining dump truck: DM_ARMOR cab forward (+Y), GUNMETAL chassis,
   // open hopper at the back holding emissive tiberium shards.
@@ -1241,8 +1275,9 @@ const L = {
     "nx_silo": "ממגורה", "dm_radar": "מרכז רדאר", "dm_tech_center": "מרכז טכנולוגיה",
     "dm_rocket_tower": "מגדל רקטות", "so_obelisk": "אובליסק דמדומים",
     "dm_apc": "נגמ״ש אמפיבי", "dm_disruptor": "משבש קולי", "dm_sensor": "חיישן נייד",
-    "dm_jumptrooper": "לוחם סילון", "dm_railhero": "פנטום",
-    "dm_grenadier": "מטיל דיסקים", "dm_orca": "אורקה", "dm_orca_bomber": "אורקה מפציץ",
+    "dm_jumptrooper": "לוחם סילון", "dm_railhero": "גיבור רֵיל",
+    "dm_phantom": "לוחם פנטום", "dm_artillery": "תותח מרגמה",
+    "dm_grenadier": "מטיל רימונים", "dm_orca": "אורקה", "dm_orca_bomber": "אורקה מפציץ",
     "so_harpy": "הארפי", "dm_helipad": "מנחת אורקה", "dm_aa_tower": "סוללת נ״מ",
     "dm_service_depot": "מפרץ תיקונים", "nx_emp_cannon": "תותח אל״מ", "dm_ion_uplink": "מעלה יונים",
     aircraft: "כלי טיס", needs_dm_helipad: "דרוש: מנחת אורקה",
@@ -1300,8 +1335,9 @@ const L = {
     "nx_silo": "Silo", "dm_radar": "Radar Center", "dm_tech_center": "Tech Center",
     "dm_rocket_tower": "Rocket Tower", "so_obelisk": "Dusk Obelisk",
     "dm_apc": "Amphibious APC", "dm_disruptor": "Sonic Disruptor", "dm_sensor": "Mobile Sensor",
-    "dm_jumptrooper": "Jump Trooper", "dm_railhero": "The Phantom",
-    "dm_grenadier": "Disc Trooper", "dm_orca": "Orca Fighter", "dm_orca_bomber": "Orca Bomber",
+    "dm_jumptrooper": "Jump Trooper", "dm_railhero": "Rail Hero",
+    "dm_phantom": "Phantom Trooper", "dm_artillery": "Artillery",
+    "dm_grenadier": "Grenadier", "dm_orca": "Orca Fighter", "dm_orca_bomber": "Orca Bomber",
     "so_harpy": "Harpy", "dm_helipad": "Helipad", "dm_aa_tower": "AA Battery",
     "dm_service_depot": "Service Depot", "nx_emp_cannon": "EMP Cannon", "dm_ion_uplink": "Ion Uplink",
     aircraft: "AIRCRAFT", needs_dm_helipad: "Requires: Helipad",
@@ -1358,7 +1394,7 @@ const WEAPONS = {
   heavy_cannon:  { dmg: 90, rof: 2.5,  range: 6.0, tracer: "#ffe9b0", speed: 10, noAir: true, vs: { inf: 0.6, veh: 1.2, str: 1.2 } },
   cannon_90:     { dmg: 36, rof: 1.25, range: 5.6, tracer: "#ff9d8a", speed: 11, noAir: true, vs: { inf: 0.5, veh: 1.1, str: 1.0 } },
   raider_gun:    { dmg: 40, rof: 1.3,  range: 3.6, tracer: "#ff8d7a", instant: true, vs: { inf: 1.2, veh: 0.7, str: 0.6 } },
-  rifle:         { dmg: 14, rof: 1.15,  range: 3.4, tracer: "#e8e8c8", instant: true, vs: { inf: 1.0, veh: 0.35, str: 0.3 } },
+  rifle:         { dmg: 14, rof: 1.15,  range: 3.4, tracer: "#e8e8c8", instant: true, noAir: true, vs: { inf: 1.0, veh: 0.35, str: 0.3 } },
   rocket:        { dmg: 50, rof: 2.2,  range: 4.4, tracer: "#ffb36a", speed: 7, vs: { inf: 0.45, veh: 1.5, str: 1.3 } },
   heavy_gun:     { dmg: 28, rof: 0.6, range: 3.8, tracer: "#ffd27a", instant: true, vs: { inf: 1.0, veh: 0.7, str: 0.6 } },
   vulcan_tower:  { dmg: 30, rof: 0.7,  range: 5.2, tracer: "#ffd27a", instant: true, vs: { inf: 1.1, veh: 0.8, str: 0.6 } },
@@ -1370,7 +1406,9 @@ const WEAPONS = {
   sonic_beam:    { dmg: 85, rof: 2.6,  range: 5.4, tracer: "#9fe8ff", beam: true, pierce: true, noAir: true, vs: { inf: 1.1, veh: 1.2, str: 1.0 } },
   railgun:       { dmg: 120, rof: 2.4, range: 6.0, tracer: "#d4f6ff", beam: true, pierce: true, noAir: true, vs: { inf: 1.2, veh: 1.2, str: 1.1 } },
   jump_gun:      { dmg: 16, rof: 1.1,  range: 3.6, tracer: "#e8e8c8", instant: true, vs: { inf: 1.0, veh: 0.4, str: 0.35 } },
-  grenade_disc:  { dmg: 45, rof: 1.8,  range: 4.0, tracer: "#cfe860", speed: 6, arc: true, splash: 0.9, noAir: true, vs: { inf: 1.25, veh: 0.7, str: 1.1 } },
+  grenade_disc:  { dmg: 52, rof: 1.8,  range: 4.0, tracer: "#cfe860", speed: 6, arc: true, splash: 1.0, noAir: true, vs: { inf: 1.25, veh: 0.9, str: 1.2 } },
+  jet_rocket:    { dmg: 46, rof: 2.0,  range: 4.6, tracer: "#ffb36a", speed: 8, vs: { inf: 0.6, veh: 1.45, str: 1.1 } },
+  artillery:     { dmg: 55, rof: 3.4,  range: 8.6, tracer: "#ffd27a", speed: 6, arc: true, splash: 1.5, noAir: true, vs: { inf: 1.1, veh: 0.9, str: 1.15 } },
   orca_rockets:  { dmg: 45, rof: 1.7,  range: 4.8, tracer: "#ffb36a", speed: 9, burst: 2, vs: { inf: 0.8, veh: 1.25, str: 1.0 } },
   orca_bombs:    { dmg: 95, rof: 2.9,  range: 2.4, tracer: "#ffd27a", speed: 7, splash: 1.2, noAir: true, vs: { inf: 0.9, veh: 1.0, str: 1.5 } },
   harpy_gun:     { dmg: 24, rof: 0.85, range: 3.8, tracer: "#ff8d7a", instant: true, vs: { inf: 1.3, veh: 0.55, str: 0.5 } },
@@ -1382,21 +1420,23 @@ const UNITS = {
   dm_wolverine:  { hp: 175,  cost: 500,  speed: 2.1, sight: 5, r: 0.3,  weapon: "assault_cannon", walker: true, queue: "vehicle" },
   dm_mbt_walker: { hp: 400,  cost: 800,  speed: 1.3, sight: 6, r: 0.36, weapon: "cannon_120", walker: true, queue: "vehicle" },
   dm_mammoth:    { hp: 800,  cost: 3000, speed: 0.9, sight: 6, r: 0.44, weapon: "heavy_cannon", walker: true, big: true, queue: "vehicle" },
-  dm_rifle:      { hp: 125,  cost: 120,  speed: 1.35, sight: 5, r: 0.17, weapon: "rifle", infantry: true, queue: "infantry" },
-  dm_rocket:     { hp: 100,  cost: 250,  speed: 1.25, sight: 5, r: 0.17, weapon: "rocket", infantry: true, queue: "infantry" },
-  dm_heavy:      { hp: 300,  cost: 650,  speed: 1.1, sight: 5, r: 0.2,  weapon: "heavy_gun", infantry: true, queue: "infantry" },
-  dm_engineer:   { hp: 100,  cost: 500,  speed: 1.4, sight: 4, r: 0.17, infantry: true, capture: true, queue: "infantry" },
-  dm_medic:      { hp: 125,  cost: 600,  speed: 1.45, sight: 4, r: 0.17, infantry: true, heal: true, queue: "infantry" },
+  dm_rifle:      { hp: 125,  cost: 100,  speed: 1.35, sight: 5, r: 0.17, weapon: "rifle", infantry: true, queue: "infantry" },
+  dm_rocket:     { hp: 100,  cost: 300,  speed: 1.25, sight: 5, r: 0.17, weapon: "rocket", infantry: true, queue: "infantry" },
+  dm_heavy:      { hp: 375,  cost: 400,  speed: 1.1, sight: 5, r: 0.2,  weapon: "rifle", infantry: true, queue: "infantry" },
+  dm_engineer:   { hp: 125,  cost: 500,  speed: 1.4, sight: 4, r: 0.17, weapon: "rifle", infantry: true, capture: true, queue: "infantry" },
+  dm_medic:      { hp: 125,  cost: 400,  speed: 1.45, sight: 4, r: 0.17, infantry: true, heal: true, queue: "infantry" },
+  dm_phantom:    { hp: 125,  cost: 700,  speed: 1.6, sight: 6, r: 0.18, weapon: "rocket", infantry: true, stealth: true, queue: "infantry" },
+  dm_artillery:  { hp: 200,  cost: 900,  speed: 1.0, sight: 5, r: 0.36, weapon: "artillery", queue: "vehicle" },
   so_rifle:      { hp: 125,  cost: 120,  speed: 1.35, sight: 5, r: 0.17, weapon: "rifle", infantry: true },
   so_rocket:     { hp: 100,  cost: 250,  speed: 1.25, sight: 5, r: 0.17, weapon: "rocket", infantry: true },
   dm_hover_mlrs: { hp: 230,  cost: 900,  speed: 2.4, sight: 7, r: 0.34, weapon: "mlrs_rockets", hover: true, queue: "vehicle" },
   dm_apc:        { hp: 200,  cost: 800,  speed: 2.7, sight: 5, r: 0.34, amphib: true, transport: 5, queue: "vehicle" },
   dm_disruptor:  { hp: 500,  cost: 1300, speed: 1.1, sight: 6, r: 0.38, weapon: "sonic_beam", queue: "vehicle" },
   dm_sensor:     { hp: 600,  cost: 950,  speed: 1.9, sight: 8, r: 0.34, detect: 6, queue: "vehicle" },
-  dm_jumptrooper:{ hp: 120,  cost: 600,  speed: 2.3, sight: 6, r: 0.18, weapon: "jump_gun", infantry: true, flying: true, queue: "infantry" },
+  dm_jumptrooper:{ hp: 120,  cost: 600,  speed: 2.3, sight: 6, r: 0.18, weapon: "jet_rocket", infantry: true, flying: true, queue: "infantry" },
   dm_railhero:   { hp: 200,  cost: 1750, speed: 1.5, sight: 6, r: 0.19, weapon: "railgun", infantry: true, hero: true, queue: "infantry" },
   so_stealth_tank:{ hp: 180, cost: 1100, speed: 1.9, sight: 6, r: 0.34, weapon: "stealth_gun", stealth: true },
-  dm_grenadier:  { hp: 130,  cost: 300,  speed: 1.3, sight: 5, r: 0.17, weapon: "grenade_disc", infantry: true, queue: "infantry" },
+  dm_grenadier:  { hp: 130,  cost: 200,  speed: 1.3, sight: 5, r: 0.17, weapon: "grenade_disc", infantry: true, queue: "infantry" },
   dm_orca:       { hp: 220,  cost: 1100, speed: 3.4, sight: 7, r: 0.3,  weapon: "orca_rockets", flying: true, queue: "aircraft" },
   dm_orca_bomber:{ hp: 360,  cost: 1600, speed: 2.4, sight: 6, r: 0.38, weapon: "orca_bombs", flying: true, big: true, queue: "aircraft" },
   so_harpy:      { hp: 200,  cost: 900,  speed: 3.2, sight: 7, r: 0.3,  weapon: "harpy_gun", flying: true },
@@ -1438,7 +1478,8 @@ const REQUIRES = { dm_rocket_tower: "dm_radar", dm_mammoth: "dm_tech_center", dm
   dm_disruptor: "dm_tech_center", dm_sensor: "dm_radar", dm_jumptrooper: "dm_radar", dm_railhero: "dm_tech_center",
   dm_helipad: "dm_factory", dm_service_depot: "dm_factory", dm_aa_tower: "dm_radar",
   nx_emp_cannon: "dm_radar", dm_ion_uplink: "dm_tech_center", dm_orca_bomber: "dm_tech_center",
-  nx_mcv: "dm_tech_center", dm_firestorm_gen: "dm_tech_center", dm_fs_emitter: "dm_firestorm_gen" };
+  nx_mcv: "dm_tech_center", dm_firestorm_gen: "dm_tech_center", dm_fs_emitter: "dm_firestorm_gen",
+  dm_phantom: "dm_tech_center", dm_artillery: "dm_radar" };
 function heroBlocked(type) {
   if (!UNITS[type] || !UNITS[type].hero) return false;
   if (ents.some(e => !e.dead && e.owner === 0 && e.type === type)) return true;
@@ -1452,8 +1493,8 @@ function creditCap() {
 function hasRadar() {
   return ents.some(e => !e.dead && e.owner === 0 && e.kind === "struct" && STRUCTS[e.type].radar);
 }
-const INFANTRY_UNITS = ["dm_rifle", "dm_rocket", "dm_grenadier", "dm_heavy", "dm_engineer", "dm_medic", "dm_jumptrooper", "dm_railhero"];
-const VEHICLE_UNITS  = ["nx_harvester", "nx_mcv", "dm_apc", "dm_wolverine", "dm_mbt_walker", "dm_sensor", "dm_hover_mlrs", "dm_disruptor", "dm_mammoth"];
+const INFANTRY_UNITS = ["dm_rifle", "dm_grenadier", "dm_rocket", "dm_heavy", "dm_engineer", "dm_medic", "dm_jumptrooper", "dm_phantom", "dm_railhero"];
+const VEHICLE_UNITS  = ["nx_harvester", "nx_mcv", "dm_apc", "dm_wolverine", "dm_mbt_walker", "dm_artillery", "dm_sensor", "dm_hover_mlrs", "dm_disruptor", "dm_mammoth"];
 const AIRCRAFT_UNITS = ["dm_orca", "dm_orca_bomber"];
 // which player structure produces which queue (captured enemy factories count!)
 const PRODUCER_OF = { structure: ["nx_conyard"], infantry: ["dm_barracks"],
@@ -2290,16 +2331,19 @@ function medicAI(e, b, dt) {
     e.path = findPath(e.x, e.y, best.x, best.y, false, e.owner);
   }
 }
-function stealthHidden(e) {
-  if (!UNITS[e.type] || !UNITS[e.type].stealth || e.owner === 0) return false;
+// is stealth unit `e` cloaked from the `viewer` side? (revealed when a viewer
+// unit is within detection range, or briefly after the stealth unit fires)
+function hiddenFrom(e, viewer) {
+  if (!UNITS[e.type] || !UNITS[e.type].stealth || e.owner === viewer) return false;
   if (e.decloak > 0) return false;
   for (const o of ents) {
-    if (o.dead || o.owner !== 0) continue;
+    if (o.dead || o.owner !== viewer) continue;
     const det = (UNITS[o.type] && UNITS[o.type].detect) || 2.6;
     if (Math.hypot(o.x - e.x, o.y - e.y) < det) return false;
   }
   return true;
 }
+function stealthHidden(e) { return hiddenFrom(e, 0); }   // cloaked from the player
 function canHit(w, o) {
   const fly = o.kind === "unit" && UNITS[o.type].flying;
   if (w.airOnly) return fly;
@@ -2319,7 +2363,7 @@ function combatAI(e, b, dt) {
       if (o.kind === "struct" && STRUCTS[o.type].bridge) continue;   // never fire on neutral bridges
       if (!canHit(w, o)) continue;
       if (e.owner === 0 && !visible[idx(o.x | 0, o.y | 0)]) continue;
-      if (e.owner === 0 && stealthHidden(o)) continue;
+      if (hiddenFrom(o, e.owner)) continue;   // can't target a unit cloaked from this side
       const d = Math.hypot(o.x - e.x, o.y - e.y);
       if (d < bd && d <= (e.owner === 1 ? w.range + 2.5 : w.range + 1.5)) { bd = d; best = o; }
     }

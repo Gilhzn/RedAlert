@@ -316,6 +316,40 @@ var UNIT_BUILDERS = (function () {
     return { root, turret: null, fit: 0.50 };
   };
 
+  // phantom — stealth trooper with an AT launcher; dark hooded cloak so the
+  // silhouette reads as a covert unit even when decloaked near the enemy
+  B.dm_phantom = (H, pose) => {
+    const C = H.C, root = soldier(H, H.group(), "rocket", "dm", pose ? 1 : 0);
+    // hooded cloak over the shoulders/back (dark, faint cyan trim)
+    H.box(root, 0, -0.06, 0.62, 0.5, 0.34, 0.5, 0x1a2230);        // cloak body
+    H.box(root, 0, -0.02, 0.98, 0.28, 0.28, 0.2, 0x11161f);       // hood
+    H.box(root, 0, 0.12, 1.0, 0.16, 0.05, 0.06, C.CYAN, { e: true }); // visor glow
+    H.box(root, -0.24, -0.2, 0.5, 0.06, 0.04, 0.5, 0x0e2a33);     // cloak seams
+    H.box(root, 0.24, -0.2, 0.5, 0.06, 0.04, 0.5, 0x0e2a33);
+    return { root, turret: null, fit: 0.50 };
+  };
+
+  // artillery — tracked howitzer: long high-elevation barrel on a rotating
+  // mount, fires in a high arc at long range (returned turret aims/recoils)
+  B.dm_artillery = (H) => {
+    const C = H.C, root = H.group();
+    tracks(H, root, 0.40, 1.15, C.TRACK, 0.11);
+    H.box(root, 0, 0, 0.40, 0.68, 1.05, 0.22, C.DM_ARMOR);        // hull
+    H.box(root, 0, -0.42, 0.52, 0.5, 0.3, 0.16, C.DM_DARK);       // rear engine deck
+    for (const s of [-1, 1])                                       // recoil spades
+      H.box(root, s * 0.3, -0.6, 0.34, 0.1, 0.22, 0.1, C.GUNMETAL, { rx: 28 });
+    const tur = H.group(root);
+    tur.position.set(0, 0, 0.52);
+    H.box(tur, 0, -0.06, 0.06, 0.46, 0.5, 0.2, C.DM_DARK);        // gun cradle
+    H.rod(tur, 0, 0.02, 0.16, 0.16, 0.22, C.GUNMETAL, { rx: 0, v: 12 }); // trunnion
+    // long barrel, angled up for the arcing shot
+    H.rod(tur, 0, 0.34, 0.42, 0.07, 1.15, C.GUNMETAL, { rx: 52 });
+    H.rod(tur, 0, 0.62, 0.78, 0.09, 0.16, C.BOOTS, { rx: 52 });   // muzzle brake
+    H.box(tur, 0, -0.24, 0.18, 0.34, 0.22, 0.16, C.DM_ARMOR);     // breech
+    H.box(tur, 0, -0.2, 0.30, 0.2, 0.05, 0.06, C.YELLOW, { e: true }); // aim light
+    return { root, turret: tur, fit: 1.05 };
+  };
+
   // ---- nx_harvester: original design (python used an external KayKit model).
   // Six-wheeled mining dump truck: DM_ARMOR cab forward (+Y), GUNMETAL chassis,
   // open hopper at the back holding emissive tiberium shards.
