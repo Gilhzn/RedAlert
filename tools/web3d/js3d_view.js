@@ -712,7 +712,7 @@ function syncEnts(dt) {
       v.p0.visible = !p1; v.p1.visible = p1;
     }
     if (v.turret) {
-      if (v.type === "so_harpy") v.turret.rotation.z += dt * 26;   // rotor
+      if (v.type === "so_harpy" || v.type === "dm_transport") v.turret.rotation.z += dt * (v.type === "dm_transport" ? 20 : 26);   // rotor
       else {
         const tface = e.target && !e.target.dead
           ? Math.atan2(e.target.y - e.y, e.target.x - e.x) : (e.face || 0);

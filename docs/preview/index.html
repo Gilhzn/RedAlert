@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: infantry-roster + phantom + artillery --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: parallel-production + transport-heli --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -634,6 +634,32 @@ var UNIT_BUILDERS = (function () {
     for (let i = 0; i < 3; i++)                                                // disc rack
       H.rod(root, 0, -0.17 - i * 0.045, 0.62, 0.11, 0.03, C.BLUEGREY, { rx: 90, v: 12 });
     return { root, turret: null, fit: 0.50 };
+  };
+
+  // dm_transport — heavy-lift transport helicopter (carries vehicles + troops).
+  // The big main rotor is returned as `turret` so the engine spins it.
+  B.dm_transport = (H) => {
+    const C = H.C, root = H.group();
+    H.box(root, 0, 0, 0.62, 0.62, 1.95, 0.52, C.DM_ARMOR);              // fuselage
+    H.box(root, 0, 0.95, 0.66, 0.52, 0.42, 0.42, C.BLUEGREY, { rx: 14 }); // cockpit glass
+    H.box(root, 0, -0.9, 0.5, 0.58, 0.32, 0.42, C.DM_DARK, { rx: -20 }); // rear cargo ramp
+    H.box(root, 0, 0.1, 0.92, 0.52, 1.5, 0.1, C.DM_DARK);               // roof deck
+    for (const s of [-1, 1]) {                                          // sponsons + skids
+      H.box(root, s * 0.44, 0, 0.5, 0.16, 1.0, 0.26, C.DM_DARK);
+      H.rod(root, s * 0.38, 0.5, 0.26, 0.045, 0.72, C.GUNMETAL, { rx: 90 });
+      H.rod(root, s * 0.38, 0.5, 0.4, 0.045, 0.28, C.GUNMETAL, { rx: 0 });
+      H.rod(root, s * 0.38, -0.5, 0.26, 0.045, 0.72, C.GUNMETAL, { rx: 90 });
+      H.rod(root, s * 0.38, -0.5, 0.4, 0.045, 0.28, C.GUNMETAL, { rx: 0 });
+    }
+    H.box(root, 0, -1.18, 0.92, 0.08, 0.3, 0.52, C.DM_ARMOR);           // tail fin
+    H.box(root, 0, 0.1, 0.72, 0.66, 0.06, 0.16, 0xd7a838);             // GDI team stripe
+    H.ball(root, 0, 1.0, 0.7, 0.05, C.RED, { e: true });               // nose beacon
+    const rotor = H.group(root);                                        // main rotor (spun by engine)
+    rotor.position.set(0, 0.05, 1.18);
+    H.rod(rotor, 0, 0, -0.06, 0.07, 0.16, C.GUNMETAL, { rx: 0 });       // mast
+    for (let i = 0; i < 4; i++) H.box(rotor, 0, 0, 0, 0.13, 2.7, 0.03, C.TRACK, { rz: i * 45 });
+    H.ball(rotor, 0, 0, 0, 0.11, C.DM_DARK);                           // hub
+    return { root, turret: rotor, fit: 1.75 };
   };
 
   // phantom — stealth trooper with an AT launcher; dark hooded cloak so the
@@ -1278,6 +1304,7 @@ const L = {
     "dm_jumptrooper": "לוחם סילון", "dm_railhero": "גיבור רֵיל",
     "dm_phantom": "לוחם פנטום", "dm_artillery": "תותח מרגמה",
     "dm_grenadier": "מטיל רימונים", "dm_orca": "אורקה", "dm_orca_bomber": "אורקה מפציץ",
+    "dm_transport": "מסוק תובלה",
     "so_harpy": "הארפי", "dm_helipad": "מנחת אורקה", "dm_aa_tower": "סוללת נ״מ",
     "dm_service_depot": "מפרץ תיקונים", "nx_emp_cannon": "תותח אל״מ", "dm_ion_uplink": "מעלה יונים",
     aircraft: "כלי טיס", needs_dm_helipad: "דרוש: מנחת אורקה",
@@ -1338,6 +1365,7 @@ const L = {
     "dm_jumptrooper": "Jump Trooper", "dm_railhero": "Rail Hero",
     "dm_phantom": "Phantom Trooper", "dm_artillery": "Artillery",
     "dm_grenadier": "Grenadier", "dm_orca": "Orca Fighter", "dm_orca_bomber": "Orca Bomber",
+    "dm_transport": "Transport Helo",
     "so_harpy": "Harpy", "dm_helipad": "Helipad", "dm_aa_tower": "AA Battery",
     "dm_service_depot": "Service Depot", "nx_emp_cannon": "EMP Cannon", "dm_ion_uplink": "Ion Uplink",
     aircraft: "AIRCRAFT", needs_dm_helipad: "Requires: Helipad",
@@ -1439,6 +1467,7 @@ const UNITS = {
   dm_grenadier:  { hp: 130,  cost: 200,  speed: 1.3, sight: 5, r: 0.17, weapon: "grenade_disc", infantry: true, queue: "infantry" },
   dm_orca:       { hp: 220,  cost: 1100, speed: 3.4, sight: 7, r: 0.3,  weapon: "orca_rockets", flying: true, queue: "aircraft" },
   dm_orca_bomber:{ hp: 360,  cost: 1600, speed: 2.4, sight: 6, r: 0.38, weapon: "orca_bombs", flying: true, big: true, queue: "aircraft" },
+  dm_transport:  { hp: 400,  cost: 1200, speed: 3.0, sight: 6, r: 0.44, flying: true, transport: 10, transportVeh: 2, big: true, queue: "aircraft" },
   so_harpy:      { hp: 200,  cost: 900,  speed: 3.2, sight: 7, r: 0.3,  weapon: "harpy_gun", flying: true },
   so_scout_buggy:{ hp: 220,  cost: 500,  speed: 2.7, sight: 8, r: 0.32, weapon: "raider_gun" },
   so_tick_tank:  { hp: 350,  cost: 800,  speed: 1.7, sight: 6, r: 0.36, weapon: "cannon_90" },
@@ -1479,11 +1508,11 @@ const REQUIRES = { dm_rocket_tower: "dm_radar", dm_mammoth: "dm_tech_center", dm
   dm_helipad: "dm_factory", dm_service_depot: "dm_factory", dm_aa_tower: "dm_radar",
   nx_emp_cannon: "dm_radar", dm_ion_uplink: "dm_tech_center", dm_orca_bomber: "dm_tech_center",
   nx_mcv: "dm_tech_center", dm_firestorm_gen: "dm_tech_center", dm_fs_emitter: "dm_firestorm_gen",
-  dm_phantom: "dm_tech_center", dm_artillery: "dm_radar" };
+  dm_phantom: "dm_tech_center", dm_artillery: "dm_radar", dm_transport: "dm_radar" };
 function heroBlocked(type) {
   if (!UNITS[type] || !UNITS[type].hero) return false;
   if (ents.some(e => !e.dead && e.owner === 0 && e.type === type)) return true;
-  return Object.values(queues).some(j => j && j.type === type);
+  return Object.values(queues).some(list => list.some(j => j.type === type));
 }
 function creditCap() {
   // Unlimited credits — no storage ceiling. Kept as a function so all the
@@ -1495,7 +1524,7 @@ function hasRadar() {
 }
 const INFANTRY_UNITS = ["dm_rifle", "dm_grenadier", "dm_rocket", "dm_heavy", "dm_engineer", "dm_medic", "dm_jumptrooper", "dm_phantom", "dm_railhero"];
 const VEHICLE_UNITS  = ["nx_harvester", "nx_mcv", "dm_apc", "dm_wolverine", "dm_mbt_walker", "dm_artillery", "dm_sensor", "dm_hover_mlrs", "dm_disruptor", "dm_mammoth"];
-const AIRCRAFT_UNITS = ["dm_orca", "dm_orca_bomber"];
+const AIRCRAFT_UNITS = ["dm_orca", "dm_orca_bomber", "dm_transport"];
 // which player structure produces which queue (captured enemy factories count!)
 const PRODUCER_OF = { structure: ["nx_conyard"], infantry: ["dm_barracks"],
                       vehicle: ["dm_factory", "so_factory"], aircraft: ["dm_helipad"] };
@@ -1555,7 +1584,7 @@ function makeWorld() {
   height = new Float32Array(MAP * MAP);  // walkable elevation (hills)
   bridgeCells = {};
   ents = []; projectiles = []; particles = []; beams = []; flashes = []; rings = []; corpses = [];
-  credits = 3000; queues = { structure: null, infantry: null, vehicle: null, aircraft: null }; placing = null;
+  credits = 3000; queues = { structure: [], infantry: [], vehicle: [], aircraft: [] }; placing = null;
   supers = { emp: { t: 0, dur: 75, ready: false }, ion: { t: 0, dur: 140, ready: false },
              fs: { t: 0, dur: 40, ready: false } };
   wepLvl = 0; armLvl = 0;
@@ -1894,16 +1923,17 @@ function deployMcv(e) {
   updateSelInfo();
   eva(T("deployed")); sfx("done");
 }
-function cancelOne(q) {
-  const job = queues[q];
-  if (!job || !running || over) return;
+function cancelOne(q, type) {
+  const list = queues[q];
+  if (!list || !list.length || !running || over) return;
+  let i = -1;                                    // cancel the most recent job of this type
+  for (let k = list.length - 1; k >= 0; k--) if (!type || list[k].type === type) { i = k; break; }
+  if (i < 0) return;
+  const job = list[i];
   const spec = q === "structure" ? STRUCTS[job.type] : UNITS[job.type];
   credits += spec.cost;
-  if ((job.count || 1) > 1) job.count--;
-  else {
-    queues[q] = null;
-    if (q === "structure" && placing === job.type) placing = null;
-  }
+  if (q === "structure" && job.done && placing === job.type) placing = null;
+  list.splice(i, 1);
   eva(T("cancelled")); sfx("warn");
 }
 function sellStruct(e) {
@@ -1998,18 +2028,19 @@ function orderMove(e, x, y, target) {
 /* ============================== Simulation ============================== */
 function step(dt) {
   tSec += dt;
-  // production queues
+  // production queues — every queued job in every category advances IN PARALLEL
+  // (each was paid for up front, so the treasury is the only limiter)
+  const slow = powerUse > powerOut ? 0.45 : 1;
   for (const q of ["structure", "infantry", "vehicle", "aircraft"]) {
-    const job = queues[q];
-    if (!job) continue;
-    const slow = powerUse > powerOut ? 0.45 : 1;
-    job.t += dt * slow;
-    if (job.t >= job.dur) {
+    const list = queues[q];
+    for (let j = list.length - 1; j >= 0; j--) {
+      const job = list[j];
+      job.t += dt * slow;
+      if (job.t < job.dur) continue;
       if (q === "structure") {
-        job.done = true; // structure waits for placement
+        job.done = true;                     // finished structures wait for placement
         if (!placing) { placing = job.type; eva(T("placement")); sfx("done"); }
       } else {
-        // spawn at the building that queued it, else any matching producer
         let src = job.srcId ? ents.find(e => !e.dead && e.id === job.srcId) : null;
         if (!src) src = ents.find(e => !e.dead && e.owner === 0 && e.kind === "struct" &&
                                        PRODUCER_OF[q].includes(e.type));
@@ -2018,8 +2049,7 @@ function step(dt) {
           orderMove(u, src.x + (rnd() - 0.5) * 3, src.y + src.fh / 2 + 2 + rnd() * 1.5);
           eva(T("unitready")); sfx("done");
         }
-        if ((job.count || 1) > 1) { job.count--; job.t = 0; }   // next copy rolls in
-        else queues[q] = null;
+        list.splice(j, 1);                    // job done, drop it
       }
     }
   }
@@ -2108,19 +2138,20 @@ function step(dt) {
     }
 
     if (e.boardTarget) {
-      const apc = e.boardTarget;
-      if (apc.dead || (apc.cargo || []).length >= UNITS[apc.type].transport) e.boardTarget = null;
-      else if (Math.hypot(apc.x - e.x, apc.y - e.y) < 1.0) {
-        apc.cargo = apc.cargo || [];
-        apc.cargo.push({ type: e.type, hp: e.hp, maxhp: e.maxhp });
-        e.dead = true; e.sel = false;
-        continue;
-      } else if (!e.path) e.path = findPath(e.x, e.y, apc.x, apc.y, false, e.owner);
+      const carrier = e.boardTarget;
+      if (carrier.dead || !canBoard(carrier, e)) e.boardTarget = null;
+      else {
+        if (Math.hypot(carrier.x - e.x, carrier.y - e.y) < 1.4) {
+          carrier.cargo = carrier.cargo || [];
+          carrier.cargo.push({ type: e.type, hp: e.hp, maxhp: e.maxhp });
+          e.dead = true; e.sel = false;
+        } else if (!e.path) e.path = findPath(e.x, e.y, carrier.x, carrier.y, false, e.owner);
+      }
     }
     if (b.harvester) harvesterAI(e, dt);
     else if (b.capture) engineerAI(e, dt);
     else if (b.heal) medicAI(e, b, dt);
-    else combatAI(e, b, dt);
+    else if (!e.boardTarget) combatAI(e, b, dt);   // heading for a transport — don't peel off to fight
 
     // track dust while armor is on the move
     if (IS_VEH(e.type) && e.path && rnd() < 0.35) {
@@ -2678,26 +2709,12 @@ function makeBuildButton(type, q) {
     `<span class="nm">${T(type)}</span><span class="cost num">$${spec.cost}</span>`;
   btn.addEventListener("click", () => {
     if (!running || over) return;
-    const job = queues[q];
-    if (job && job.type === type) {
-      if (q === "structure") {
-        // structures can't stack: second click cancels + refunds
-        credits += spec.cost;
-        queues[q] = null;
-        if (placing === type) placing = null;
-        eva(T("cancelled")); sfx("warn");
-      } else {
-        // units stack: every click queues one more of the same type
-        if (heroBlocked(type)) { eva(T("herolimit")); sfx("warn"); return; }
-        if (credits < spec.cost) { eva(T("lowfunds")); sfx("warn"); return; }
-        credits -= spec.cost;
-        job.count = (job.count || 1) + 1;
-        sfx("click");
-      }
-      return;
+    const list = queues[q];
+    // a finished structure of this type is waiting → (re)enter placement
+    if (q === "structure" && list.some(j => j.type === type && j.done)) {
+      placing = type; eva(T("placement")); return;
     }
-    if (job && job.done && q === "structure") { placing = job.type; eva(T("placement")); return; }
-    if (job) return;
+    // every click queues one more — different types build in parallel
     if (!hasProducer(q)) { sfx("warn"); return; }
     if (type === "nx_harvester" && !hasStruct("nx_refinery")) { eva(T("needs_nx_refinery")); sfx("warn"); return; }
     if (REQUIRES[type] && !hasStruct(REQUIRES[type])) { eva(T("needs_" + REQUIRES[type])); sfx("warn"); return; }
@@ -2705,12 +2722,12 @@ function makeBuildButton(type, q) {
     if (credits < spec.cost) { eva(T("lowfunds")); sfx("warn"); return; }
     credits -= spec.cost;
     const srcId = (sbView.mode === "building" && BUILDING_QUEUE[sbView.type] === q) ? sbView.id : 0;
-    queues[q] = { type, t: 0, dur: Math.max(2, spec.cost / 300), done: false, srcId, count: 1 };
+    list.push({ type, t: 0, dur: Math.max(2, spec.cost / 300), done: false, srcId });
     sfx("click");
   });
   const qc = document.createElement("span");
   qc.className = "qcancel"; qc.textContent = "✕";
-  qc.addEventListener("click", ev => { ev.stopPropagation(); cancelOne(q); });
+  qc.addEventListener("click", ev => { ev.stopPropagation(); cancelOne(q, type); });
   btn.appendChild(qc);
   const qty = document.createElement("span");
   qty.className = "qty num";
@@ -2847,18 +2864,19 @@ function syncSidebar(pick) {
 function refreshButtons() {
   document.querySelectorAll(".build-btn").forEach(btn => {
     const q = btn.dataset.q, type = btn.dataset.type;
-    const job = queues[q];
+    const mine = queues[q].filter(j => j.type === type);
     const prog = btn.querySelector(".prog");
-    const mine = job && job.type === type;
-    btn.classList.toggle("q", !!mine);
-    prog.style.width = mine ? Math.min(100, job.t / job.dur * 100) + "%" : "0%";
+    btn.classList.toggle("q", mine.length > 0);
+    // show the most-advanced job of this type
+    const p = mine.length ? Math.max.apply(null, mine.map(j => j.t / j.dur)) : 0;
+    prog.style.width = Math.min(100, p * 100) + "%";
     const qty = btn.querySelector(".qty");
-    if (qty) qty.textContent = mine && (job.count || 1) > 1 ? "×" + job.count : "";
+    if (qty) qty.textContent = mine.length > 1 ? "×" + mine.length : "";
     const cost = (q === "structure" ? STRUCTS[type] : UNITS[type]).cost;
     const gateMissing = !hasProducer(q) ||
                         (type === "nx_harvester" && !hasStruct("nx_refinery")) ||
                         (REQUIRES[type] && !hasStruct(REQUIRES[type])) || heroBlocked(type);
-    btn.disabled = (!mine && !!job) || (!job && credits < cost) || gateMissing;
+    btn.disabled = (credits < cost) || gateMissing;   // parallel: other types no longer block
   });
   // live labels for the focused building's upgrade buttons
   document.querySelectorAll(".sb-upg").forEach(ub => {
@@ -2998,11 +3016,11 @@ function commandAt(cx, cy) {
   const sel = ents.filter(e => e.sel && e.kind === "unit");
   if (!sel.length) return false;
   sfx("click");
-  // infantry ordered onto your own APC board it
-  if (pick && pick.owner === 0 && UNITS[pick.type] && UNITS[pick.type].transport) {
+  // units ordered onto your own transport (APC = infantry; heli = infantry + vehicles) board it
+  if (pick && pick.owner === 0 && UNITS[pick.type] && (UNITS[pick.type].transport || UNITS[pick.type].transportVeh)) {
     let boarded = false;
     for (const u of sel) {
-      if (!UNITS[u.type].infantry || u === pick) continue;
+      if (u === pick || !canBoard(pick, u)) continue;
       u.boardTarget = pick; u.target = null;
       u.path = findPath(u.x, u.y, pick.x, pick.y, false, u.owner);
       boarded = true;
@@ -3034,7 +3052,12 @@ function tryPlace() {
   const [gx, gy, ok] = placingSpot;
   if (ok) {
     spawnStruct(placing, gx, gy, 0);
-    queues.structure = null; placing = null;
+    const list = queues.structure;
+    const di = list.findIndex(j => j.type === placing && j.done);
+    if (di >= 0) list.splice(di, 1);           // consume the finished job
+    placing = null;
+    const nx = list.find(j => j.done);          // another structure already waiting? place it next
+    if (nx) { placing = nx.type; eva(T("placement")); }
     eva(T("ready")); sfx("done");
   } else { eva(T("badspot")); sfx("warn"); }
   return true;
@@ -3183,10 +3206,24 @@ function pickEntity(sx, sy) {
   }
   return null;
 }
+// can `unit` fit inside transport `carrier`? infantry and vehicles have
+// separate holds (transport / transportVeh); aircraft can't be carried
+function canBoard(carrier, unit) {
+  const cb = UNITS[carrier.type];
+  if (!cb || carrier.owner !== unit.owner) return false;
+  const cargo = carrier.cargo || [];
+  if (UNITS[unit.type].infantry) {
+    const n = cargo.filter(c => UNITS[c.type] && UNITS[c.type].infantry).length;
+    return n < (cb.transport || 0);
+  }
+  if (UNITS[unit.type].flying) return false;
+  const n = cargo.filter(c => UNITS[c.type] && !UNITS[c.type].infantry).length;
+  return n < (cb.transportVeh || 0);
+}
 function unloadApc(apc) {
   let k = 0;
   for (const c of apc.cargo) {
-    const u = spawnUnit(c.type, apc.x + Math.cos(k * 1.05) * 1.1, apc.y + Math.sin(k * 1.05) * 1.1, 0);
+    const u = spawnUnit(c.type, apc.x + Math.cos(k * 1.05) * 1.3, apc.y + Math.sin(k * 1.05) * 1.3, 0);
     u.hp = c.hp; k++;
   }
   apc.cargo = [];
@@ -3197,7 +3234,8 @@ function updateSelInfo() {
   const el = document.getElementById("selinfo");
   if (!sel.length) el.textContent = "";
   else if (sel.length === 1) el.textContent = T(sel[0].type) +
-    ((sel[0].cargo || []).length ? " [" + sel[0].cargo.length + "/" + UNITS[sel[0].type].transport + "]" : "");
+    ((sel[0].cargo || []).length ? " [" + sel[0].cargo.length + "/" +
+      ((UNITS[sel[0].type].transport || 0) + (UNITS[sel[0].type].transportVeh || 0)) + "]" : "");
   else el.textContent = L[lang].nsel(sel.length);
 }
 const deploybtn = document.getElementById("deploybtn");
@@ -4037,7 +4075,7 @@ function syncEnts(dt) {
       v.p0.visible = !p1; v.p1.visible = p1;
     }
     if (v.turret) {
-      if (v.type === "so_harpy") v.turret.rotation.z += dt * 26;   // rotor
+      if (v.type === "so_harpy" || v.type === "dm_transport") v.turret.rotation.z += dt * (v.type === "dm_transport" ? 20 : 26);   // rotor
       else {
         const tface = e.target && !e.target.dead
           ? Math.atan2(e.target.y - e.y, e.target.x - e.x) : (e.face || 0);

@@ -316,6 +316,32 @@ var UNIT_BUILDERS = (function () {
     return { root, turret: null, fit: 0.50 };
   };
 
+  // dm_transport — heavy-lift transport helicopter (carries vehicles + troops).
+  // The big main rotor is returned as `turret` so the engine spins it.
+  B.dm_transport = (H) => {
+    const C = H.C, root = H.group();
+    H.box(root, 0, 0, 0.62, 0.62, 1.95, 0.52, C.DM_ARMOR);              // fuselage
+    H.box(root, 0, 0.95, 0.66, 0.52, 0.42, 0.42, C.BLUEGREY, { rx: 14 }); // cockpit glass
+    H.box(root, 0, -0.9, 0.5, 0.58, 0.32, 0.42, C.DM_DARK, { rx: -20 }); // rear cargo ramp
+    H.box(root, 0, 0.1, 0.92, 0.52, 1.5, 0.1, C.DM_DARK);               // roof deck
+    for (const s of [-1, 1]) {                                          // sponsons + skids
+      H.box(root, s * 0.44, 0, 0.5, 0.16, 1.0, 0.26, C.DM_DARK);
+      H.rod(root, s * 0.38, 0.5, 0.26, 0.045, 0.72, C.GUNMETAL, { rx: 90 });
+      H.rod(root, s * 0.38, 0.5, 0.4, 0.045, 0.28, C.GUNMETAL, { rx: 0 });
+      H.rod(root, s * 0.38, -0.5, 0.26, 0.045, 0.72, C.GUNMETAL, { rx: 90 });
+      H.rod(root, s * 0.38, -0.5, 0.4, 0.045, 0.28, C.GUNMETAL, { rx: 0 });
+    }
+    H.box(root, 0, -1.18, 0.92, 0.08, 0.3, 0.52, C.DM_ARMOR);           // tail fin
+    H.box(root, 0, 0.1, 0.72, 0.66, 0.06, 0.16, 0xd7a838);             // GDI team stripe
+    H.ball(root, 0, 1.0, 0.7, 0.05, C.RED, { e: true });               // nose beacon
+    const rotor = H.group(root);                                        // main rotor (spun by engine)
+    rotor.position.set(0, 0.05, 1.18);
+    H.rod(rotor, 0, 0, -0.06, 0.07, 0.16, C.GUNMETAL, { rx: 0 });       // mast
+    for (let i = 0; i < 4; i++) H.box(rotor, 0, 0, 0, 0.13, 2.7, 0.03, C.TRACK, { rz: i * 45 });
+    H.ball(rotor, 0, 0, 0, 0.11, C.DM_DARK);                           // hub
+    return { root, turret: rotor, fit: 1.75 };
+  };
+
   // phantom — stealth trooper with an AT launcher; dark hooded cloak so the
   // silhouette reads as a covert unit even when decloaked near the enemy
   B.dm_phantom = (H, pose) => {
