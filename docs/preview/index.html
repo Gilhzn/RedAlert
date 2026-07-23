@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: ctrl-flat-ghost --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: rotate-sellcy --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -1479,6 +1479,8 @@ const L = {
     losedesc: "המתחם נפל. מסדר הנחש השתלט על שדות הוורידיום.",
     again: "קרב חוזר", start: "התחל קרב", nsel: n => n + " יחידות נבחרו",
     sell: "מכור מבנה", sold: n => "המבנה נמכר — התקבלו $" + n + " ‏(85% מהעלות)",
+    sellcy_warn: "אזהרה: מכירת מתחם הבנייה תסיים את המשחק בהפסד וללא החזר — לחצו שוב לאישור",
+    sellcy_confirm: "לאישור: סיום בהפסד!", rotatehint: "לחיצה רציפה + גרירה קלה = סיבוב המבנה",
     repair: "🔧 תקן מבנה", repair_stop: "🔧 עצור תיקון",
     "nx_mcv": "משאית הקמה",
     "dm_wall": "חומת בטון", "dm_gate": "שער מבוצר", "dm_fs_emitter": "פולט חומת אש",
@@ -1548,6 +1550,8 @@ const L = {
     losedesc: "Your compound has fallen. The Serpent Order controls the veridium fields.",
     again: "PLAY AGAIN", start: "START BATTLE", nsel: n => n + " units selected",
     sell: "SELL STRUCTURE", sold: n => "Structure sold — received $" + n + " (85% of cost)",
+    sellcy_warn: "Warning: selling the Construction Yard ends the game in defeat, no refund — click again to confirm",
+    sellcy_confirm: "Confirm: end in defeat!", rotatehint: "Press + slight drag = rotate the building",
     repair: "🔧 REPAIR", repair_stop: "🔧 STOP REPAIR",
     "nx_mcv": "Mobile Construction Vehicle",
     "dm_wall": "Concrete Wall", "dm_gate": "Fortified Gate", "dm_fs_emitter": "Firestorm Emitter",
@@ -2126,6 +2130,17 @@ function sellStruct(e) {
   sbView = { mode: "general", id: 0 };
   buildButtons(); updateSelInfo();
   eva((L[lang]||L.en).sold(refund)); sfx("done");
+}
+// selling the Construction Yard: no refund, and the game is immediately lost
+function sellBaseCore(e) {
+  if (e.dead || e.owner !== 0) return;
+  e.dead = true; e.sel = false;
+  for (let y = e.gy; y < e.gy + e.fh; y++) for (let x = e.gx; x < e.gx + e.fw; x++)
+    if (inMap(x, y)) blocked[idx(x, y)] = 0;
+  updatePower();
+  sbView = { mode: "general", id: 0 };
+  buildButtons(); updateSelInfo();
+  endGame(false);   // the base is gone — defeat
 }
 // The starting grid supplies a free BASE_POWER — enough for the first ~$6000 of
 // buildings, so early game needs no power plant. Past that you must build plants
@@ -2999,6 +3014,7 @@ function drawMinimap() {
 
 /* ============================== Build UI ============================== */
 let placingSpot = null, dragPlacing = false, armSource = null, placeLock = null;
+let placeRot = 0, placeDrag = null;   // building placement rotation (radians) + rotate-gesture state
 function structReady(type) { return queues.structure.some(j => j.type === type && j.done); }
 function structReadyAny() { return queues.structure.some(j => j.done); }
 // A FINISHED structure is placed by either (a) clicking it in the sidebar to ARM
@@ -3006,17 +3022,18 @@ function structReadyAny() { return queues.structure.some(j => j.done); }
 // sidebar onto the map. Both funnel through placeStructAt().
 function armPlace(type) {
   if (!running || over || !structReady(type)) return false;
-  placing = type; dragPlacing = false; placeLock = null; sfx("click");
+  placing = type; dragPlacing = false; placeLock = null; placeRot = 0; sfx("click");
   eva(T("placespot"));
   return true;
 }
 // consume the ready job and drop the building on the chosen grid cell
 function placeStructAt(type, gx, gy, ok) {
   if (ok) {
-    spawnStruct(type, gx, gy, 0);
+    const s = spawnStruct(type, gx, gy, 0);
+    if (s) s.rot = Math.round(placeRot / (Math.PI / 2)) * (Math.PI / 2);   // snap facing to 90°
     const di = queues.structure.findIndex(j => j.type === type && j.done);
     if (di >= 0) queues.structure.splice(di, 1);
-    placing = null; placingSpot = null; placeLock = null;
+    placing = null; placingSpot = null; placeLock = null; placeRot = 0;
     const nx = queues.structure.find(j => j.done);   // another finished one waiting? arm it
     if (nx) { placing = nx.type; eva(T("placespot")); } else eva(T("placed"), "good");
     sfx("done");
@@ -3167,8 +3184,21 @@ function buildButtons() {
       host.appendChild(repBtn);
       const sellBtn = document.createElement("button");
       sellBtn.className = "sb-sell";
-      sellBtn.textContent = T("sell") + " ▸ +$" + Math.round(STRUCTS[ent.type].cost * 0.85);
-      sellBtn.addEventListener("click", () => sellStruct(ent));
+      const isCore = ent.type === "nx_conyard";
+      sellBtn.textContent = isCore ? T("sell") : T("sell") + " ▸ +$" + Math.round(STRUCTS[ent.type].cost * 0.85);
+      sellBtn.addEventListener("click", () => {
+        if (isCore) {
+          // the Construction Yard is the base of everything — selling it loses the game.
+          // Require a confirming second click, and give NO refund.
+          if (sellBtn.dataset.confirm) { sellBaseCore(ent); return; }
+          sellBtn.dataset.confirm = "1";
+          sellBtn.textContent = T("sellcy_confirm");
+          eva(T("sellcy_warn"), "alert"); sfx("warn");
+          setTimeout(() => { if (sellBtn) { sellBtn.dataset.confirm = ""; sellBtn.textContent = T("sell"); } }, 4500);
+          return;
+        }
+        sellStruct(ent);
+      });
       host.appendChild(sellBtn);
       refreshButtons();
       return;
@@ -3286,6 +3316,12 @@ let orbitDrag = null, rbtn = null, suppressCtxUntil = 0;
 let lmbPanned = false, lmbHadSel = false, lmbDownTime = 0, lmbPanMode = null;   // drag mode: false=box-select, true=pan
 const keys = {};
 canvas.addEventListener("mousemove", ev => {
+  if (placeDrag) {   // placing a building: a press+drag rotates it (ghost stays put)
+    if (Math.abs(ev.clientX - placeDrag.x) + Math.abs(ev.clientY - placeDrag.y) > 5) placeDrag.moved = true;
+    if (placeDrag.moved) placeRot += (ev.clientX - placeDrag.x) * 0.02;
+    placeDrag.x = ev.clientX; placeDrag.y = ev.clientY;
+    return;   // keep mouseX/mouseY frozen so the ghost doesn't move while rotating
+  }
   mouseX = ev.clientX; mouseY = ev.clientY;
   if (orbitDrag) {
     camYaw -= (ev.clientX - orbitDrag.x) * 0.008;
@@ -3333,7 +3369,7 @@ canvas.addEventListener("mousedown", ev => {
       superAim = null;
       return;
     }
-    if (tryPlace()) return;
+    if (placing) { placeDrag = { x: ev.clientX, y: ev.clientY, moved: false }; return; }   // tap=place, drag=rotate
     dragStart = [ev.clientX, ev.clientY];
     panLast = [ev.clientX, ev.clientY];
     lmbDownTime = performance.now();
@@ -3348,6 +3384,11 @@ canvas.addEventListener("mousedown", ev => {
   }
 });
 window.addEventListener("mouseup", ev => {
+  if (placeDrag && ev.button === 0) {   // end of a placement gesture
+    const wasRot = placeDrag.moved; placeDrag = null;
+    if (!wasRot) tryPlace();             // a tap (no rotate) → mark / confirm placement
+    return;
+  }
   if (dragPlacing && ev.button === 0) { dropDragPlace(); return; }   // drag-to-build drop
   if (ev.button === 1) { panning = false; return; }
   if (ev.button === 2) {
@@ -3529,6 +3570,12 @@ canvas.addEventListener("touchmove", ev => {
   if (!running) return;
   if (ev.touches.length === 1 && touch1) {
     const t = ev.touches[0];
+    if (placing) {   // placing a building: drag rotates it (tap still places)
+      if (Math.abs(t.clientX - touch1.sx) + Math.abs(t.clientY - touch1.sy) > 5) touch1.moved = true;
+      if (touch1.moved) placeRot += (t.clientX - touch1.x) * 0.02;
+      touch1.x = t.clientX; touch1.y = t.clientY;
+      return;
+    }
     if (Math.abs(t.clientX - touch1.sx) + Math.abs(t.clientY - touch1.sy) > 8) touch1.moved = true;
     // first movement while still undecided → a quick drag box-selects
     if (touch1.mode === null && touch1.moved) {
@@ -4577,6 +4624,7 @@ function syncEnts(dt) {
         c: Math.random() < 0.3 ? "#6a6152" : "#2b2b28", s: 3 });
     if (e.kind === "struct") {
       v.wrap.position.set(e.x, e.y, STRUCTS[e.type].bridge ? 0 : heightAt(e.x, e.y));
+      if (e.rot) v.wrap.rotation.z = e.rot;   // player-chosen placement facing
       if (e.hitFlash > 0) e.hitFlash = Math.max(0, e.hitFlash - dt);   // "under attack" red pulse timer
       // faded gray when this building has no power (see updatePower)
       if (v.unpow !== !!e.unpowered) {
@@ -4872,14 +4920,29 @@ function drawIon() {
 /* ---------- placement ghost ---------- */
 const ghostPool = [];
 const ghostGeo = new THREE.PlaneGeometry(0.96, 0.96);
+let ghostArrow = null;   // shows the chosen placement facing
 function drawGhost() {
   let gi = 0;
   placingSpot = null;
+  if (ghostArrow) ghostArrow.visible = false;
   if (placing) {
     const [wx, wy] = toWorld(mouseX, mouseY);
     const b = STRUCTS[placing];
     const gx = Math.round(wx - b.fw / 2), gy = Math.round(wy - b.fh / 2);
     const ok = canPlace(placing, gx, gy);
+    // facing arrow at the footprint centre, spun by the current placement rotation
+    if (!ghostArrow) {
+      const ag = new THREE.ConeGeometry(0.28, 0.7, 4);
+      ag.rotateX(Math.PI / 2); ag.rotateZ(Math.PI / 4);
+      ghostArrow = new THREE.Mesh(ag, addMat(0x59f2ff, 0.85));
+      ghostArrow.material.depthTest = false; ghostArrow.renderOrder = 22; scene.add(ghostArrow);
+    }
+    const cxp = gx + b.fw / 2, cyp = gy + b.fh / 2, rot = (typeof placeRot !== "undefined" ? placeRot : 0);
+    ghostArrow.position.set(cxp + Math.cos(rot - Math.PI / 2) * (b.fh / 2 + 0.5),
+                            cyp + Math.sin(rot - Math.PI / 2) * (b.fh / 2 + 0.5),
+                            heightAt(cxp, cyp) + 0.3);
+    ghostArrow.rotation.set(0, 0, rot - Math.PI / 2);
+    ghostArrow.visible = true;
     for (let y = gy; y < gy + b.fh; y++) for (let x = gx; x < gx + b.fw; x++) {
       if (!inMap(x, y)) continue;
       let m = ghostPool[gi];

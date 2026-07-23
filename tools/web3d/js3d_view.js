@@ -713,6 +713,7 @@ function syncEnts(dt) {
         c: Math.random() < 0.3 ? "#6a6152" : "#2b2b28", s: 3 });
     if (e.kind === "struct") {
       v.wrap.position.set(e.x, e.y, STRUCTS[e.type].bridge ? 0 : heightAt(e.x, e.y));
+      if (e.rot) v.wrap.rotation.z = e.rot;   // player-chosen placement facing
       if (e.hitFlash > 0) e.hitFlash = Math.max(0, e.hitFlash - dt);   // "under attack" red pulse timer
       // faded gray when this building has no power (see updatePower)
       if (v.unpow !== !!e.unpowered) {
@@ -1008,14 +1009,29 @@ function drawIon() {
 /* ---------- placement ghost ---------- */
 const ghostPool = [];
 const ghostGeo = new THREE.PlaneGeometry(0.96, 0.96);
+let ghostArrow = null;   // shows the chosen placement facing
 function drawGhost() {
   let gi = 0;
   placingSpot = null;
+  if (ghostArrow) ghostArrow.visible = false;
   if (placing) {
     const [wx, wy] = toWorld(mouseX, mouseY);
     const b = STRUCTS[placing];
     const gx = Math.round(wx - b.fw / 2), gy = Math.round(wy - b.fh / 2);
     const ok = canPlace(placing, gx, gy);
+    // facing arrow at the footprint centre, spun by the current placement rotation
+    if (!ghostArrow) {
+      const ag = new THREE.ConeGeometry(0.28, 0.7, 4);
+      ag.rotateX(Math.PI / 2); ag.rotateZ(Math.PI / 4);
+      ghostArrow = new THREE.Mesh(ag, addMat(0x59f2ff, 0.85));
+      ghostArrow.material.depthTest = false; ghostArrow.renderOrder = 22; scene.add(ghostArrow);
+    }
+    const cxp = gx + b.fw / 2, cyp = gy + b.fh / 2, rot = (typeof placeRot !== "undefined" ? placeRot : 0);
+    ghostArrow.position.set(cxp + Math.cos(rot - Math.PI / 2) * (b.fh / 2 + 0.5),
+                            cyp + Math.sin(rot - Math.PI / 2) * (b.fh / 2 + 0.5),
+                            heightAt(cxp, cyp) + 0.3);
+    ghostArrow.rotation.set(0, 0, rot - Math.PI / 2);
+    ghostArrow.visible = true;
     for (let y = gy; y < gy + b.fh; y++) for (let x = gx; x < gx + b.fw; x++) {
       if (!inMap(x, y)) continue;
       let m = ghostPool[gi];
