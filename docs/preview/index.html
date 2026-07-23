@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: veridium-ai-place --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: spec-deltas --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -1412,9 +1412,12 @@ const L = {
     captured: "מבנה אויב נכבש — עכשיו הוא שלכם!",
     cancelled: "הייצור בוטל — האשראי הוחזר",
     placement: "המבנה מוכן — בחרו אותו בסרגל כדי למקם על המפה",
-    placespot: "לחצו על המפה ליד הבסיס כדי למקם (לחצו במקום אחר להזזה)",
+    placespot: "לחצו על המפה כדי לסמן מיקום (ליד הבסיס)",
+    confirmspot: "לחצו שוב על הסימון כדי להקים — או במקום אחר להזזה",
     placed: "המבנה הוקם",
     needsel: "בחרו מבנה מוכן בסרגל כדי להקים אותו",
+    harvhit: "הקוצר מותקף!",
+    resdepleted: "מרבצי הוורידיום באזור אזלו — מחפש שדה חדש",
     moving: "היחידות בדרך",
     badspot: "אי אפשר לבנות כאן — צריך שטח פנוי ליד הבסיס",
     lowfunds: "אין מספיק אשראי", building: "בבנייה...", ready: "המבנה מוכן",
@@ -1478,9 +1481,12 @@ const L = {
     captured: "Enemy structure captured — it is yours now!",
     cancelled: "Production cancelled — credits refunded",
     placement: "Structure ready — select it in the sidebar to place it on the map",
-    placespot: "Click near your base to place it (click elsewhere to move it)",
+    placespot: "Click the map to mark a spot (near your base)",
+    confirmspot: "Click the mark again to build — or elsewhere to move it",
     placed: "Structure deployed",
     needsel: "Select a ready structure in the sidebar to place it",
+    harvhit: "Harvester under fire!",
+    resdepleted: "Veridium here is mined out — seeking a new field",
     moving: "Units moving out",
     badspot: "Cannot build here — needs clear ground near your base",
     lowfunds: "Insufficient credits", building: "Building...", ready: "Structure ready",
@@ -1666,6 +1672,7 @@ let wepLvl, armLvl;
 let gateAt, gateTimer, fsActive, bridgeCells;
 let camX, camY, zoom, running = false, over = false;
 let waveTimer, waveNum, evaTimer = 0, atkWarnCd = 0, selBox = null, tSec = 0, fieldTimer = 6;
+let harvWarnCd = 0, resWarnCd = 0;   // throttles for harvester-under-fire / resources-depleted notices
 
 const canvas = document.getElementById("game");
 const mm = document.getElementById("minimap");
@@ -2207,6 +2214,8 @@ function step(dt) {
   waveTimer -= dt;
   if (waveTimer <= 0) spawnWave();
   if (atkWarnCd > 0) atkWarnCd -= dt;
+  if (harvWarnCd > 0) harvWarnCd -= dt;
+  if (resWarnCd > 0) resWarnCd -= dt;
 
   // superweapon charge (needs the structure alive; low power slows charge)
   for (const key in supers) {
@@ -2423,7 +2432,10 @@ function harvesterAI(e, dt) {
     const rf = nearestRefinery(e);
     const ax = rf ? rf.gx + rf.fw / 2 : e.x, ay = rf ? rf.gy + rf.fh / 2 : e.y;
     const c = nearestCrystal(ax, ay);
-    if (!c) { e.hstate = e.bails > 0 ? "return" : "idle"; return; }
+    if (!c) {
+      if (e.owner === 0 && notifyOn && resWarnCd <= 0) { eva(T("resdepleted")); sfx("warn"); resWarnCd = 25; }
+      e.hstate = e.bails > 0 ? "return" : "idle"; return;
+    }
     const [cx, cy] = c;
     if (Math.hypot(cx + 0.5 - e.x, cy + 0.5 - e.y) < 0.8) {
       e.hstate = "harvest"; e.ht = 0; e.hcell = c; e.path = null;
@@ -2784,7 +2796,10 @@ function hit(t, dmg, byOwner, vs) {
   rings.push({ x: t.x, y: t.y, t: 0, max: 0.3 });
   if (t.owner === 0 && byOwner === 1) {
     if (t.kind === "struct") t.hitFlash = 1.5;   // pulse the building red ~3 times
-    if (atkWarnCd <= 0) { if (notifyOn) { eva(T("underattack")); sfx("warn"); } atkWarnCd = 12; }
+    // a harvester under fire is its own alert — losing economy hurts
+    if (t.kind === "unit" && UNITS[t.type] && UNITS[t.type].harvester && harvWarnCd <= 0) {
+      if (notifyOn) { eva(T("harvhit")); sfx("warn"); } harvWarnCd = 15;
+    } else if (atkWarnCd <= 0) { if (notifyOn) { eva(T("underattack")); sfx("warn"); } atkWarnCd = 12; }
   }
   if (t.hp <= 0) killEnt(t);
 }
@@ -2916,15 +2931,15 @@ function drawMinimap() {
 }
 
 /* ============================== Build UI ============================== */
-let placingSpot = null, dragPlacing = false, armSource = null;
+let placingSpot = null, dragPlacing = false, armSource = null, placeLock = null;
 function structReady(type) { return queues.structure.some(j => j.type === type && j.done); }
 function structReadyAny() { return queues.structure.some(j => j.done); }
 // A FINISHED structure is placed by either (a) clicking it in the sidebar to ARM
-// it, then clicking a spot on the map, or (b) dragging it from the sidebar onto
-// the map. Both funnel through placeStructAt().
+// it, then MARKING a spot on the map and confirming, or (b) dragging it from the
+// sidebar onto the map. Both funnel through placeStructAt().
 function armPlace(type) {
   if (!running || over || !structReady(type)) return false;
-  placing = type; dragPlacing = false; sfx("click");
+  placing = type; dragPlacing = false; placeLock = null; sfx("click");
   eva(T("placespot"));
   return true;
 }
@@ -2934,7 +2949,7 @@ function placeStructAt(type, gx, gy, ok) {
     spawnStruct(type, gx, gy, 0);
     const di = queues.structure.findIndex(j => j.type === type && j.done);
     if (di >= 0) queues.structure.splice(di, 1);
-    placing = null; placingSpot = null;
+    placing = null; placingSpot = null; placeLock = null;
     const nx = queues.structure.find(j => j.done);   // another finished one waiting? arm it
     if (nx) { placing = nx.type; eva(T("placespot")); } else eva(T("placed"));
     sfx("done");
@@ -2946,7 +2961,7 @@ function placeStructAt(type, gx, gy, ok) {
 // drop on drag-release: place at the released cell (or keep armed if it was invalid)
 function dropDragPlace() {
   if (!dragPlacing) return;
-  dragPlacing = false;
+  dragPlacing = false; placeLock = null;
   const type = placing;
   if (type && placingSpot) placeStructAt(type, placingSpot[0], placingSpot[1], placingSpot[2]);
 }
@@ -3207,9 +3222,9 @@ canvas.addEventListener("mousemove", ev => {
   }
   if (rbtn) {
     if (Math.abs(ev.clientX - rbtn.x) + Math.abs(ev.clientY - rbtn.y) > 6) rbtn.moved = true;
-    if (rbtn.moved) {
-      camYaw -= (ev.clientX - rbtn.x) * 0.008;
-      camPitch = Math.max(0.75, Math.min(1.28, camPitch + (ev.clientY - rbtn.y) * 0.005));
+    if (rbtn.moved) {                         // hold right-click and drag → pan the map
+      const w1 = toWorld(rbtn.x, rbtn.y), w2 = toWorld(ev.clientX, ev.clientY);
+      camX -= w2[0] - w1[0]; camY -= w2[1] - w1[1];
       rbtn.x = ev.clientX; rbtn.y = ev.clientY;
     }
     return;
@@ -3355,12 +3370,20 @@ function orderSelectedTo(wx, wy) {
   }
   return true;
 }
-// click-to-place: when a structure is armed, a click on the map builds it there.
-// An invalid cell keeps it armed so the next click can pick a better spot.
+// mark-and-confirm placement: with a structure armed, the FIRST click on a cell
+// marks it (a confirm ghost appears); clicking the SAME cell again builds it;
+// clicking a DIFFERENT cell moves the mark there. Invalid cell → warns, stays armed.
 function tryPlace() {
   if (!placing || dragPlacing) return false;
-  if (placingSpot) placeStructAt(placing, placingSpot[0], placingSpot[1], placingSpot[2]);
-  return true;   // swallow the click either way (armed → the map click is "place here")
+  if (!placingSpot) return true;
+  const [gx, gy, ok] = placingSpot;
+  if (placeLock && placeLock[0] === gx && placeLock[1] === gy) {
+    placeStructAt(placing, gx, gy, ok);   // second click on the marked cell → confirm
+  } else {
+    placeLock = [gx, gy];                  // first click, or moved to a new cell → mark & await confirm
+    eva(T(ok ? "confirmspot" : "badspot")); sfx(ok ? "click" : "warn");
+  }
+  return true;   // swallow the click (armed → the map click drives placement)
 }
 // arm-and-place plumbing (mouse + touch): a press on a ready button arms it; a
 // small drag turns into drag-to-place; a plain click leaves it armed for a map click
@@ -3375,10 +3398,10 @@ window.addEventListener("pointerup", () => { if (dragPlacing) dropDragPlace(); a
 window.addEventListener("pointercancel", () => { dragPlacing = false; armSource = null; });
 canvas.addEventListener("contextmenu", ev => {
   ev.preventDefault();
-  if (performance.now() < suppressCtxUntil) return;   // right-drag was an orbit
+  if (performance.now() < suppressCtxUntil) return;   // right-drag was a pan
   if (!running || over || touchGuard()) return;
   if (superAim) { superAim = null; return; }
-  if (placing) { placing = null; return; }
+  if (placing) { placing = null; placeLock = null; return; }
   commandAt(ev.clientX, ev.clientY);
 });
 
@@ -3639,7 +3662,7 @@ function applyLang() {
     document.getElementById("i-desc").textContent = "An interactive browser preview: a compact skirmish against the Serpent Order, using the real unit stats from the game's data files. Harvest veridium, build your base, repel the waves — and destroy the enemy base.";
     document.getElementById("i-note").textContent = "This is a JavaScript demo — not the full Unity WebGL build. The full game is built in the Unity Editor via Tiberium Dusk → Build → WebGL.";
     document.getElementById("i-controls").innerHTML =
-      "<li><b>Left click / drag</b> — select units</li><li><b>Right click</b> — move / attack</li><li><b>Radar</b> — click to look; with units selected, click sends them there</li><li><b>WASD / arrows / middle-drag</b> — pan camera, <b>wheel</b> — zoom, <b>Q/E / right-drag / Ctrl+left-drag</b> — free orbit, <b>R/F</b> — tilt</li><li><b>Sidebar</b> — build; when a structure is <b>ready</b>, drag it onto the map to place it. ▶ collapses it</li><li><b>Mobile</b> — tap: select/order, long-press+drag: group select, drag: pan, pinch: zoom, twist two fingers: rotate, slide two fingers up/down: tilt</li>";
+      "<li><b>Left click / drag</b> — select units; left-click empty ground drops the selection (orders continue)</li><li><b>Right click</b> — move / attack; <b>right-drag</b> — pan the map</li><li><b>Radar</b> — click to look; with units selected, click sends them there</li><li><b>WASD / arrows / middle-drag</b> — pan camera, <b>wheel</b> — zoom, <b>Q/E / Ctrl+left-drag</b> — free orbit, <b>R/F</b> — tilt</li><li><b>Sidebar</b> — build; when a structure is <b>ready</b>, click it then click the map to mark a spot and click again to confirm (or drag it onto the map). ▶ collapses it</li><li><b>Mobile</b> — tap: select/order, double-tap: deselect, long-press+drag: pan, quick-drag: group select, pinch: zoom, twist two fingers: rotate, slide two fingers up/down: tilt</li>";
     document.getElementById("startbtn").textContent = "START BATTLE";
   } else {
     document.querySelector("#introcard h1").textContent = "דמדומי טיבריום";
@@ -3647,7 +3670,7 @@ function applyLang() {
     document.getElementById("i-desc").textContent = "תצוגה מקדימה אינטראקטיבית בדפדפן: סקירמיש מוקטן נגד מסדר הנחש, עם נתוני היחידות האמיתיים מקובצי המשחק. קצרו ורידיום, בנו בסיס, הדפו גלים — והשמידו את בסיס האויב.";
     document.getElementById("i-note").textContent = "זו הדגמת JavaScript — לא בניית ה־Unity WebGL המלאה. את המשחק המלא בונים ב־Unity Editor דרך התפריט Tiberium Dusk ← Build ← WebGL.";
     document.getElementById("i-controls").innerHTML =
-      "<li><b>קליק שמאלי / גרירה</b> — בחירת יחידות</li><li><b>קליק ימני</b> — תנועה / תקיפה</li><li><b>ראדאר</b> — קליק כדי להתבונן; כשיחידות מסומנות, קליק שולח אותן לשם</li><li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום, <b>Q/E / גרירה בכפתור ימני / Ctrl+שמאלי</b> — סיבוב חופשי, <b>R/F</b> — הטיה</li><li><b>סרגל צד</b> — בנייה; כשמבנה <b>מוכן</b>, גררו אותו אל המפה כדי למקם. ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, לחיצה ארוכה+גרירה: בחירת קבוצה, גרירה: מצלמה, צביטה: זום, סיבוב שתי אצבעות: סיבוב המפה, החלקת שתי אצבעות מעלה/מטה: הטיה</li>";
+      "<li><b>קליק שמאלי / גרירה</b> — בחירת יחידות; קליק על שטח ריק מבטל סימון (המשימה נמשכת)</li><li><b>קליק ימני</b> — תנועה / תקיפה; <b>גרירה בקליק ימני</b> — סיור במפה</li><li><b>ראדאר</b> — קליק כדי להתבונן; כשיחידות מסומנות, קליק שולח אותן לשם</li><li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום, <b>Q/E / Ctrl+שמאלי</b> — סיבוב חופשי, <b>R/F</b> — הטיה</li><li><b>סרגל צד</b> — בנייה; כשמבנה <b>מוכן</b>, לחצו עליו ואז לחצו על המפה לסמן מיקום, ולחצו שוב לאישור (או גררו אל המפה). ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, הקשה כפולה: ביטול סימון, לחיצה ארוכה+גרירה: סיור, גרירה מהירה: בחירת קבוצה, צביטה: זום, סיבוב שתי אצבעות: סיבוב המפה, החלקת שתי אצבעות מעלה/מטה: הטיה</li>";
     document.getElementById("startbtn").textContent = "התחל קרב";
   }
   syncSettingsUI(rtl);
@@ -3662,7 +3685,7 @@ const SETXT = {
         note: "בקרוב: טוטוריאל והוראות משחק מלאות." },
   en: { title: "Settings", lang: "Language", layout: "Sidebar side", side: "Side", bottom: "Bottom",
         team: "Team color", notify: "Notifications", on: "On", off: "Off", diff: "AI level",
-        diffs: ["Easy", "Normal", "Hard", "Very Hard", "Brutal"],
+        diffs: ["Easy", "Medium", "Hard", "Very Hard", "Insane"],
         note: "Coming soon: tutorial and full game instructions." },
 };
 function syncSettingsUI(rtl) {
@@ -4790,6 +4813,19 @@ function drawGhost() {
       m.visible = true;
     }
     placingSpot = [gx, gy, ok];
+    // pending-confirm marker: a cell already clicked once, awaiting the confirm click (gold)
+    if (typeof placeLock !== "undefined" && placeLock) {
+      const okL = canPlace(placing, placeLock[0], placeLock[1]);
+      for (let y = placeLock[1]; y < placeLock[1] + b.fh; y++) for (let x = placeLock[0]; x < placeLock[0] + b.fw; x++) {
+        if (!inMap(x, y)) continue;
+        let m = ghostPool[gi];
+        if (!m) { m = new THREE.Mesh(ghostGeo, addMat(0x37e86e, 0.4)); m.renderOrder = 6; scene.add(m); ghostPool.push(m); }
+        gi++;
+        m.position.set(x + 0.5, y + 0.5, 0.1);
+        m.material.color.set(okL ? 0xf2bf26 : 0xd8404a);   // gold = marked, click again to confirm
+        m.visible = true;
+      }
+    }
   }
   for (let i = gi; i < ghostPool.length; i++) ghostPool[i].visible = false;
 }

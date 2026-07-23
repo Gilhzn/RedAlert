@@ -1026,6 +1026,19 @@ function drawGhost() {
       m.visible = true;
     }
     placingSpot = [gx, gy, ok];
+    // pending-confirm marker: a cell already clicked once, awaiting the confirm click (gold)
+    if (typeof placeLock !== "undefined" && placeLock) {
+      const okL = canPlace(placing, placeLock[0], placeLock[1]);
+      for (let y = placeLock[1]; y < placeLock[1] + b.fh; y++) for (let x = placeLock[0]; x < placeLock[0] + b.fw; x++) {
+        if (!inMap(x, y)) continue;
+        let m = ghostPool[gi];
+        if (!m) { m = new THREE.Mesh(ghostGeo, addMat(0x37e86e, 0.4)); m.renderOrder = 6; scene.add(m); ghostPool.push(m); }
+        gi++;
+        m.position.set(x + 0.5, y + 0.5, 0.1);
+        m.material.color.set(okL ? 0xf2bf26 : 0xd8404a);   // gold = marked, click again to confirm
+        m.visible = true;
+      }
+    }
   }
   for (let i = gi; i < ghostPool.length; i++) ghostPool[i].visible = false;
 }
