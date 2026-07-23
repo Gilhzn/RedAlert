@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: main-menu-progression --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: harvester-2000-per-run --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -2796,6 +2796,12 @@ function harvesterAI(e, dt) {
     const nx = Math.max(rf.gx, Math.min(rf.gx + rf.fw, e.x));
     const ny = Math.max(rf.gy, Math.min(rf.gy + rf.fh, e.y));
     if (Math.hypot(nx - e.x, ny - e.y) < 1.15) {
+      // every time the harvester arrives with cargo it banks a flat 2000 credits
+      if (e.owner === 0 && e.bails > 0) {
+        credits = Math.min(creditCap(), credits + 2000);
+        if (matchStats) matchStats.harvested += 2000;
+        eva(T("harvest"));
+      }
       e.hstate = "unload"; e.ht = 0; e.path = null;
     } else if (!e.path) {
       // aim for the nearest free cell around the whole building, not one fixed spot
@@ -2807,9 +2813,8 @@ function harvesterAI(e, dt) {
     if (e.ht > 0.17) {
       e.ht = 0;
       if (e.bails > 0) {
-        e.bails--;
-        if (e.owner === 0) { const amt = e.bailKind === 9 ? 40 : 25; credits = Math.min(creditCap(), credits + amt); if (matchStats) matchStats.harvested += amt; }
-      } else { e.hstate = "seek"; if (e.owner === 0) { eva(T("harvest")); } }
+        e.bails--;                 // drain the cargo for the unload animation (credits already banked on arrival)
+      } else { e.hstate = "seek"; }
     }
   } else if (e.hstate === "idle") { if (((tSec | 0) % 4) === 0) e.hstate = "seek"; }
 }
