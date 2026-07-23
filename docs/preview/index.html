@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: right-drag-vertical-tour --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: concentrated-veridium-mines --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -1883,25 +1883,20 @@ function makeWorld() {
       }
     return [cx, cy];
   };
-  const fields = [F(.18, .74, 6, 1), F(.82, .14, 6, 1),   // starter fields by each base
-                  F(.28, .84, 6, 1), F(.72, .16, 6, 1),
-                  F(.12, .38, 6, 1), F(.88, .62, 6, 9),
-                  F(.4, .86, 6, 1), F(.6, .14, 6, 9),
-                  F(.5, .76, 6, 1), F(.5, .24, 6, 1),
-                  F(.18, .55, 5, 9), F(.82, .45, 5, 1),
-                  F(.34, .62, 5, 1), F(.66, .38, 5, 1),
-                  // extra fields spread across the enlarged map
-                  F(.08, .88, 5, 1), F(.92, .12, 5, 1),
-                  F(.26, .28, 5, 1), F(.74, .72, 5, 9),
-                  F(.5, .5, 6, 9), F(.14, .14, 5, 1),
-                  F(.86, .86, 5, 1), F(.38, .46, 5, 1),
-                  F(.62, .54, 5, 1), F(.24, .44, 4, 9)];
+  // a handful of CONCENTRATED deposits ("veridium mines") at fixed, sensible spots —
+  // two near each home base and a contested cluster mid-map — instead of a thin
+  // scatter across the whole map. The fill is near-solid so each reads as a real mine.
+  const fields = [F(.16, .80, 3, 1), F(.29, .90, 2, 1),     // two mines by the player base
+                  F(.84, .20, 3, 1), F(.71, .10, 2, 1),     // two mines by the enemy base
+                  F(.50, .50, 3, 9),                         // central blue mother-lode (contested)
+                  F(.34, .62, 2.5, 1), F(.66, .38, 2.5, 1), // flank deposits
+                  F(.50, .80, 2, 9), F(.50, .20, 2, 9)];     // forward blue deposits
   for (const [fx, fy, r, kind] of fields) {
     const [cx, cy] = clearCentre(fx, fy);
     for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
       if (!inMap(x, y) || blocked[idx(x, y)] || terrain[idx(x, y)] === 3) continue;
       const d = Math.hypot(x - cx, y - cy);
-      if (d <= r && rnd() < 1.15 - d / (r + 2)) crystal[idx(x, y)] = kind === 9 ? 9 : 1 + ((rnd() * 4) | 0);
+      if (d <= r && rnd() < 1.30 - d / (r + 1)) crystal[idx(x, y)] = kind === 9 ? 9 : 1 + ((rnd() * 4) | 0);
     }
   }
   // keep the starting base footprints clear of crystals (so the MCV can deploy)
@@ -2566,7 +2561,7 @@ function nearestCrystal(x, y) {
 }
 
 /* ---- veridium deposits: concentrated fields that relocate when mined out ---- */
-const CRYSTAL_MIN = 2400;             // keep this many veridium cells alive on the map (deposits reform as they are mined)
+const CRYSTAL_MIN = 380;              // keep only a handful of concentrated mines alive (they reform elsewhere as they are mined out)
 function crystalCellCount() { let n = 0; for (let i = 0; i < crystal.length; i++) if (crystal[i]) n++; return n; }
 function farFromBuildings(cx, cy, pad) {
   for (const s of ents) {
@@ -2582,7 +2577,7 @@ function paintCrystalField(cx, cy, r, kind) {
     const i = idx(x, y);
     if (blocked[i] || terrain[i] === 3 || terrain[i] === 1 || crystal[i]) continue;   // clear dirt only
     const d = Math.hypot(x - cx, y - cy);
-    if (d <= r && rnd() < 1.15 - d / (r + 2)) { crystal[i] = kind === 9 ? 9 : 1 + ((rnd() * 4) | 0); painted++; }
+    if (d <= r && rnd() < 1.30 - d / (r + 1)) { crystal[i] = kind === 9 ? 9 : 1 + ((rnd() * 4) | 0); painted++; }
   }
   return painted;
 }
@@ -2596,7 +2591,7 @@ function spawnCrystalField() {
     if (blocked[i] || terrain[i] === 3 || terrain[i] === 1 || crystal[i]) continue;
     if (!farFromBuildings(cx, cy, PAD)) continue;
     const kind = rnd() < 0.22 ? 9 : 1;                 // an occasional richer blue deposit
-    const r = 4 + ((rnd() * 2) | 0);
+    const r = 4 + ((rnd() * 3) | 0);                   // a tight, dense mine (radius ~4-6)
     if (paintCrystalField(cx, cy, r, kind) >= 6) return [cx, cy];   // 3D view repaints crystals on its own timer
   }
   return null;
