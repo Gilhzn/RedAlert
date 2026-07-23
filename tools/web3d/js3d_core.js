@@ -1,6 +1,7 @@
 /* Tiberium Dusk 3D core DSL — mirrors the Blender python helpers (Z-up).
    Evaluated with a global THREE in scope; defines global H. */
 "use strict";
+var TEAM_COLOR = 0xd7a838;   // player team-colour accent (changeable in Settings)
 var H = (function () {
   const mats = new Map();
   function mat(color) {

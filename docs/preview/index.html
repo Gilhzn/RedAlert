@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: drag-to-build --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: settings-power-radar --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -60,6 +60,59 @@
     padding: 10px; display: flex; flex-direction: column; gap: 10px;
     transition: transform .25s ease; }
   body.sb-collapsed #sidebar { transform: translateX(105%); }
+  /* ---- settings modal (designed as a military-terminal panel) ---- */
+  #settings-modal { position: fixed; inset: 0; z-index: 50;
+    background: radial-gradient(ellipse at center, rgba(6,14,10,0.72), rgba(2,5,4,0.9));
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; animation: modalfade .18s ease; }
+  #settings-modal.hidden { display: none; }
+  @keyframes modalfade { from { opacity: 0; } to { opacity: 1; } }
+  .settings-card { position: relative; overflow: hidden;
+    background: linear-gradient(160deg, #0c1712 0%, #070d0a 100%);
+    border: 1px solid var(--phos-dim); border-radius: 12px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.7), 0 0 0 1px rgba(55,232,110,0.06),
+      inset 0 1px 0 rgba(120,255,180,0.06);
+    padding: 20px 24px 22px; min-width: 340px; max-width: 92vw;
+    color: var(--phosphor); font-family: var(--mono); animation: modalpop .22s cubic-bezier(.2,.9,.3,1.1); }
+  @keyframes modalpop { from { transform: translateY(10px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
+  .settings-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, var(--phosphor), transparent); opacity: .7; }
+  .settings-head { display: flex; justify-content: space-between; align-items: center;
+    font-size: 15px; letter-spacing: 3px; text-transform: uppercase; text-shadow: 0 0 10px rgba(55,232,110,0.5);
+    border-bottom: 1px solid var(--phos-faint); padding-bottom: 12px; margin-bottom: 4px; }
+  .settings-head button { background: none; border: 1px solid transparent; border-radius: 6px;
+    color: var(--phos-dim); font-size: 16px; width: 28px; height: 28px; cursor: pointer; transition: .15s; }
+  .settings-head button:hover { color: var(--phosphor); border-color: var(--phos-faint); background: rgba(55,232,110,0.08); }
+  .settings-row { display: flex; justify-content: space-between; align-items: center; gap: 18px;
+    margin: 4px 0; padding: 12px 2px; border-bottom: 1px solid rgba(55,232,110,0.07); }
+  .settings-row > span:first-child { font-size: 12px; letter-spacing: 1px; color: var(--phosphor); opacity: .85; }
+  .seg-group { display: flex; gap: 5px; flex-wrap: wrap; }
+  .seg-group button { background: rgba(10,20,15,0.6); border: 1px solid var(--phos-faint); border-radius: 7px;
+    color: var(--phos-dim); padding: 6px 12px; font-size: 12px; font-family: var(--mono); cursor: pointer;
+    transition: .15s; }
+  .seg-group button:hover { color: var(--phosphor); border-color: var(--phos-dim); background: rgba(55,232,110,0.1); }
+  .seg-group button.on { color: var(--ground); background: var(--phosphor); border-color: var(--phosphor);
+    box-shadow: 0 0 12px rgba(55,232,110,0.5); font-weight: 700; }
+  .team-swatches { display: flex; gap: 10px; }
+  .team-swatches button { position: relative; width: 32px; height: 32px; border: 2px solid var(--phos-faint);
+    border-radius: 8px; cursor: pointer; transition: .15s; }
+  .team-swatches button:hover { transform: scale(1.08); }
+  .team-swatches button.on { border-color: #fff; box-shadow: 0 0 12px rgba(255,255,255,0.6); transform: scale(1.08); }
+  .team-swatches button.on::after { content: "✓"; position: absolute; inset: 0; display: flex;
+    align-items: center; justify-content: center; color: #fff; font-size: 15px; text-shadow: 0 0 4px #000; }
+  .settings-note { margin-top: 16px; font-size: 11px; color: var(--phos-dim); text-align: center;
+    letter-spacing: .5px; opacity: .8; }
+  /* ---- bottom sidebar layout ---- */
+  body.sb-bottom #sidebar { top: auto; bottom: 34px; left: 0; right: 0; width: auto; height: 172px;
+    flex-direction: row; align-items: stretch; gap: 10px; overflow-x: auto; overflow-y: hidden;
+    border-inline-start: none; border-top: 1px solid var(--phos-faint); }
+  body.sb-bottom #buildpanel { flex-direction: row; align-items: stretch; gap: 8px; }
+  body.sb-bottom #minimap { width: 150px; height: 150px; flex: 0 0 auto; }
+  body.sb-bottom.sb-collapsed #sidebar { transform: translateY(112%); }
+  body.sb-bottom #sbtab { top: auto; bottom: 172px; right: 50%; transform: translateX(50%); border: 1px solid var(--phos-faint); }
+  body.sb-bottom.sb-collapsed #sbtab { bottom: 34px; }
+  .build-btn.ready { animation: readypulse 1s infinite; }
+  @keyframes readypulse { 0%,100%{ box-shadow: 0 0 0 rgba(55,232,110,0); } 50%{ box-shadow: 0 0 13px rgba(55,232,110,0.85); } }
   #sbtab { position: fixed; top: 50%; right: 216px; transform: translateY(-50%);
     z-index: 26; width: 28px; height: 72px; padding: 0;
     background: var(--panel2); border: 1px solid var(--phos-faint); border-right: none;
@@ -174,7 +227,7 @@
   <div class="seg"><span id="t-power">חשמל</span> <div id="powerwrap"><div id="powerbar"></div></div> <span class="num" id="powernum"></span></div>
   <div class="spacer"></div>
   <div class="seg" style="border-inline-start:1px solid var(--phos-faint); border-inline-end:none;">
-    <button id="lang-he" class="on">עברית</button><button id="lang-en">English</button><button id="mutebtn" aria-label="sound on/off">🔊</button>
+    <button id="lang-he" class="on">עברית</button><button id="lang-en">English</button><button id="mutebtn" aria-label="sound on/off">🔊</button><button id="gearbtn" aria-label="settings">⚙</button>
   </div>
 </div>
 
@@ -184,6 +237,37 @@
 </div>
 
 <button id="sbtab" aria-label="toggle sidebar">▶</button>
+
+<div id="settings-modal" class="hidden">
+  <div class="settings-card" dir="rtl">
+    <div class="settings-head"><span id="s-title">הגדרות</span><button id="s-close" aria-label="close">✕</button></div>
+    <div class="settings-row"><span id="s-lang-lbl">שפה</span>
+      <div class="seg-group" id="s-lang-group">
+        <button data-lang="he" class="on">עברית</button><button data-lang="en">English</button>
+        <button data-lang="es">Español</button><button data-lang="zh">中文</button><button data-lang="hi">हिन्दी</button>
+      </div>
+    </div>
+    <div class="settings-row"><span id="s-layout-lbl">מיקום סרגל</span>
+      <div class="seg-group" id="s-layout-group">
+        <button data-layout="side" class="on" id="s-side">צד</button><button data-layout="bottom" id="s-bottom">תחתון</button>
+      </div>
+    </div>
+    <div class="settings-row"><span id="s-team-lbl">צבע קבוצה</span>
+      <div class="team-swatches" id="s-team-group">
+        <button data-team="0x3a7bd8" style="background:#3a7bd8" title="Blue"></button>
+        <button data-team="0xd83a3a" style="background:#d83a3a" title="Red"></button>
+        <button data-team="0xd7a838" class="on" style="background:#d7a838" title="Gold"></button>
+        <button data-team="0x40c040" style="background:#40c040" title="Green"></button>
+      </div>
+    </div>
+    <div class="settings-row"><span id="s-notify-lbl">התראות משחק</span>
+      <div class="seg-group" id="s-notify-group">
+        <button data-notify="1" class="on" id="s-notify-on">פעיל</button><button data-notify="0" id="s-notify-off">כבוי</button>
+      </div>
+    </div>
+    <div class="settings-note" id="s-note">בקרוב: טוטוריאל והוראות משחק מלאות.</div>
+  </div>
+</div>
 
 <div id="superbar" class="hud"></div>
 
@@ -231,6 +315,7 @@
 /* Tiberium Dusk 3D core DSL — mirrors the Blender python helpers (Z-up).
    Evaluated with a global THREE in scope; defines global H. */
 "use strict";
+var TEAM_COLOR = 0xd7a838;   // player team-colour accent (changeable in Settings)
 var H = (function () {
   const mats = new Map();
   function mat(color) {
@@ -364,7 +449,7 @@ var UNIT_BUILDERS = (function () {
       H.box(root, 0, -0.5, 0.58, 0.6, 0.2, 0.14, dark);
       turretH = 0.56; barL = 0.85; ts = 1.3;
     }
-    const accent = fac === "dm" ? 0xd7a838 : 0xc0303a;   // faction team-colour band
+    const accent = fac === "dm" ? TEAM_COLOR : 0xc0303a;   // faction team-colour band
     const tur = H.group(root);
     tur.position.set(0, 0, turretH);
     H.rod(tur, 0, 0, 0.02, 0.26 * ts, 0.10, dark, { rx: 0 });
@@ -389,7 +474,7 @@ var UNIT_BUILDERS = (function () {
     const armor = faction === "dm" ? C.DM_ARMOR : C.SO_ARMOR;
     const dark = faction === "dm" ? C.DM_DARK : C.SO_DARK;
     // bright faction accent for a clear team-colour read from the iso camera
-    const accent = faction === "dm" ? 0xd7a838 : 0xc0303a;
+    const accent = faction === "dm" ? TEAM_COLOR : 0xc0303a;
     const heavy = kind === "heavy";
     const w = heavy ? 1.15 : 1.0;
     const la = pose === 1 ? 22 : 6;
@@ -652,7 +737,7 @@ var UNIT_BUILDERS = (function () {
       H.rod(root, s * 0.38, -0.5, 0.4, 0.045, 0.28, C.GUNMETAL, { rx: 0 });
     }
     H.box(root, 0, -1.18, 0.92, 0.08, 0.3, 0.52, C.DM_ARMOR);           // tail fin
-    H.box(root, 0, 0.1, 0.72, 0.66, 0.06, 0.16, 0xd7a838);             // GDI team stripe
+    H.box(root, 0, 0.1, 0.72, 0.66, 0.06, 0.16, TEAM_COLOR);             // GDI team stripe
     H.ball(root, 0, 1.0, 0.7, 0.05, C.RED, { e: true });               // nose beacon
     const rotor = H.group(root);                                        // main rotor (spun by engine)
     rotor.position.set(0, 0.05, 1.18);
@@ -1322,10 +1407,11 @@ const L = {
     captured: "מבנה אויב נכבש — עכשיו הוא שלכם!",
     cancelled: "הייצור בוטל — האשראי הוחזר",
     placement: "גררו את המבנה מהתפריט אל המפה",
-    building: "בונה במיקום שנבחר...",
+    moving: "היחידות בדרך",
     badspot: "אי אפשר לבנות כאן — צריך שטח פנוי ליד הבסיס",
     lowfunds: "אין מספיק אשראי", building: "בבנייה...", ready: "המבנה מוכן",
     unitready: "יחידה מוכנה", underattack: "הבסיס מותקף!",
+    poweroff: "אין מספיק חשמל — מבנים הושבתו! בנו תחנת כח",
     wave: "גל תקיפה של מסדר הנחש בדרך!", lowpower: "מחסור בחשמל — הייצור הואט",
     harvest: "הקציר פורק ורידיום", win: "ניצחון", lose: "תבוסה",
     windesc: "בסיס מסדר הנחש הושמד. הדומיניון שולט באזור.",
@@ -1384,10 +1470,11 @@ const L = {
     captured: "Enemy structure captured — it is yours now!",
     cancelled: "Production cancelled — credits refunded",
     placement: "Drag the building from the menu onto the map",
-    building: "Building at the chosen spot...",
+    moving: "Units moving out",
     badspot: "Cannot build here — needs clear ground near your base",
     lowfunds: "Insufficient credits", building: "Building...", ready: "Structure ready",
     unitready: "Unit ready", underattack: "Base under attack!",
+    poweroff: "Not enough power — buildings offline! Build a power plant",
     wave: "Serpent Order attack wave inbound!", lowpower: "Low power — production slowed",
     harvest: "Harvester unloading veridium", win: "VICTORY", lose: "DEFEAT",
     windesc: "The Serpent Order base is destroyed. The Dominion holds the region.",
@@ -1412,7 +1499,8 @@ const L = {
   }
 };
 let lang = "he";
-const T = k => L[lang][k] ?? k;
+// he + en are fully localised; es / zh / hi fall back to en until their strings land
+const T = k => (L[lang] || L.en)[k] ?? L.en[k] ?? k;
 
 /* ==================== Blueprints (from data/*.json) ==================== */
 // Stats copied from the repo's data/units.json, structures.json, weapons.json.
@@ -1894,7 +1982,7 @@ function buyWep() {
   if (wepLvl >= WEP_UPG.length) return;
   if (credits < WEP_UPG[wepLvl]) { eva(T("lowfunds")); sfx("warn"); return; }
   credits -= WEP_UPG[wepLvl]; wepLvl++;
-  eva(L[lang].wep_upgraded(wepLvl)); sfx("done");
+  eva((L[lang]||L.en).wep_upgraded(wepLvl)); sfx("done");
 }
 function buyArm() {
   if (armLvl >= ARM_UPG.length) return;
@@ -1906,7 +1994,7 @@ function buyArm() {
     e.maxhp = Math.round(e.maxhp * 1.2);
     e.hp = Math.round(e.maxhp * f);
   }
-  eva(L[lang].arm_upgraded(armLvl)); sfx("done");
+  eva((L[lang]||L.en).arm_upgraded(armLvl)); sfx("done");
 }
 function deployMcv(e) {
   if (!e || e.dead || e.type !== "nx_mcv" || e.owner !== 0) return;
@@ -1957,13 +2045,16 @@ function sellStruct(e) {
       t: 0, life: 0.9 + rnd() * 0.5, c: "#49ff7a", s: 2.5 });
   sbView = { mode: "general", id: 0 };
   buildButtons(); updateSelInfo();
-  eva(L[lang].sold(refund)); sfx("done");
+  eva((L[lang]||L.en).sold(refund)); sfx("done");
 }
-// Power demand scales with total building cost: one power plant (100) covers
-// ~$6000 of buildings (demand = cost / 60). When plants can't cover it, the
-// NEWEST buildings drop offline first (marked e.unpowered → faded gray).
+// The starting grid supplies a free BASE_POWER — enough for the first ~$6000 of
+// buildings, so early game needs no power plant. Past that you must build plants
+// (each ≈ another $6000). When supply can't cover demand, the NEWEST buildings
+// drop offline first (marked e.unpowered → faded gray) and a notice fires.
+const BASE_POWER = 100;                                      // free grid ≈ $6000 (demand = cost / 60)
+let powerWarned = false;
 function updatePower() {
-  powerOut = 0;
+  powerOut = BASE_POWER;
   const consumers = [];
   for (const e of ents) {
     if (e.dead || e.kind !== "struct" || e.owner !== 0) continue;
@@ -1984,6 +2075,10 @@ function updatePower() {
     e.unpowered = true;
     over -= STRUCTS[e.type].cost / 60;
   }
+  // notify the player the moment buildings go dark (rising edge only)
+  const anyOff = consumers.some(e => e.unpowered);
+  if (anyOff && !powerWarned) { if (notifyOn && running) { eva(T("poweroff")); sfx("warn"); } powerWarned = true; }
+  else if (!anyOff) powerWarned = false;
 }
 
 /* ============================== Pathfinding ============================== */
@@ -2064,15 +2159,7 @@ function step(dt) {
       job.t = job.paid / spec.cost * job.dur;                // progress tracks money spent
       if (job.paid < spec.cost - 0.01) continue;             // not fully paid → keep building (or stalled)
       if (q === "structure") {
-        // drag-placed jobs build up at the spot you dropped them, then appear there
-        if (job.gx != null && canPlace(job.type, job.gx, job.gy)) {
-          spawnStruct(job.type, job.gx, job.gy, 0);
-          list.splice(j, 1);
-          eva(T("ready")); sfx("done");
-        } else {
-          job.done = true;                   // spot lost/invalid → fall back to manual placement
-          if (!placing) { placing = job.type; eva(T("placement")); sfx("done"); }
-        }
+        if (!job.done) { job.done = true; eva(T("placement")); sfx("done"); }   // ready → drag it onto the map
       } else {
         let src = job.srcId ? ents.find(e => !e.dead && e.id === job.srcId) : null;
         if (!src) src = ents.find(e => !e.dead && e.owner === 0 && e.kind === "struct" &&
@@ -2591,7 +2678,7 @@ function hit(t, dmg, byOwner, vs) {
   rings.push({ x: t.x, y: t.y, t: 0, max: 0.3 });
   if (t.owner === 0 && byOwner === 1) {
     if (t.kind === "struct") t.hitFlash = 1.5;   // pulse the building red ~3 times
-    if (atkWarnCd <= 0) { eva(T("underattack")); sfx("warn"); atkWarnCd = 12; }
+    if (atkWarnCd <= 0) { if (notifyOn) { eva(T("underattack")); sfx("warn"); } atkWarnCd = 12; }
   }
   if (t.hp <= 0) killEnt(t);
 }
@@ -2641,6 +2728,8 @@ function spark(x, y) {
 let AC = null;
 let muted = false;
 try { muted = localStorage.getItem("td_muted") === "1"; } catch (e) {}
+let notifyOn = true;   // in-game event notices (low power, base under attack, ...)
+try { notifyOn = localStorage.getItem("td_notify") !== "0"; } catch (e) {}
 function sfx(kind) {
   if (!AC || muted) return;
   const t = AC.currentTime, g = AC.createGain(); g.connect(AC.destination);
@@ -2693,13 +2782,20 @@ function drawMinimap() {
     const sh = e.kind === "struct" ? Math.max(2, e.fh * s) : sz;
     mmctx.fillRect((e.x - (e.kind === "struct" ? e.fw / 2 : 0.5)) * s, (e.y - (e.kind === "struct" ? e.fh / 2 : 0.5)) * s, sz, sh);
   }
-  // camera view rectangle
+  // camera view marker — a clean rectangle (perspective trapezoid averaged to a box)
   const [wx1, wy1] = toWorld(0, 42), [wx2, wy2] = toWorld(vw, vh);
   const [wx3, wy3] = toWorld(vw, 42), [wx4, wy4] = toWorld(0, vh);
+  const lmx = (wx1 + wx4) / 2, lmy = (wy1 + wy4) / 2, rmx = (wx3 + wx2) / 2, rmy = (wy3 + wy2) / 2;
+  const bmx = (wx4 + wx2) / 2, bmy = (wy4 + wy2) / 2, tmx = (wx1 + wx3) / 2, tmy = (wy1 + wy3) / 2;
+  const cx = (lmx + rmx) / 2, cy = (lmy + rmy) / 2;               // look-at centre
+  const hrx = (rmx - lmx) / 2, hry = (rmy - lmy) / 2;             // half screen-right axis
+  const hfx = (tmx - bmx) / 2, hfy = (tmy - bmy) / 2;             // half screen-forward axis
+  const P = (a, b) => [(cx + a * hrx + b * hfx) * s, (cy + a * hry + b * hfy) * s];
+  const p1 = P(-1, 1), p2 = P(1, 1), p3 = P(1, -1), p4 = P(-1, -1);
   mmctx.strokeStyle = "rgba(90,240,140,0.95)"; mmctx.lineWidth = 1.4;
   mmctx.beginPath();
-  mmctx.moveTo(wx1 * s, wy1 * s); mmctx.lineTo(wx3 * s, wy3 * s);
-  mmctx.lineTo(wx2 * s, wy2 * s); mmctx.lineTo(wx4 * s, wy4 * s);
+  mmctx.moveTo(p1[0], p1[1]); mmctx.lineTo(p2[0], p2[1]);
+  mmctx.lineTo(p3[0], p3[1]); mmctx.lineTo(p4[0], p4[1]);
   mmctx.closePath(); mmctx.stroke();
   mmctx.restore();
   // themed frame around the radar
@@ -2711,26 +2807,24 @@ function drawMinimap() {
 
 /* ============================== Build UI ============================== */
 let placingSpot = null, dragPlacing = false;
-// begin dragging a structure from the sidebar onto the map (drag-to-build)
+// a FINISHED structure is dragged from the sidebar onto the map to place it
+function structReady(type) { return queues.structure.some(j => j.type === type && j.done); }
 function startDragPlace(type) {
-  if (!running || over) return false;
-  if (!hasProducer("structure")) { sfx("warn"); return false; }
-  if (REQUIRES[type] && !hasStruct(REQUIRES[type])) { eva(T("needs_" + REQUIRES[type])); sfx("warn"); return false; }
+  if (!running || over || !structReady(type)) return false;   // only once it has finished building
   placing = type; dragPlacing = true; sfx("click");
   return true;
 }
-// finish a drag: drop the structure where released and start building it there
+// drop: place the finished building where released, consuming its ready job
 function dropDragPlace() {
   if (!dragPlacing) return;
   const type = placing;
   dragPlacing = false; placing = null;
-  if (!type) return;
-  if (placingSpot && placingSpot[2]) {          // valid spot under the cursor
-    const [gx, gy] = placingSpot;
-    queues.structure.push({ type, t: 0, dur: Math.max(2, STRUCTS[type].cost / 300),
-      done: false, paid: 0, srcId: 0, gx, gy });
-    eva(T("building")); sfx("click");
-  } else { eva(T("badspot")); sfx("warn"); }
+  if (type && placingSpot && placingSpot[2]) {    // valid spot under the cursor
+    spawnStruct(type, placingSpot[0], placingSpot[1], 0);
+    const di = queues.structure.findIndex(j => j.type === type && j.done);
+    if (di >= 0) queues.structure.splice(di, 1);
+    eva(T("ready")); sfx("done");
+  } else if (type) { eva(T("badspot")); sfx("warn"); }
   placingSpot = null;
 }
 function canPlace(type, gx, gy) {
@@ -2767,12 +2861,15 @@ function makeBuildButton(type, q) {
   btn.className = "build-btn"; btn.dataset.type = type; btn.dataset.q = q;
   btn.innerHTML = `<span class="prog"></span><img class="bicon" alt="" src="${iconFor(type, q)}">` +
     `<span class="nm">${T(type)}</span><span class="cost num">$${spec.cost}</span>`;
-  // structures are drag-to-build: press the icon and drag it onto the map
+  // structures: click to BUILD, then drag the finished icon onto the map to place it
   if (q === "structure")
-    btn.addEventListener("mousedown", ev => { if (ev.button === 0) { ev.preventDefault(); startDragPlace(type); } });
+    btn.addEventListener("pointerdown", ev => {
+      if (ev.button != null && ev.button !== 0) return;
+      if (structReady(type)) { ev.preventDefault(); startDragPlace(type); }
+    });
   btn.addEventListener("click", () => {
     if (!running || over) return;
-    if (q === "structure") { eva(T("placement")); return; }   // drag it, don't click
+    if (q === "structure" && structReady(type)) { eva(T("placement")); return; }   // ready → drag it out
     const list = queues[q];
     // every click queues one more — different types build in parallel
     if (!hasProducer(q)) { sfx("warn"); return; }
@@ -2932,6 +3029,8 @@ function refreshButtons() {
     prog.style.width = Math.min(100, p * 100) + "%";
     const qty = btn.querySelector(".qty");
     if (qty) qty.textContent = mine.length > 1 ? "×" + mine.length : "";
+    // a finished structure pulses "ready" — the cue to drag it onto the map
+    btn.classList.toggle("ready", q === "structure" && mine.some(j => j.done));
     const gateMissing = !hasProducer(q) ||
                         (type === "nx_harvester" && !hasStruct("nx_refinery")) ||
                         (REQUIRES[type] && !hasStruct(REQUIRES[type])) || heroBlocked(type);
@@ -3064,11 +3163,12 @@ window.addEventListener("mouseup", ev => {
       else { for (const e of ents) e.sel = false; pick.sel = true; sfx("click"); }
       updateSelInfo();
       syncSidebar(pick);
-    } else if (lmbHadSel) {
-      // units are selected and you clicked ground / an enemy → move or attack there
-      commandAt(mouseX, mouseY);
     } else {
+      // plain left-click on empty ground / enemy: drop the selection ring, but KEEP
+      // any orders already given — the units stay on their way. Commands use right-click / radar.
+      const dropped = ents.some(e => e.sel);
       for (const e of ents) e.sel = false;
+      if (dropped) sfx("click");
       updateSelInfo();
       syncSidebar(null);
     }
@@ -3112,6 +3212,24 @@ function commandAt(cx, cy) {
   }
   return true;
 }
+// order the currently selected player units to a world position (used by the radar/minimap)
+function orderSelectedTo(wx, wy) {
+  const sel = ents.filter(e => e.sel && e.kind === "unit" && e.owner === 0);
+  if (!sel.length) return false;
+  sfx("click");
+  let k = 0;
+  for (const u of sel) {
+    u.target = null; u.boardTarget = null; u.captureTarget = null;
+    if (UNITS[u.type].harvester) {
+      const ci = inMap(wx | 0, wy | 0) && crystal[idx(wx | 0, wy | 0)];
+      u.hstate = ci ? "seek" : "manual";
+    }
+    const a = k * 2.4, r = Math.sqrt(k) * 0.7;
+    orderMove(u, wx + Math.cos(a) * r, wy + Math.sin(a) * r);
+    k++;
+  }
+  return true;
+}
 function tryPlace() {
   if (!placing || !placingSpot) return false;
   const [gx, gy, ok] = placingSpot;
@@ -3127,6 +3245,10 @@ function tryPlace() {
   } else { eva(T("badspot")); sfx("warn"); }
   return true;
 }
+// drag-to-place (mouse + touch): track the cursor for the ghost, drop on release
+window.addEventListener("pointermove", ev => { if (dragPlacing) { mouseX = ev.clientX; mouseY = ev.clientY; } }, { passive: true });
+window.addEventListener("pointerup", () => { if (dragPlacing) dropDragPlace(); });
+window.addEventListener("pointercancel", () => { if (dragPlacing) { dragPlacing = false; placing = null; placingSpot = null; } });
 canvas.addEventListener("contextmenu", ev => {
   ev.preventDefault();
   if (performance.now() < suppressCtxUntil) return;   // right-drag was an orbit
@@ -3149,7 +3271,7 @@ sbtab.addEventListener("click", () => {
 if (Math.min(window.innerWidth, screen.width) < 760) setSidebar(true);
 
 // ---- Touch controls: tap = select / order, drag = pan, pinch = zoom ----
-let touch1 = null, pinchState = null, lastTouchAt = -9999;
+let touch1 = null, pinchState = null, lastTouchAt = -9999, lastTapAt = -9999, lastTapPos = [0, 0];
 const touchGuard = () => performance.now() - lastTouchAt < 700;
 canvas.addEventListener("touchstart", ev => {
   ev.preventDefault();
@@ -3157,18 +3279,17 @@ canvas.addEventListener("touchstart", ev => {
   if (!running) return;
   if (ev.touches.length === 1) {
     const t = ev.touches[0];
-    touch1 = { x: t.clientX, y: t.clientY, sx: t.clientX, sy: t.clientY, moved: false, box: false };
+    // mode: null=undecided, "box"=drag-select, "pan"=explore the map
+    touch1 = { x: t.clientX, y: t.clientY, sx: t.clientX, sy: t.clientY, moved: false, mode: null };
     mouseX = t.clientX; mouseY = t.clientY;
     const armed = touch1;
     setTimeout(() => {
-      // long-press without movement → box-select mode
-      if (touch1 === armed && !touch1.moved && !touch1.box) {
-        touch1.box = true;
-        selBox = { x1: touch1.sx, y1: touch1.sy, x2: touch1.sx, y2: touch1.sy };
-        if (navigator.vibrate) navigator.vibrate(25);
-        sfx("click");
+      // long-press held in place → PAN mode: now dragging explores the map
+      if (touch1 === armed && !touch1.moved && touch1.mode === null) {
+        touch1.mode = "pan";
+        if (navigator.vibrate) navigator.vibrate(20);
       }
-    }, 380);
+    }, 340);
   } else if (ev.touches.length === 2) {
     touch1 = null;
     const dx = ev.touches[0].clientX - ev.touches[1].clientX;
@@ -3184,16 +3305,16 @@ canvas.addEventListener("touchmove", ev => {
   if (!running) return;
   if (ev.touches.length === 1 && touch1) {
     const t = ev.touches[0];
-    if (touch1.box) {
+    if (Math.abs(t.clientX - touch1.sx) + Math.abs(t.clientY - touch1.sy) > 8) touch1.moved = true;
+    // first movement while still undecided → a quick drag box-selects
+    if (touch1.mode === null && touch1.moved) {
+      touch1.mode = "box";
+      selBox = { x1: touch1.sx, y1: touch1.sy, x2: touch1.sx, y2: touch1.sy };
+    }
+    if (touch1.mode === "box") {
       selBox = { x1: Math.min(touch1.sx, t.clientX), y1: Math.min(touch1.sy, t.clientY),
                  x2: Math.max(touch1.sx, t.clientX), y2: Math.max(touch1.sy, t.clientY) };
-      touch1.x = t.clientX; touch1.y = t.clientY;
-      mouseX = t.clientX; mouseY = t.clientY;
-      return;
-    }
-    const dx = t.clientX - touch1.x, dy = t.clientY - touch1.y;
-    if (Math.abs(dx) + Math.abs(dy) > 8) touch1.moved = true;
-    if (touch1.moved) {
+    } else if (touch1.mode === "pan") {
       const w1 = toWorld(touch1.x, touch1.y), w2 = toWorld(t.clientX, t.clientY);
       camX -= w2[0] - w1[0]; camY -= w2[1] - w1[1];
     }
@@ -3216,7 +3337,7 @@ canvas.addEventListener("touchend", ev => {
   lastTouchAt = performance.now();
   if (ev.touches.length < 2) pinchState = null;
   if (!running || !touch1) return;
-  if (touch1.box) {
+  if (touch1.mode === "box") {
     let n = 0;
     if (selBox) {
       for (const e of ents) e.sel = false;
@@ -3232,6 +3353,7 @@ canvas.addEventListener("touchend", ev => {
     if (ev.touches.length === 0) touch1 = null;
     return;
   }
+  if (touch1.mode === "pan") { if (ev.touches.length === 0) touch1 = null; return; }   // was a map pan
   if (!touch1.moved) {
     const cx = touch1.x, cy = touch1.y;
     if (superAim) {
@@ -3242,6 +3364,18 @@ canvas.addEventListener("touchend", ev => {
       return;
     }
     if (!tryPlace()) {
+      // double-tap anywhere drops the selection ring but KEEPS their orders
+      const now = performance.now();
+      const isDouble = now - lastTapAt < 320 && Math.hypot(cx - lastTapPos[0], cy - lastTapPos[1]) < 44;
+      lastTapAt = now; lastTapPos = [cx, cy];
+      if (isDouble) {
+        const had = ents.some(e => e.sel);
+        for (const e of ents) e.sel = false;
+        if (had) sfx("click");
+        updateSelInfo(); syncSidebar(null);
+        if (ev.touches.length === 0) touch1 = null;
+        return;
+      }
       const pick = pickEntity(cx, cy);
       const sel = ents.filter(e => e.sel && e.kind === "unit");
       if (sel.length && (!pick || pick.owner === 1)) commandAt(cx, cy);
@@ -3301,7 +3435,7 @@ function updateSelInfo() {
   else if (sel.length === 1) el.textContent = T(sel[0].type) +
     ((sel[0].cargo || []).length ? " [" + sel[0].cargo.length + "/" +
       ((UNITS[sel[0].type].transport || 0) + (UNITS[sel[0].type].transportVeh || 0)) + "]" : "");
-  else el.textContent = L[lang].nsel(sel.length);
+  else el.textContent = (L[lang]||L.en).nsel(sel.length);
 }
 const deploybtn = document.getElementById("deploybtn");
 deploybtn.addEventListener("click", () => {
@@ -3350,17 +3484,25 @@ mm.addEventListener("mousedown", ev => {
   const k = 1 / 0.7;
   const rx = (px * Math.cos(th) - py * Math.sin(th)) * k;
   const ry = (px * Math.sin(th) + py * Math.cos(th)) * k;
-  camX = Math.max(0, Math.min(MAP, (rx + 97) / (194 / MAP)));
-  camY = Math.max(0, Math.min(MAP, (ry + 97) / (194 / MAP)));
+  const wx = Math.max(0, Math.min(MAP, (rx + 97) / (194 / MAP)));
+  const wy = Math.max(0, Math.min(MAP, (ry + 97) / (194 / MAP)));
+  // with units selected, a radar click sends them there; otherwise it re-centres the camera
+  const hasSel = running && !over && ents.some(e => e.sel && e.kind === "unit" && e.owner === 0);
+  if (hasSel && ev.button !== 1) {
+    orderSelectedTo(wx, wy);
+    eva(T("moving"));
+  } else {
+    camX = wx; camY = wy;
+  }
 });
 
 /* ============================== Language ============================== */
 function applyLang() {
   const rtl = lang === "he";
-  document.getElementById("t-title").textContent = L[lang].title;
-  document.getElementById("t-preview").textContent = L[lang].preview;
-  document.getElementById("t-credits").textContent = L[lang].credits;
-  document.getElementById("t-power").textContent = L[lang].power;
+  document.getElementById("t-title").textContent = (L[lang]||L.en).title;
+  document.getElementById("t-preview").textContent = (L[lang]||L.en).preview;
+  document.getElementById("t-credits").textContent = (L[lang]||L.en).credits;
+  document.getElementById("t-power").textContent = (L[lang]||L.en).power;
 
   document.getElementById("sidebar").dir = rtl ? "rtl" : "ltr";
   document.getElementById("botbar").dir = rtl ? "rtl" : "ltr";
@@ -3373,7 +3515,7 @@ function applyLang() {
     document.getElementById("i-desc").textContent = "An interactive browser preview: a compact skirmish against the Serpent Order, using the real unit stats from the game's data files. Harvest veridium, build your base, repel the waves — and destroy the enemy base.";
     document.getElementById("i-note").textContent = "This is a JavaScript demo — not the full Unity WebGL build. The full game is built in the Unity Editor via Tiberium Dusk → Build → WebGL.";
     document.getElementById("i-controls").innerHTML =
-      "<li><b>Left click / drag</b> — select units</li><li><b>Right click</b> — move / attack</li><li><b>WASD / arrows / middle-drag</b> — pan camera, <b>wheel</b> — zoom, <b>Q/E / right-drag / Ctrl+left-drag</b> — free orbit, <b>R/F</b> — tilt</li><li><b>Sidebar</b> — build (structures are placed by clicking the map); ▶ collapses it</li><li><b>Mobile</b> — tap: select/order, long-press+drag: group select, drag: pan, pinch: zoom, twist two fingers: rotate, slide two fingers up/down: tilt</li>";
+      "<li><b>Left click / drag</b> — select units</li><li><b>Right click</b> — move / attack</li><li><b>Radar</b> — click to look; with units selected, click sends them there</li><li><b>WASD / arrows / middle-drag</b> — pan camera, <b>wheel</b> — zoom, <b>Q/E / right-drag / Ctrl+left-drag</b> — free orbit, <b>R/F</b> — tilt</li><li><b>Sidebar</b> — build; when a structure is <b>ready</b>, drag it onto the map to place it. ▶ collapses it</li><li><b>Mobile</b> — tap: select/order, long-press+drag: group select, drag: pan, pinch: zoom, twist two fingers: rotate, slide two fingers up/down: tilt</li>";
     document.getElementById("startbtn").textContent = "START BATTLE";
   } else {
     document.querySelector("#introcard h1").textContent = "דמדומי טיבריום";
@@ -3381,14 +3523,74 @@ function applyLang() {
     document.getElementById("i-desc").textContent = "תצוגה מקדימה אינטראקטיבית בדפדפן: סקירמיש מוקטן נגד מסדר הנחש, עם נתוני היחידות האמיתיים מקובצי המשחק. קצרו ורידיום, בנו בסיס, הדפו גלים — והשמידו את בסיס האויב.";
     document.getElementById("i-note").textContent = "זו הדגמת JavaScript — לא בניית ה־Unity WebGL המלאה. את המשחק המלא בונים ב־Unity Editor דרך התפריט Tiberium Dusk ← Build ← WebGL.";
     document.getElementById("i-controls").innerHTML =
-      "<li><b>קליק שמאלי / גרירה</b> — בחירת יחידות</li><li><b>קליק ימני</b> — תנועה / תקיפה</li><li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום, <b>Q/E / גרירה בכפתור ימני / Ctrl+שמאלי</b> — סיבוב חופשי, <b>R/F</b> — הטיה</li><li><b>סרגל צד</b> — בנייה (מבנים ממוקמים בקליק על המפה); ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, לחיצה ארוכה+גרירה: בחירת קבוצה, גרירה: מצלמה, צביטה: זום, סיבוב שתי אצבעות: סיבוב המפה, החלקת שתי אצבעות מעלה/מטה: הטיה</li>";
+      "<li><b>קליק שמאלי / גרירה</b> — בחירת יחידות</li><li><b>קליק ימני</b> — תנועה / תקיפה</li><li><b>ראדאר</b> — קליק כדי להתבונן; כשיחידות מסומנות, קליק שולח אותן לשם</li><li><b>WASD / חיצים / גרירת אמצע</b> — הזזת מצלמה, <b>גלגלת</b> — זום, <b>Q/E / גרירה בכפתור ימני / Ctrl+שמאלי</b> — סיבוב חופשי, <b>R/F</b> — הטיה</li><li><b>סרגל צד</b> — בנייה; כשמבנה <b>מוכן</b>, גררו אותו אל המפה כדי למקם. ▶ ממזער אותו</li><li><b>מובייל</b> — הקשה: בחירה/פקודה, לחיצה ארוכה+גרירה: בחירת קבוצה, גרירה: מצלמה, צביטה: זום, סיבוב שתי אצבעות: סיבוב המפה, החלקת שתי אצבעות מעלה/מטה: הטיה</li>";
     document.getElementById("startbtn").textContent = "התחל קרב";
   }
+  syncSettingsUI(rtl);
   buildButtons();
   updateSelInfo();
 }
-document.getElementById("lang-he").addEventListener("click", () => { lang = "he"; applyLang(); });
-document.getElementById("lang-en").addEventListener("click", () => { lang = "en"; applyLang(); });
+// ---- Settings modal ----
+const SETXT = {
+  he: { title: "הגדרות", lang: "שפה", layout: "מיקום סרגל", side: "צד", bottom: "תחתון",
+        team: "צבע קבוצה", notify: "התראות משחק", on: "פעיל", off: "כבוי",
+        note: "בקרוב: טוטוריאל והוראות משחק מלאות." },
+  en: { title: "Settings", lang: "Language", layout: "Sidebar side", side: "Side", bottom: "Bottom",
+        team: "Team color", notify: "Notifications", on: "On", off: "Off",
+        note: "Coming soon: tutorial and full game instructions." },
+};
+function syncSettingsUI(rtl) {
+  const t = SETXT[lang] || SETXT.en;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set("s-title", t.title); set("s-lang-lbl", t.lang); set("s-layout-lbl", t.layout);
+  set("s-side", t.side); set("s-bottom", t.bottom); set("s-team-lbl", t.team);
+  set("s-notify-lbl", t.notify); set("s-notify-on", t.on); set("s-notify-off", t.off);
+  set("s-note", t.note);
+  const card = document.querySelector("#settings-modal .settings-card");
+  if (card) card.dir = rtl ? "rtl" : "ltr";
+  document.querySelectorAll("#s-lang-group button").forEach(b => b.classList.toggle("on", b.dataset.lang === lang));
+  document.querySelectorAll("#s-notify-group button").forEach(b => b.classList.toggle("on", (b.dataset.notify === "1") === notifyOn));
+}
+document.getElementById("lang-he").addEventListener("click", () => { lang = "he"; try { localStorage.setItem("td_lang", lang); } catch (e) {} applyLang(); });
+document.getElementById("lang-en").addEventListener("click", () => { lang = "en"; try { localStorage.setItem("td_lang", lang); } catch (e) {} applyLang(); });
+
+const settingsModal = document.getElementById("settings-modal");
+function openSettings() { settingsModal.classList.remove("hidden"); sfx("click"); }
+function closeSettings() { settingsModal.classList.add("hidden"); }
+document.getElementById("gearbtn").addEventListener("click", openSettings);
+document.getElementById("s-close").addEventListener("click", closeSettings);
+settingsModal.addEventListener("click", e => { if (e.target === settingsModal) closeSettings(); });
+document.querySelectorAll("#s-lang-group button").forEach(b => b.addEventListener("click", () => {
+  lang = b.dataset.lang; try { localStorage.setItem("td_lang", lang); } catch (e) {} applyLang();
+}));
+function setLayout(pos) {
+  document.body.classList.toggle("sb-bottom", pos === "bottom");
+  document.querySelectorAll("#s-layout-group button").forEach(b => b.classList.toggle("on", b.dataset.layout === pos));
+  try { localStorage.setItem("td_layout", pos); } catch (e) {}
+  if (typeof resize === "function") resize();
+}
+document.querySelectorAll("#s-layout-group button").forEach(b => b.addEventListener("click", () => { setLayout(b.dataset.layout); sfx("click"); }));
+function setTeam(hex) {
+  const h = typeof hex === "string" ? parseInt(hex) : hex;
+  if (typeof setTeamColor === "function") setTeamColor(h);
+  document.querySelectorAll("#s-team-group button").forEach(b => b.classList.toggle("on", parseInt(b.dataset.team) === h));
+  try { localStorage.setItem("td_team", "0x" + h.toString(16)); } catch (e) {}
+}
+document.querySelectorAll("#s-team-group button").forEach(b => b.addEventListener("click", () => { setTeam(b.dataset.team); sfx("click"); }));
+document.querySelectorAll("#s-notify-group button").forEach(b => b.addEventListener("click", () => {
+  notifyOn = b.dataset.notify === "1";
+  document.querySelectorAll("#s-notify-group button").forEach(x => x.classList.toggle("on", x === b));
+  try { localStorage.setItem("td_notify", notifyOn ? "1" : "0"); } catch (e) {}
+  sfx("click");
+}));
+// restore saved preferences
+try {
+  const sl = localStorage.getItem("td_lang"); if (sl && (L[sl] || ["es", "zh", "hi"].includes(sl))) lang = sl;
+  const slay = localStorage.getItem("td_layout"); if (slay === "bottom") document.body.classList.add("sb-bottom");
+  const stm = localStorage.getItem("td_team"); if (stm && typeof setTeamColor === "function") setTeamColor(parseInt(stm));
+  document.querySelectorAll("#s-layout-group button").forEach(b => b.classList.toggle("on", b.dataset.layout === (slay === "bottom" ? "bottom" : "side")));
+  document.querySelectorAll("#s-team-group button").forEach(b => b.classList.toggle("on", parseInt(b.dataset.team) === (stm ? parseInt(stm) : TEAM_COLOR)));
+} catch (e) {}
 
 // ---- Sound on/off ----
 const mutebtn = document.getElementById("mutebtn");
@@ -4032,6 +4234,15 @@ function updateFog() {
 
 /* ---------- entity view objects ---------- */
 const views = new Map();     // ent id -> view record
+// change the player's team colour: rebuild unit views + sidebar icons so the
+// new accent takes effect immediately
+function setTeamColor(hex) {
+  TEAM_COLOR = hex;
+  for (const [, v] of views) scene.remove(v.wrap);
+  views.clear();
+  for (const k in ICONS3D) delete ICONS3D[k];
+  if (typeof buildButtons === "function") buildButtons();
+}
 // shared faded-gray material used to tint powered-down buildings
 const GRAY_MAT = new THREE.MeshStandardMaterial({ color: 0x44443f, roughness: 1, metalness: 0 });
 const selRingGeo = new THREE.RingGeometry(0.68, 0.8, 24);
@@ -4661,7 +4872,7 @@ function frame(now) {
     step(dt);
     if (evaTimer > 0) { evaTimer -= dt; if (evaTimer <= 0) document.getElementById("evalog").textContent = ""; }
   }
-  document.getElementById("credits").textContent = credits + " ∞";
+  document.getElementById("credits").textContent = Math.floor(credits) + " ∞";
   const frac = powerOut > 0 ? Math.min(1, powerOut / Math.max(powerUse, 1)) : 0;
   const pb = document.getElementById("powerbar");
   pb.style.width = (powerUse > powerOut ? 30 : 40 + frac * 60) + "%";
@@ -4676,3 +4887,6 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 </script>
+
+</body>
+</html>

@@ -604,6 +604,15 @@ function updateFog() {
 
 /* ---------- entity view objects ---------- */
 const views = new Map();     // ent id -> view record
+// change the player's team colour: rebuild unit views + sidebar icons so the
+// new accent takes effect immediately
+function setTeamColor(hex) {
+  TEAM_COLOR = hex;
+  for (const [, v] of views) scene.remove(v.wrap);
+  views.clear();
+  for (const k in ICONS3D) delete ICONS3D[k];
+  if (typeof buildButtons === "function") buildButtons();
+}
 // shared faded-gray material used to tint powered-down buildings
 const GRAY_MAT = new THREE.MeshStandardMaterial({ color: 0x44443f, roughness: 1, metalness: 0 });
 const selRingGeo = new THREE.RingGeometry(0.68, 0.8, 24);

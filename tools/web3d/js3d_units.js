@@ -44,7 +44,7 @@ var UNIT_BUILDERS = (function () {
       H.box(root, 0, -0.5, 0.58, 0.6, 0.2, 0.14, dark);
       turretH = 0.56; barL = 0.85; ts = 1.3;
     }
-    const accent = fac === "dm" ? 0xd7a838 : 0xc0303a;   // faction team-colour band
+    const accent = fac === "dm" ? TEAM_COLOR : 0xc0303a;   // faction team-colour band
     const tur = H.group(root);
     tur.position.set(0, 0, turretH);
     H.rod(tur, 0, 0, 0.02, 0.26 * ts, 0.10, dark, { rx: 0 });
@@ -69,7 +69,7 @@ var UNIT_BUILDERS = (function () {
     const armor = faction === "dm" ? C.DM_ARMOR : C.SO_ARMOR;
     const dark = faction === "dm" ? C.DM_DARK : C.SO_DARK;
     // bright faction accent for a clear team-colour read from the iso camera
-    const accent = faction === "dm" ? 0xd7a838 : 0xc0303a;
+    const accent = faction === "dm" ? TEAM_COLOR : 0xc0303a;
     const heavy = kind === "heavy";
     const w = heavy ? 1.15 : 1.0;
     const la = pose === 1 ? 22 : 6;
@@ -332,7 +332,7 @@ var UNIT_BUILDERS = (function () {
       H.rod(root, s * 0.38, -0.5, 0.4, 0.045, 0.28, C.GUNMETAL, { rx: 0 });
     }
     H.box(root, 0, -1.18, 0.92, 0.08, 0.3, 0.52, C.DM_ARMOR);           // tail fin
-    H.box(root, 0, 0.1, 0.72, 0.66, 0.06, 0.16, 0xd7a838);             // GDI team stripe
+    H.box(root, 0, 0.1, 0.72, 0.66, 0.06, 0.16, TEAM_COLOR);             // GDI team stripe
     H.ball(root, 0, 1.0, 0.7, 0.05, C.RED, { e: true });               // nose beacon
     const rotor = H.group(root);                                        // main rotor (spun by engine)
     rotor.position.set(0, 0.05, 1.18);
