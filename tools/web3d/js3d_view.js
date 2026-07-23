@@ -72,9 +72,35 @@ groundTex.encoding = THREE.sRGBEncoding;
 groundTex.anisotropy = maxAniso;
 groundTex.generateMipmaps = true;
 groundTex.minFilter = THREE.LinearMipmapLinearFilter;
-const waterBump = groundTex.clone();
-waterBump.needsUpdate = true;
-waterBump.anisotropy = maxAniso;
+// realistic water: a seamless, animated ripple NORMAL map built from layered
+// sine waves (finite-difference normals). Two copies scroll in different
+// directions for a convincing living surface.
+function makeRippleNormal() {
+  const S = 256, c = document.createElement("canvas"); c.width = c.height = S;
+  const g = c.getContext("2d"), img = g.createImageData(S, S), TAU = Math.PI * 2;
+  const hAt = (x, y) =>
+    Math.sin((x * 3 + y * 2) / S * TAU) +
+    Math.sin((x * 5 - y * 4) / S * TAU) * 0.7 +
+    Math.sin((x * 9 + y * 8) / S * TAU) * 0.4 +
+    Math.sin((x * 14 - y * 11) / S * TAU) * 0.22;
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const dx = hAt(x + 1, y) - hAt(x - 1, y);
+    const dy = hAt(x, y + 1) - hAt(x, y - 1);
+    let nx = -dx * 0.5, ny = -dy * 0.5, nz = 1;
+    const L = Math.hypot(nx, ny, nz);
+    const o = (y * S + x) * 4;
+    img.data[o] = (nx / L * 0.5 + 0.5) * 255;
+    img.data[o + 1] = (ny / L * 0.5 + 0.5) * 255;
+    img.data[o + 2] = (nz / L * 0.5 + 0.5) * 255;
+    img.data[o + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = maxAniso;
+  return t;
+}
+const waterNorm = makeRippleNormal();
 
 /* soft radial blob for grounding shadows under objects */
 const blobTex = (() => {
@@ -253,50 +279,24 @@ let fogMesh = null, fogTimer = 0;
 
 const T_COLORS = [0x5a4c31, 0x4a3d27, 0x4e4129, 0x1d5a72];
 
-// Build the world's surroundings once per map: a huge outer desert plane
-// (kills the square cliff edge), an irregular ring of distant mountains,
-// and a decorative lake. All static, merged, and outside the fog.
+// The reachable map is an island of light: everything beyond the play field
+// sinks into darkness (a dark void floor + a low, dark, distant mountain
+// silhouette) so the world never looks like reachable terrain that's cut off.
 let surround = null;
 function buildSurroundings() {
   if (surround) { scene.remove(surround); surround.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); }
   surround = new THREE.Group();
-  const C = MAP / 2, EXT = MAP * 1.9;
+  const C = MAP / 2, EXT = MAP * 3;
 
-  // outer desert: one big plane coplanar with the play field, textured
+  // A clean dark void beyond the reachable map — nothing unreachable is drawn,
+  // so the playable field reads as an island of light bounded by darkness
+  // (the same navy as the fog shroud, blended into the scene fog at distance).
   const outer = new THREE.Mesh(
     new THREE.PlaneGeometry(EXT * 2, EXT * 2, 1, 1),
-    new THREE.MeshStandardMaterial({ color: 0x53472c, map: groundTex, roughness: 1 }));
-  const uva = outer.geometry.attributes.uv;
-  for (let i = 0; i < uva.array.length; i++) uva.array[i] *= EXT * 0.34;
-  uva.needsUpdate = true;
-  outer.position.set(C, C, -0.06);
-  outer.receiveShadow = true;
+    new THREE.MeshBasicMaterial({ color: 0x070a10, fog: true }));
+  outer.position.set(C, C, -0.34);             // just below the play field
   surround.add(outer);
 
-  // decorative lake on one flank (view-only) — real water look, big
-  const lake = new THREE.Mesh(new THREE.CircleGeometry(MAP * 0.42, 40),
-    new THREE.MeshStandardMaterial({ color: 0x225f82, roughness: 0.1, metalness: 0.5,
-      transparent: true, opacity: 0.92, emissive: 0x0d3a52, emissiveIntensity: 0.5 }));
-  lake.position.set(C - EXT * 0.7, C + MAP * 0.3, -0.03);
-  lake.scale.set(1.5, 1, 1);
-  surround.add(lake);
-
-  // mountain ring: irregular peaks in an annulus around the play field
-  const ringGrp = new THREE.Group();
-  const N = 46;
-  for (let i = 0; i < N; i++) {
-    const a = (i / N) * Math.PI * 2 + ((i * 37) % 10 - 5) * 0.03;
-    const rad = MAP * (0.82 + ((i * 53) % 100) / 100 * 0.7);        // 0.82–1.52 × MAP
-    const mx = C + Math.cos(a) * rad, my = C + Math.sin(a) * rad;
-    const v = i % 8;
-    const m = PROP_BUILDERS.mountain(H, v);
-    H.fitTo(m.root, m.fit * (1.1 + (i % 4) * 0.35));                // big and varied
-    m.root.position.x += mx; m.root.position.y += my;
-    ringGrp.add(m.root);
-  }
-  surround.add(mergeGroupStatic(ringGrp));
-
-  // a soft low haze band sitting on the horizon behind the mountains
   scene.add(surround);
 }
 
@@ -338,7 +338,12 @@ function buildWorld() {
     else if (hc > 0.7) hex = grassCell[i] ? 0x5b6a3a : 0x5f5334;   // upper slopes
     cc.setHex(hex);
     const shade = 0.94 + ((x * 13 + y * 29) % 11) / 11 * 0.12;     // gentle variation
-    cellCol[i * 3] = cc.r * shade; cellCol[i * 3 + 1] = cc.g * shade; cellCol[i * 3 + 2] = cc.b * shade;
+    // edge fade: the last few cells darken toward the void so the map reads
+    // as an island of light, not terrain sliced off by a hard border
+    const edge = Math.min(x, y, MAP - 1 - x, MAP - 1 - y);
+    const ef = edge >= 4 ? 1 : 0.42 + 0.58 * (edge / 4);   // gentle vignette into the void
+    const s = shade * ef;
+    cellCol[i * 3] = cc.r * s; cellCol[i * 3 + 1] = cc.g * s; cellCol[i * 3 + 2] = cc.b * s;
   }
   // bilinear colour sample at any continuous point → smooth transitions
   const sampleCol = (wx, wy, out) => {
@@ -383,28 +388,55 @@ function buildWorld() {
   terr.receiveShadow = true;
   worldGroup.add(terr);
 
-  // water surface: a real body of water — depth-graded colour (bright teal at
-  // the shallows, deep navy in the middle), subdivided so waves ripple smoothly
-  const waterShore = (x, y) => {              // cells out to the nearest shore (capped)
-    for (let r = 1; r <= 5; r++)
-      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+  // water surface: a smooth, realistic body of water. The mesh is DILATED one
+  // cell past the shoreline and tucked UNDER the (higher, smoothly-subdivided)
+  // banks, so the visible waterline follows the smooth terrain instead of hard
+  // cell steps; depth is sampled per-vertex for a seamless shallow→deep gradient.
+  const isWater = (x, y) => inMap(x, y) && terrain[idx(x, y)] === 3;
+  const nearWater = (x, y) => {
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++)
+      if (isWater(x + dx, y + dy)) return true;
+    return false;
+  };
+  // smooth depth field: cells to the nearest shore (0 at/over land), for
+  // per-vertex bilinear sampling → no concentric "contour ring" banding
+  const depthField = new Float32Array(MAP * MAP);
+  for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
+    if (!isWater(x, y)) continue;
+    let d = 6;
+    for (let r = 1; r <= 5; r++) {
+      let hit = false;
+      for (let dy = -r; dy <= r && !hit; dy++) for (let dx = -r; dx <= r; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-        const nx = x + dx, ny = y + dy;
-        if (!inMap(nx, ny) || terrain[idx(nx, ny)] !== 3) return r;   // map edge counts as shore
+        if (!isWater(x + dx, y + dy)) { hit = true; break; }
       }
-    return 6;
+      if (hit) { d = r; break; }
+    }
+    depthField[idx(x, y)] = d;
+  }
+  const sampleDepth = (wx, wy) => {
+    const x = Math.max(0, Math.min(MAP - 1.001, wx - 0.5)), y = Math.max(0, Math.min(MAP - 1.001, wy - 0.5));
+    const x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0;
+    const a = depthField[y0 * MAP + x0], b = depthField[y0 * MAP + x0 + 1];
+    const c = depthField[(y0 + 1) * MAP + x0], e = depthField[(y0 + 1) * MAP + x0 + 1];
+    return a * (1 - fx) * (1 - fy) + b * fx * (1 - fy) + c * (1 - fx) * fy + e * fx * fy;
   };
   const wpos = [], wuv = [], wcol = [], widx = [];
   const WSUB = 2; let wv = 0;
-  const cShallow = new THREE.Color(0x3ba7c6), cDeep = new THREE.Color(0x0a2c4c), _wc = new THREE.Color();
+  const cShallow = new THREE.Color(0x49b6d0), cDeep = new THREE.Color(0x114063),
+        cFoam = new THREE.Color(0xd6eef2), _wc = new THREE.Color();
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
-    if (terrain[idx(x, y)] !== 3) continue;
-    const depth = Math.min(1, (waterShore(x, y) - 1) / 4);           // 0 at shore → 1 deep
-    _wc.copy(cShallow).lerp(cDeep, depth);
+    if (!nearWater(x, y)) continue;            // dilated one cell under the banks
     const base = wv;
     for (let sy = 0; sy <= WSUB; sy++) for (let sx = 0; sx <= WSUB; sx++) {
-      wpos.push(x + sx / WSUB, y + sy / WSUB, -0.06);
-      wuv.push((x + sx / WSUB) * 0.5, (y + sy / WSUB) * 0.5);
+      const wx = x + sx / WSUB, wy = y + sy / WSUB;
+      const dep = Math.min(1, sampleDepth(wx, wy) / 4);
+      _wc.copy(cShallow).lerp(cDeep, dep);
+      if (dep < 0.14) _wc.lerp(cFoam, (0.14 - dep) / 0.14 * 0.5);     // soft foam at the waterline
+      const edge = Math.min(wx, wy, MAP - wx, MAP - wy);
+      if (edge < 4) _wc.multiplyScalar(0.35 + 0.65 * (edge / 4));
+      wpos.push(wx, wy, -0.05);
+      wuv.push(wx * 0.5, wy * 0.5);
       wcol.push(_wc.r, _wc.g, _wc.b);
       wv++;
     }
@@ -422,9 +454,10 @@ function buildWorld() {
     wg.setAttribute("color", new THREE.Float32BufferAttribute(wcol, 3));
     wg.setIndex(widx); wg.computeVertexNormals();
     waterMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.05,
-      metalness: 0.55, transparent: true, opacity: 0.9, emissive: 0x0a3350, emissiveIntensity: 0.4,
-      bumpMap: waterBump, bumpScale: 0.12, envMapIntensity: 1.5 });
+      metalness: 0.45, transparent: true, opacity: 0.9, emissive: 0x0c3a58, emissiveIntensity: 0.3,
+      normalMap: waterNorm, normalScale: new THREE.Vector2(0.55, 0.55), envMapIntensity: 1.9 });
     waterMesh = new THREE.Mesh(wg, waterMat);
+    waterMesh.renderOrder = 1;
     worldGroup.add(waterMesh);
   } else { waterMesh = null; waterGeoBase = null; }
 
@@ -541,8 +574,10 @@ function updateFog() {
   for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++) {
     const i = idx(x, y), o = i * 4;
     if (explored[i]) count++;
-    img.data[o] = 8; img.data[o + 1] = 13; img.data[o + 2] = 20;   // dark navy shroud (not a black void)
-    img.data[o + 3] = !explored[i] ? 255 : (!visible[i] ? 125 : 0);
+    // unexplored = solid black (heights, water, everything hidden until scouted);
+    // explored-but-unseen = dimmed; currently-visible = clear
+    img.data[o] = 3; img.data[o + 1] = 4; img.data[o + 2] = 6;
+    img.data[o + 3] = !explored[i] ? 255 : (!visible[i] ? 120 : 0);
   }
   exploredCount = count;
   sctx.putImageData(img, 0, 0);
@@ -1091,18 +1126,18 @@ function draw() {
   fogTimer -= dt;
   if (fogTimer <= 0) { fogTimer = 0.15; updateFog(); }
   if (waterMat) {
-    waterMat.emissiveIntensity = 0.4 + Math.sin(tSec * 1.4) * 0.18;
-    waterBump.offset.set(tSec * 0.014, tSec * 0.009);   // drifting ripples
+    waterMat.emissiveIntensity = 0.3 + Math.sin(tSec * 1.4) * 0.14;
+    waterNorm.offset.set(tSec * 0.020, tSec * 0.013);    // ripples drift one way
+    waterNorm.repeat.set(3, 3);
     // gentle rolling wave displacement on the water vertices
     if (waterMesh && waterGeoBase) {
       const p = waterMesh.geometry.attributes.position;
       for (let i = 0; i < p.count; i++) {
         const bx = waterGeoBase[i * 3], by = waterGeoBase[i * 3 + 1];
-        p.array[i * 3 + 2] = -0.06 + Math.sin(bx * 1.3 + tSec * 1.8) * 0.03
+        p.array[i * 3 + 2] = -0.05 + Math.sin(bx * 1.3 + tSec * 1.8) * 0.03
           + Math.cos(by * 1.7 - tSec * 1.4) * 0.025;
       }
-      p.needsUpdate = true;
-      waterMesh.geometry.computeVertexNormals();
+      p.needsUpdate = true;    // ripple lighting comes from the animated normal map (no costly normal recompute)
     }
   }
   edgeScroll(dt);
