@@ -1019,9 +1019,10 @@ function drawGhost() {
     for (let y = gy; y < gy + b.fh; y++) for (let x = gx; x < gx + b.fw; x++) {
       if (!inMap(x, y)) continue;
       let m = ghostPool[gi];
-      if (!m) { m = new THREE.Mesh(ghostGeo, addMat(0x37e86e, 0.4)); m.renderOrder = 6; scene.add(m); ghostPool.push(m); }
+      if (!m) { m = new THREE.Mesh(ghostGeo, addMat(0x37e86e, 0.4)); scene.add(m); ghostPool.push(m); }
+      m.material.depthTest = false; m.renderOrder = 20;   // always drawn ON TOP of the map, never sunk under it
       gi++;
-      m.position.set(x + 0.5, y + 0.5, 0.07);
+      m.position.set(x + 0.5, y + 0.5, heightAt(x + 0.5, y + 0.5) + 0.18);
       m.material.color.set(ok ? 0x37e86e : 0xd8404a);
       m.visible = true;
     }
@@ -1032,9 +1033,10 @@ function drawGhost() {
       for (let y = placeLock[1]; y < placeLock[1] + b.fh; y++) for (let x = placeLock[0]; x < placeLock[0] + b.fw; x++) {
         if (!inMap(x, y)) continue;
         let m = ghostPool[gi];
-        if (!m) { m = new THREE.Mesh(ghostGeo, addMat(0x37e86e, 0.4)); m.renderOrder = 6; scene.add(m); ghostPool.push(m); }
+        if (!m) { m = new THREE.Mesh(ghostGeo, addMat(0x37e86e, 0.4)); scene.add(m); ghostPool.push(m); }
+        m.material.depthTest = false; m.renderOrder = 21;
         gi++;
-        m.position.set(x + 0.5, y + 0.5, 0.1);
+        m.position.set(x + 0.5, y + 0.5, heightAt(x + 0.5, y + 0.5) + 0.22);
         m.material.color.set(okL ? 0xf2bf26 : 0xd8404a);   // gold = marked, click again to confirm
         m.visible = true;
       }
