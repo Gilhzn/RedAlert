@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: harvester-2000-per-run --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: no-unit-ready-popup --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -2495,7 +2495,7 @@ function step(dt) {
           // exit from the FRONT of the building (structures face -Y in the world)
           const u = spawnUnit(job.type, src.x + (rnd() - 0.5) * 0.8, src.y - src.fh / 2 - 0.7, 0);
           orderMove(u, src.x + (rnd() - 0.5) * 3, src.y - src.fh / 2 - 2 - rnd() * 1.5);
-          eva(T("unitready"), "good"); sfx("done");
+          sfx("done");   // subtle audio cue only — no "unit ready" popup
         }
         list.splice(j, 1);                    // job done, drop it
       }
