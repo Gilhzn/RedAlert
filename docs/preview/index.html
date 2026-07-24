@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: no-unit-ready-popup --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: no-structure-ready-popup --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -2486,7 +2486,7 @@ function step(dt) {
       job.t = job.paid / spec.cost * job.dur;                // progress tracks money spent
       if (job.paid < spec.cost - 0.01) continue;             // not fully paid → keep building (or stalled)
       if (q === "structure") {
-        if (!job.done) { job.done = true; eva(T("placement")); sfx("done"); }   // ready → drag it onto the map
+        if (!job.done) { job.done = true; sfx("done"); }   // ready → the sidebar button pulses; no popup
       } else {
         let src = job.srcId ? ents.find(e => !e.dead && e.id === job.srcId) : null;
         if (!src) src = ents.find(e => !e.dead && e.owner === 0 && e.kind === "struct" &&
