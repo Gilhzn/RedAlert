@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: no-structure-ready-popup --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: campaign-tutorial-cosmetics --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -413,6 +413,54 @@
   #end-rewards .unlock { font-size: 12px; color: var(--gold); }
   #end-rewards .unlock b { color: var(--phosphor); font-weight: normal; }
 
+  /* campaign mission list */
+  .mis { position: relative; display: flex; align-items: center; gap: 12px; padding: 11px 12px;
+    border: 1px solid var(--phos-faint); border-radius: var(--r-sm); margin-bottom: 8px;
+    background: rgba(12,22,16,0.5); cursor: pointer; transition: all .14s; }
+  .mis:hover { border-color: var(--phos-dim); background: rgba(55,232,110,0.07); }
+  .mis.locked { opacity: 0.45; cursor: default; }
+  .mis.done { border-inline-start: 3px solid var(--veridium); }
+  .mis .mno { font-size: 20px; font-weight: 900; color: var(--gold); min-width: 30px; text-align: center; }
+  .mis .mtt { flex: 1; }
+  .mis .mtt .mt { font-size: 14px; color: var(--phosphor); }
+  .mis .mtt .md { font-size: 11px; color: #9dbfa8; line-height: 1.4; margin-top: 2px; }
+  .mis .mst { font-size: 16px; }
+  .mis .mgo { font-size: 12px; color: var(--amber); border: 1px solid rgba(255,201,77,0.5);
+    border-radius: var(--r-sm); padding: 6px 12px; }
+
+  /* cosmetics grid */
+  .cos-sub { font-size: 11px; letter-spacing: 2px; color: var(--phos-dim); text-transform: uppercase; margin: 14px 0 8px; }
+  .cos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+  .cos { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 9px 5px 7px; border: 1px solid var(--phos-faint); border-radius: var(--r-sm);
+    background: rgba(12,22,16,0.5); cursor: pointer; transition: all .13s; }
+  .cos:hover { border-color: var(--phos-dim); }
+  .cos.on { border-color: var(--phosphor); box-shadow: 0 0 12px rgba(55,232,110,0.25); background: rgba(55,232,110,0.08); }
+  .cos .sw { width: 34px; height: 34px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); }
+  .cos .em { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .cos .cn { font-size: 10.5px; color: var(--phosphor); text-align: center; }
+  .cos.locked { opacity: 0.6; }
+  .cos.locked .sw, .cos.locked .em { filter: grayscale(0.7) brightness(0.7); }
+  .cos .lk { font-size: 9.5px; color: var(--gold); }
+  .cos .lk.rank { color: var(--azurite); }
+  .cos-credits { font-size: 12px; color: var(--gold); margin-top: 4px; }
+
+  /* tutorial hint */
+  #tut-hint { position: fixed; top: calc(env(safe-area-inset-top,0px) + 58px); left: 50%; transform: translateX(-50%);
+    z-index: 25; max-width: 460px; width: calc(100% - 32px); pointer-events: none;
+    background: rgba(10,18,13,0.94); border: 1px solid var(--phosphor); border-radius: var(--r-sm);
+    box-shadow: 0 0 22px rgba(55,232,110,0.28); padding: 12px 16px; text-align: center;
+    animation: tutIn .3s var(--ease); }
+  #tut-hint.hidden { display: none; }
+  #tut-hint .ts { font-size: 10.5px; letter-spacing: 2px; color: var(--gold); text-transform: uppercase; }
+  #tut-hint .tt { font-size: 14.5px; color: var(--phosphor); line-height: 1.5; margin-top: 4px; }
+  #tut-hint .tdots { display: flex; gap: 5px; justify-content: center; margin-top: 8px; }
+  #tut-hint .tdots i { width: 7px; height: 7px; border-radius: 50%; background: var(--phos-faint); }
+  #tut-hint .tdots i.on { background: var(--phosphor); box-shadow: 0 0 6px rgba(55,232,110,0.6); }
+  #tut-hint .tdots i.done { background: var(--veridium); }
+  @keyframes tutIn { from { opacity: 0; transform: translate(-50%, -10px); } }
+  @media (max-width: 760px) { #tut-hint { top: calc(env(safe-area-inset-top,0px) + 52px); } }
+
   @media (max-width: 760px) {
     #menu-inner { padding: 12px 14px 8px; }
     #menu-body { grid-template-columns: 1fr; gap: 12px; }
@@ -488,6 +536,7 @@
 
 <div id="superbar" class="hud"></div>
 <div id="toasts"></div>
+<div id="tut-hint" class="hidden"><div class="ts"></div><div class="tt"></div><div class="tdots"></div></div>
 
 <div id="botbar" class="hud" dir="rtl">
   <span id="selinfo"></span>
@@ -4274,8 +4323,11 @@ function achDesc(id) { const a = ACHS.find(x => x.id === id); return a ? (lang =
 // per-match live counters, reset by makeWorld
 function freshMatchStats() { return { unitsBuilt: 0, offBuilt: 0, structLost: 0, harvested: 0, peakUnits: 0, lowArmy: null, sampleAcc: 0 }; }
 let matchStats = freshMatchStats();
-let curMode = "skirmish";
+let curMode = "skirmish", curMission = null;
 let menuIdle = false, menuT = 0, baseYaw = null;
+let tutorialActive = false, tutStep = 0, tutStartUnits = 0;
+let pcos  = tdLoad("cosmetics", { unlocked: [], equipped: { color: "gold", emblem: "none" } });
+let pcamp = tdLoad("campaign",  { done: {} });
 
 function dailyKey(d) { d = d || new Date(); return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0"); }
 function dailySeed(d) { d = d || new Date(); const k = d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
@@ -4321,6 +4373,11 @@ function recordMatch(win) {
   tdSave("achievements", pach);
   const others = ACHS.filter(a => a.id !== "completionist");
   if (others.every(a => pach[a.id]) && !pach["completionist"]) { pach["completionist"] = 1; unlocked.push("completionist"); tdSave("achievements", pach); }
+
+  // campaign progress: a win banks the mission and unlocks the next
+  if (win && curMode === "campaign" && curMission && !pcamp.done[curMission.id]) {
+    pcamp.done[curMission.id] = 1; tdSave("campaign", pcamp); xp += 60; cr += 80;
+  }
 
   const before = rankIndex(profile.xp);
   profile.xp += xp; profile.credits += cr;
@@ -4379,7 +4436,11 @@ const MENUTXT = {
         stat_wins: "נצחונות", stat_streak: "רצף", callsign: "כינוי", callsign_ph: "הזינו כינוי",
         mainmenu: "תפריט ראשי", rankup: "עלייה בדרגה!", unlocked: "נפתח:", of: "מתוך",
         diffs: ["קל", "בינוני", "קשה", "קשה מאוד", "אכזרי"], build: "גרסה",
-        daily_streak: "רצף יומי", best: "שיא" },
+        daily_streak: "רצף יומי", best: "שיא",
+        campaign: "קמפיין", camp_sub: "מסע קרבות מדורג. סיימו משימה כדי לפתוח את הבאה. התחילו מהאימון המודרך.",
+        mis_start: "התחל", tut_title: "★ אימון בסיסי", tut_desc: "לומדים לשחק צעד-אחר-צעד: בחירה, תנועה, בנייה, קצירה וקרב.",
+        cosmetics: "קוסמטיקה", cos_sub: "התאימו אישית את הצבא. פריטים נפתחים בדרגה או נקנים בקרדיטים שצברתם בקרבות.",
+        cos_credits: "קרדיטים", cos_colors: "צבע צבא", cos_emblems: "סמל" },
   en: { tagline: "Tiberium Dusk · 3D Real-Time Strategy", quickplay: "▶ QUICK PLAY", skirmish: "SKIRMISH",
         multiplayer: "MULTIPLAYER", leaderboard: "LEADERBOARD", achievements: "ACHIEVEMENTS", howto: "HOW TO PLAY",
         settings: "SETTINGS", soon: "SOON", start: "DEPLOY FORCES", daily: "🗓️ DAILY CHALLENGE",
@@ -4393,7 +4454,11 @@ const MENUTXT = {
         stat_wins: "Wins", stat_streak: "Streak", callsign: "Callsign", callsign_ph: "Enter callsign",
         mainmenu: "MAIN MENU", rankup: "RANK UP!", unlocked: "Unlocked:", of: "of",
         diffs: ["Easy", "Medium", "Hard", "Very Hard", "Insane"], build: "build",
-        daily_streak: "Daily streak", best: "best" },
+        daily_streak: "Daily streak", best: "best",
+        campaign: "CAMPAIGN", camp_sub: "A graded march of battles. Beat a mission to unlock the next. Start with the guided training.",
+        mis_start: "START", tut_title: "★ Basic Training", tut_desc: "Learn to play step by step: select, move, build, harvest and fight.",
+        cosmetics: "COSMETICS", cos_sub: "Customize your army. Items unlock by rank or are bought with credits earned in battle.",
+        cos_credits: "credits", cos_colors: "ARMY COLOR", cos_emblems: "EMBLEM" },
 };
 function MT(k) { const t = MENUTXT[lang] || MENUTXT.en; return (k in t) ? t[k] : (MENUTXT.en[k] != null ? MENUTXT.en[k] : k); }
 
@@ -4416,10 +4481,12 @@ let menuPane = "skirmish";
 function navDef() {
   return [
     { id: "play",         hero: true },
+    { id: "campaign" },
     { id: "skirmish" },
     { id: "multiplayer",  badge: MT("soon") },
     { id: "leaderboard" },
     { id: "achievements" },
+    { id: "cosmetics" },
     { id: "howto" },
     { id: "settings" },
   ];
@@ -4480,6 +4547,36 @@ function renderPane() {
     h += "<div class='ach-grid'>";
     for (const a of ACHS) h += "<div class='ach" + (pach[a.id] ? " got" : "") + "'><span class='medal'>" + a.m + "</span><div><div class='an'>" + achName(a.id) + "</div><div class='ad'>" + achDesc(a.id) + "</div></div></div>";
     h += "</div>";
+  } else if (p === "campaign") {
+    h += "<div class='ctx-h'>" + MT("campaign") + "</div><div class='ctx-sub'>" + MT("camp_sub") + "</div>";
+    // tutorial row first
+    h += "<div class='mis' id='mis-tut'><div class='mno'>★</div><div class='mtt'><div class='mt'>" + MT("tut_title") + "</div><div class='md'>" + MT("tut_desc") + "</div></div><div class='mgo'>" + MT("mis_start") + "</div></div>";
+    CAMPAIGN.forEach((m, i) => {
+      const unlocked = i === 0 || pcamp.done[CAMPAIGN[i - 1].id];
+      const done = !!pcamp.done[m.id];
+      h += "<div class='mis" + (unlocked ? "" : " locked") + (done ? " done" : "") + "' data-mi='" + i + "'>" +
+        "<div class='mno'>" + (i + 1) + "</div>" +
+        "<div class='mtt'><div class='mt'>" + misText(m, 0) + (done ? " ✓" : "") + "</div><div class='md'>" + misText(m, 1) + "</div></div>" +
+        (unlocked ? "<div class='mgo'>" + MT("mis_start") + "</div>" : "<div class='mst'>🔒</div>") + "</div>";
+    });
+  } else if (p === "cosmetics") {
+    h += "<div class='ctx-h'>" + MT("cosmetics") + "</div><div class='ctx-sub'>" + MT("cos_sub") + "</div>";
+    h += "<div class='cos-credits'>◈ " + (profile.credits | 0).toLocaleString() + " " + MT("cos_credits") + "</div>";
+    h += "<div class='cos-sub'>" + MT("cos_colors") + "</div><div class='cos-grid'>";
+    for (const c of COS_COLORS) {
+      const un = cosUnlocked(c), eq = pcos.equipped.color === c.id;
+      h += "<div class='cos" + (eq ? " on" : "") + (un ? "" : " locked") + "' data-cc='" + c.id + "'>" +
+        "<div class='sw' style='background:#" + c.hex.toString(16).padStart(6, "0") + "'></div>" +
+        "<div class='cn'>" + cosName(c) + "</div>" + cosLock(c, un) + "</div>";
+    }
+    h += "</div>";
+    h += "<div class='cos-sub'>" + MT("cos_emblems") + "</div><div class='cos-grid'>";
+    for (const e of COS_EMBLEMS) {
+      const un = cosUnlocked(e), eq = pcos.equipped.emblem === e.id;
+      h += "<div class='cos" + (eq ? " on" : "") + (un ? "" : " locked") + "' data-ce='" + e.id + "'>" +
+        "<div class='em'>" + e.sym + "</div><div class='cn'>" + cosName(e) + "</div>" + cosLock(e, un) + "</div>";
+    }
+    h += "</div>";
   } else if (p === "howto") {
     h += "<div class='ctx-h'>" + MT("howto_h") + "</div><ul class='ctx-list'>";
     for (const line of (HOWTO[lang] || HOWTO.en)) h += "<li>" + line + "</li>";
@@ -4504,6 +4601,15 @@ function renderPane() {
     ctx.querySelector("#pane-daily").addEventListener("click", () => launchMatch("daily"));
   } else if (p === "settings") {
     ctx.querySelector("#pane-settings").addEventListener("click", () => { if (typeof openSettings === "function") openSettings(); });
+  } else if (p === "campaign") {
+    const tut = ctx.querySelector("#mis-tut"); if (tut) tut.addEventListener("click", () => launchTutorial());
+    ctx.querySelectorAll(".mis[data-mi]").forEach(el => el.addEventListener("click", () => {
+      const i = +el.dataset.mi; const unlocked = i === 0 || pcamp.done[CAMPAIGN[i - 1].id];
+      if (unlocked) launchMission(i); else sfx("warn");
+    }));
+  } else if (p === "cosmetics") {
+    ctx.querySelectorAll(".cos[data-cc]").forEach(el => el.addEventListener("click", () => tryEquipCos(el.dataset.cc, "color")));
+    ctx.querySelectorAll(".cos[data-ce]").forEach(el => el.addEventListener("click", () => tryEquipCos(el.dataset.ce, "emblem")));
   }
 }
 function fmtTime(s) { s = Math.max(0, s | 0); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
@@ -4513,12 +4619,16 @@ function renderRankStrip() {
   const cur = RANKS[ri], nxt = RANKS[ri + 1];
   let pct = 100, xpTxt = MT("maxrank");
   if (nxt) { const span = nxt.xp - cur.xp; pct = Math.round(((profile.xp - cur.xp) / span) * 100); xpTxt = (profile.xp - cur.xp) + " / " + span + " XP " + MT("xpto"); }
+  const em = COS_EMBLEMS.find(e => e.id === (pcos.equipped.emblem || "none"));
+  const emSym = em && em.id !== "none" ? em.sym + " " : "";
   el.innerHTML =
-    "<div class='rk-badge'><span class='chev'>▰</span> " + MT("rank") + " " + (ri + 1) + " · " + rankName(ri) + "</div>" +
+    "<div class='rk-badge'><span class='chev'>" + (emSym || "▰") + "</span> " + MT("rank") + " " + (ri + 1) + " · " + rankName(ri) + "</div>" +
     "<div class='rk-bar'><i style='width:" + Math.max(3, Math.min(100, pct)) + "%'></i></div>" +
     "<div class='rk-xp'>" + xpTxt + " &nbsp;·&nbsp; " + MT("stat_wins") + " " + pstats.wins + "/" + pstats.gamesPlayed + "</div>";
 }
 function openMenu() { reloadPrefs(); menuIdle = true; menuT = 0;
+  tutorialActive = false;
+  const th = document.getElementById("tut-hint"); if (th) th.classList.add("hidden");
   if (baseYaw === null && typeof camYaw !== "undefined") baseYaw = camYaw;   // remember the game's default view angle
   camX = 64; camY = 66; zoom = 0.62;
   try { if (explored) explored.fill(1); } catch (e) {}   // light up the whole world as a cinematic backdrop
@@ -4526,6 +4636,137 @@ function openMenu() { reloadPrefs(); menuIdle = true; menuT = 0;
   document.getElementById("menu").classList.remove("hidden"); renderMenu(); }
 function closeMenu() { menuIdle = false; document.body.classList.remove("menu-open");
   document.getElementById("menu").classList.add("hidden"); }
+
+/* ==================== Cosmetics ==================== */
+// army colours + emblems. unlock:{} = free, {rank:i} = auto at rank index i,
+// {credits:n} = buy once with earned credits. Colours retint the player's units
+// through the existing setTeamColor hook; emblems ride next to your rank badge.
+const COS_COLORS = [
+  { id: "gold",    hex: 0xd7a838, he: "זהב",    en: "Gold",    unlock: {} },
+  { id: "blue",    hex: 0x3a7bd8, he: "כחול",   en: "Blue",    unlock: {} },
+  { id: "green",   hex: 0x40c040, he: "ירוק",   en: "Green",   unlock: {} },
+  { id: "red",     hex: 0xd83a3a, he: "אדום",   en: "Red",     unlock: {} },
+  { id: "cyan",    hex: 0x2fd6c0, he: "טורקיז", en: "Cyan",    unlock: { rank: 2 } },
+  { id: "violet",  hex: 0x9a5cff, he: "סגול",   en: "Violet",  unlock: { rank: 3 } },
+  { id: "orange",  hex: 0xff8c2b, he: "כתום",   en: "Orange",  unlock: { credits: 600 } },
+  { id: "lime",    hex: 0xb6ff3a, he: "ליים",   en: "Lime",    unlock: { rank: 5 } },
+  { id: "crimson", hex: 0xff2d55, he: "ארגמן",  en: "Crimson", unlock: { credits: 1000 } },
+  { id: "ice",     hex: 0x9fe8ff, he: "קרח",    en: "Ice",     unlock: { credits: 1400 } },
+  { id: "magma",   hex: 0xff5a1e, he: "מגמה",   en: "Magma",   unlock: { rank: 7 } },
+  { id: "void",    hex: 0x7a4bff, he: "תהום",   en: "Void",    unlock: { credits: 2500 } },
+];
+const COS_EMBLEMS = [
+  { id: "none",    sym: "▰", he: "ללא",     en: "None",    unlock: {} },
+  { id: "skull",   sym: "☠", he: "גולגולת", en: "Skull",   unlock: {} },
+  { id: "crystal", sym: "◈", he: "גביש",    en: "Crystal", unlock: {} },
+  { id: "bolt",    sym: "⚡", he: "ברק",     en: "Bolt",    unlock: { rank: 2 } },
+  { id: "star",    sym: "✦", he: "כוכב",    en: "Star",    unlock: { rank: 3 } },
+  { id: "flame",   sym: "🔥", he: "להבה",    en: "Flame",   unlock: { credits: 500 } },
+  { id: "wolf",    sym: "🐺", he: "זאב",     en: "Wolf",    unlock: { credits: 900 } },
+  { id: "crown",   sym: "👑", he: "כתר",     en: "Crown",   unlock: { rank: 6 } },
+];
+function cosUnlocked(it) { if (!it.unlock || (it.unlock.rank == null && it.unlock.credits == null)) return true;
+  if (it.unlock.rank != null) return rankIndex(profile.xp) >= it.unlock.rank; return pcos.unlocked.includes(it.id); }
+function cosName(it) { return lang === "he" ? it.he : it.en; }
+function cosLock(it, un) { if (un) return ""; if (it.unlock.rank != null) return "<div class='lk rank'>🔒 " + rankName(it.unlock.rank) + "</div>";
+  if (it.unlock.credits != null) return "<div class='lk'>◈ " + it.unlock.credits + "</div>"; return ""; }
+function applyCosmetics() { const c = COS_COLORS.find(x => x.id === pcos.equipped.color) || COS_COLORS[0];
+  if (typeof setTeamColor === "function") setTeamColor(c.hex);
+  try { localStorage.setItem("td_team", "0x" + c.hex.toString(16)); } catch (e) {} }
+function tryEquipCos(id, kind) {
+  const list = kind === "color" ? COS_COLORS : COS_EMBLEMS; const it = list.find(x => x.id === id); if (!it) return;
+  if (!cosUnlocked(it)) {
+    if (it.unlock && it.unlock.credits != null && profile.credits >= it.unlock.credits) {
+      profile.credits -= it.unlock.credits; if (!pcos.unlocked.includes(id)) pcos.unlocked.push(id);
+      tdSave("profile", profile); tdSave("cosmetics", pcos);
+      if (typeof eva === "function") eva((lang === "he" ? "נפתח: " : "Unlocked: ") + cosName(it), "good"); sfx("done");
+    } else { sfx("warn"); return; }
+  }
+  pcos.equipped[kind] = id; tdSave("cosmetics", pcos);
+  if (kind === "color") applyCosmetics();
+  sfx("click"); renderPane(); renderRankStrip();
+}
+
+/* ==================== Campaign ==================== */
+// each mission tunes seed (fixed map), difficulty, opponent count and starting
+// credits; victory = destroy every enemy base (the standard win). Beating a
+// mission unlocks the next and banks bonus XP/credits.
+const CAMPAIGN = [
+  { id: "c1", seed: 1001, diff: 0, enemies: 1, credits: 7000, he: ["פשיטת פתיחה", "יריב יחיד, אוצר גדול. בססו כלכלה והרסו את בסיסו."],           en: ["Opening Raid", "One foe, deep coffers. Build up and crush their base."] },
+  { id: "c2", seed: 1002, diff: 1, enemies: 1, credits: 5500, he: ["קו האספקה", "האויב מתעורר מהר יותר. הגנו על הקוצרים והכריעו."],             en: ["Supply Line", "The enemy stirs sooner. Guard your harvesters and win."] },
+  { id: "c3", seed: 1003, diff: 1, enemies: 2, credits: 5000, he: ["חזית כפולה", "שני בסיסים עוינים — שנלחמים גם זה בזה. נצלו זאת."],           en: ["Two Fronts", "Two hostile bases — they also fight each other. Exploit it."] },
+  { id: "c4", seed: 1004, diff: 2, enemies: 2, credits: 4500, he: ["מארב במדבר", "יריבים תוקפניים ותקציב מצומצם. כל יחידה נחשבת."],             en: ["Desert Ambush", "Aggressive foes, tight budget. Every unit counts."] },
+  { id: "c5", seed: 1005, diff: 2, enemies: 3, credits: 4500, he: ["לב האפלה", "שלושה בסיסים מקיפים אתכם. הישרדו והשתלטו."],                    en: ["Heart of Darkness", "Three bases surround you. Survive and dominate."] },
+  { id: "c6", seed: 1006, diff: 3, enemies: 3, credits: 4000, he: ["דמדומים אחרונים", "המבחן הסופי: שלושה יריבים קשוחים. הובילו את הצבא לניצחון."], en: ["Last Dusk", "The final test: three hardened foes. Lead your army to victory."] },
+];
+function misText(m, i) { return (lang === "he" ? m.he : m.en)[i]; }
+function beginBattle() {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  closeMenu();
+  if (baseYaw !== null && typeof camYaw !== "undefined") camYaw = baseYaw;
+  document.getElementById("endcard").classList.add("hidden");
+  document.getElementById("tut-hint").classList.add("hidden");
+  tutorialActive = false;
+}
+function launchMission(i) {
+  const m = CAMPAIGN[i]; curMode = "campaign"; curMission = m;
+  seed = m.seed >>> 0; aiDiff = m.diff; numEnemies = m.enemies;
+  beginBattle(); makeWorld(); credits = m.credits; applyCosmetics();
+  running = true; over = false; sfx("done");
+  if (typeof eva === "function") eva(misText(m, 1));
+}
+function launchTutorial() {
+  curMode = "tutorial"; curMission = null;
+  seed = 777; aiDiff = 0; numEnemies = 1;
+  beginBattle(); makeWorld(); credits = 6000; applyCosmetics();
+  running = true; over = false;
+  tutorialActive = true; tutStep = 0;
+  tutStartUnits = ents.filter(e => !e.dead && e.owner === 0 && e.kind === "unit").length;
+  sfx("done"); showTutStep();
+}
+
+/* ---------- Tutorial guided steps ---------- */
+const TUT_STEPS = [
+  { he: ["בחירת יחידות", "גררו מסגרת עם הכפתור השמאלי מעל היחידות שלכם כדי לבחור אותן"],
+    en: ["Select units", "Drag a box with the left button over your units to select them"],
+    done: () => ents.some(e => !e.dead && e.owner === 0 && e.kind === "unit" && e.sel) },
+  { he: ["תנועה", "כשיש יחידות מסומנות — לחצו על הקרקע כדי לשלוח אותן לשם"],
+    en: ["Move", "With units selected, click the ground to send them there"],
+    done: () => ents.some(e => !e.dead && e.owner === 0 && e.kind === "unit" && e.path && e.path.length) },
+  { he: ["בנו בית זיקוק", "בסרגל הצד בחרו בית זיקוק, ואז לחצו על המפה כדי למקם אותו"],
+    en: ["Build a refinery", "In the sidebar pick a Refinery, then click the map to place it"],
+    done: () => ents.some(e => !e.dead && e.owner === 0 && e.type === "nx_refinery") },
+  { he: ["קצירה", "הקוצר אוסף ורידיום מהמכרות ומחזיר אשראי — המתינו למשלוח הראשון"],
+    en: ["Harvest", "Your harvester mines veridium and banks credits — wait for the first delivery"],
+    done: () => (matchStats && matchStats.harvested >= 2000) },
+  { he: ["חשמל", "בנו תחנת כוח כדי להזין את הבסיס ולזרז בנייה"],
+    en: ["Power up", "Build a Power Plant to feed the base and speed up construction"],
+    done: () => ents.some(e => !e.dead && e.owner === 0 && e.type === "dm_power_plant") },
+  { he: ["בנו יחידה", "הקימו קסרקטין או מפעל ואמנו יחידה קרבית אחת"],
+    en: ["Build a unit", "Put up a Barracks or War Factory and train one combat unit"],
+    done: () => (matchStats && matchStats.unitsBuilt >= 1) },
+  { he: ["השמידו את האויב", "הובילו את הכוח שלכם והרסו את בסיס האויב כדי לנצח!"],
+    en: ["Destroy the enemy", "Lead your force and wipe out the enemy base to win!"],
+    done: () => false },
+];
+function showTutStep() {
+  const el = document.getElementById("tut-hint");
+  if (tutStep >= TUT_STEPS.length) { el.classList.add("hidden"); return; }
+  const s = TUT_STEPS[tutStep], t = (lang === "he" ? s.he : s.en);
+  el.querySelector(".ts").textContent = (lang === "he" ? "שלב " : "Step ") + (tutStep + 1) + "/" + TUT_STEPS.length + " · " + t[0];
+  el.querySelector(".tt").textContent = t[1];
+  let dots = ""; for (let i = 0; i < TUT_STEPS.length; i++) dots += "<i class='" + (i < tutStep ? "done" : (i === tutStep ? "on" : "")) + "'></i>";
+  el.querySelector(".tdots").innerHTML = dots;
+  el.classList.remove("hidden"); el.dir = lang === "he" ? "rtl" : "ltr";
+}
+function checkTutorial() {
+  if (!tutorialActive || tutStep >= TUT_STEPS.length) return;
+  if (TUT_STEPS[tutStep].done()) {
+    tutStep++; sfx("done");
+    if (tutStep >= TUT_STEPS.length) document.getElementById("tut-hint").classList.add("hidden");
+    else showTutStep();
+  }
+}
 
 /* Tiberium Dusk — real-time 3D view (Three.js r128, Z-up).
    Replaces the 2D sprite renderer: provides toScreen/toWorld/draw()/iconFor
@@ -5781,6 +6022,7 @@ window.addEventListener("resize", resize);
 resize();
 makeWorld();
 applyLang();
+if (typeof applyCosmetics === "function") applyCosmetics();   // restore the equipped army colour
 openMenu();          // land on the main menu with the cinematic battlefield behind it
 
 let last = performance.now();
@@ -5811,6 +6053,7 @@ function frame(now) {
     camX = Math.max(0, Math.min(MAP, camX));
     camY = Math.max(0, Math.min(MAP, camY));
     step(dt);
+    if (tutorialActive) checkTutorial();   // advance the guided tutorial as the player acts
     if (evaTimer > 0) { evaTimer -= dt; if (evaTimer <= 0) document.getElementById("evalog").textContent = ""; }
   } else if (menuIdle) {
     // cinematic idle drift behind the main menu — a slow dolly + orbit over the field
