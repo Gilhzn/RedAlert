@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: campaign-tutorial-cosmetics --></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><!-- build: bridges-hidden-until-discovered --></head>
 <body>
 <title>Tiberium Dusk — תצוגה מקדימה</title>
 <style>
@@ -3337,6 +3337,8 @@ function drawMinimap() {
     if (e.dead) continue;
     if (!radarOn && !(e.owner === 0 && e.kind === "struct")) continue;
     if (e.owner === 1 && !visible[idx(Math.min(MAP-1, e.x|0), Math.min(MAP-1, e.y|0))]) continue;
+    // neutral bridges are scenery, not your own base — hide them on radar until discovered
+    if (STRUCTS[e.type] && STRUCTS[e.type].bridge && !explored[idx(Math.min(MAP-1, e.x|0), Math.min(MAP-1, e.y|0))]) continue;
     mmctx.fillStyle = e.owner === 0 ? "#f2d98a" : ENEMY_TINTS[((e.team || 1) - 1) % ENEMY_TINTS.length];
     const sz = e.kind === "struct" ? Math.max(2, e.fw * s) : Math.max(2.4, s * 1.3);
     const sh = e.kind === "struct" ? Math.max(2, e.fh * s) : sz;
