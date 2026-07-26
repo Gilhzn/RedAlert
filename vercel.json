@@ -1,9 +1,6 @@
 {
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/docs/preview/index.html" }
-  ],
+  "buildCommand": "mkdir -p dist && cp docs/preview/index.html dist/index.html",
+  "outputDirectory": "dist",
   "headers": [
     {
       "source": "/(.*)",
